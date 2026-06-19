@@ -9,6 +9,12 @@ plugins {
 group = "kz.mybrain"
 version = "1.0"
 
+repositories {
+    mavenCentral()
+    google()
+}
+
+
 
 dependencies {
     implementation(platform(libs.spring.boot.dependencies))
