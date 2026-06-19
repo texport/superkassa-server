@@ -1,37 +1,22 @@
 [versions]
 kotlin = "2.4.0"
-springBoot = "3.5.10"
-dependencyManagement = "1.1.7"
+springBoot = "4.1.0"
 sqliteJdbc = "3.53.2.0"
 postgresql = "42.7.11"
 mysql = "9.7.0"
 hikariCP = "7.1.0"
 resilience4j = "2.4.0"
-openhtmltopdf = "1.0.10"
-zxing = "3.5.4"
-jakartaMail = "2.0.2"
 mockk = "1.14.11"
-slf4j = "2.0.18"
-springdocOpenapi = "2.8.5"
-ofdKtProto = "2.0.3"
-androidGradlePlugin = "8.13.2"
-room = "2.8.4"
-work = "2.9.1"
+springdocOpenapi = "3.0.3"
 detekt = "1.23.8"
-androidxCoreKtx = "1.13.0"
-ofdProtoCodec = "1.0-SNAPSHOT"
 ofdNetworkClient = "1.0.0"
 serialization = "1.11.0"
-coroutines = "1.11.0"
-validation = "3.1.1"
-swagger = "2.2.51"
-detektKotlinCompiler = "2.4.0"
-protobuf = "0.10.0"
-protobufJava = "4.35.1"
+
+
+
 
 [libraries]
 # Logging
-slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 
 # Database
 sqlite-jdbc = { group = "org.xerial", name = "sqlite-jdbc", version.ref = "sqliteJdbc" }
@@ -43,7 +28,7 @@ hikariCP = { group = "com.zaxxer", name = "HikariCP", version.ref = "hikariCP" }
 spring-boot-dependencies = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "springBoot" }
 spring-boot-starter-web = { group = "org.springframework.boot", name = "spring-boot-starter-web", version.ref = "springBoot" }
 spring-boot-starter-validation = { group = "org.springframework.boot", name = "spring-boot-starter-validation", version.ref = "springBoot" }
-spring-boot-starter-aop = { group = "org.springframework.boot", name = "spring-boot-starter-aop", version.ref = "springBoot" }
+spring-boot-starter-aspectj = { group = "org.springframework.boot", name = "spring-boot-starter-aspectj", version.ref = "springBoot" }
 jackson-module-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version = "2.18.2" }
 
 # OpenAPI
@@ -52,52 +37,33 @@ springdoc-openapi = { group = "org.springdoc", name = "springdoc-openapi-starter
 # Kotlin
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
-kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 
 # Resilience4j
 resilience4j = { group = "io.github.resilience4j", name = "resilience4j-spring-boot3", version.ref = "resilience4j" }
 
 # PDF Rendering
-openhtmltopdf-core = { group = "com.openhtmltopdf", name = "openhtmltopdf-core", version.ref = "openhtmltopdf" }
-openhtmltopdf-pdfbox = { group = "com.openhtmltopdf", name = "openhtmltopdf-pdfbox", version.ref = "openhtmltopdf" }
 
 # QR Codes
-zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
-zxing-javase = { group = "com.google.zxing", name = "javase", version.ref = "zxing" }
 
 # Mail
-jakarta-mail = { group = "com.sun.mail", name = "jakarta.mail", version.ref = "jakartaMail" }
 
 # Android Room
-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 
 # Android WorkManager
-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
 
 # Validation & Swagger (lightweight APIs for core)
-jakarta-validation = { group = "jakarta.validation", name = "jakarta.validation-api", version.ref = "validation" }
-swagger-annotations = { group = "io.swagger.core.v3", name = "swagger-annotations-jakarta", version.ref = "swagger" }
-kotlin-metadata-jvm = { group = "org.jetbrains.kotlin", name = "kotlin-metadata-jvm", version.ref = "kotlin" }
 
 
 # Testing
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
-ofd-kt-proto = { group = "kz.kazakhtelecom", name = "ofd-kt-proto-v203", version.ref = "ofdKtProto" }
-androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCoreKtx" }
-ofd-proto-codec = { group = "kz.mybrain", name = "ofd-proto-codec", version.ref = "ofdProtoCodec" }
 ofd-network-client = { group = "kz.mybrain", name = "ofd-network-client", version.ref = "ofdNetworkClient" }
-protobuf-kotlin = { group = "com.google.protobuf", name = "protobuf-kotlin", version.ref = "protobufJava" }
+
+
+
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
-dependency-management = { id = "io.spring.dependency-management", version.ref = "dependencyManagement" }
-android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
-protobuf = { id = "com.google.protobuf", version.ref = "protobuf" }

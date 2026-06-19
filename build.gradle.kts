@@ -37,7 +37,7 @@ dependencies {
     implementation(libs.kotlin.reflect)
     implementation(libs.springdoc.openapi)
     implementation(libs.resilience4j)
-    implementation(libs.spring.boot.starter.aop)
+    implementation(libs.spring.boot.starter.aspectj)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.mockk)
