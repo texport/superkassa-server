@@ -63,7 +63,7 @@ resilience4j = { group = "io.github.resilience4j", name = "resilience4j-spring-b
 
 # Testing
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
-ofd-network-client = { group = "kz.mybrain", name = "ofd-network-client", version.ref = "ofdNetworkClient" }
+ofd-network-client = { group = "io.github.texport", name = "ofd-network-client", version.ref = "ofdNetworkClient" }
 superkassa-core = { group = "kz.mybrain", name = "superkassa-core", version.ref = "superkassaCore" }
 superkassa-storage-jdbc = { group = "kz.mybrain", name = "superkassa-storage-jdbc", version.ref = "superkassaStorageJdbc" }
 superkassa-j2se-adapters = { group = "kz.mybrain", name = "superkassa-j2se-adapters", version.ref = "superkassaJ2seAdapters" }
