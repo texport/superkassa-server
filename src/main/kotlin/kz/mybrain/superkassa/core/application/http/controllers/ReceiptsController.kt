@@ -12,7 +12,6 @@ import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
 import kz.mybrain.superkassa.core.application.model.receipt.*
 import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.domain.model.ReceiptOperationType
 import kz.mybrain.superkassa.core.domain.model.ReceiptResult
 import org.springframework.web.bind.annotation.*
 

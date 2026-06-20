@@ -18,10 +18,13 @@ repositories {
 
 dependencies {
     implementation(platform(libs.spring.boot.dependencies))
-    implementation("kz.mybrain:superkassa-core")
-    implementation("kz.mybrain:superkassa-storage-jdbc")
-    implementation("kz.mybrain:superkassa-j2se-adapters")
-    implementation("kz.mybrain:superkassa-time-j2se")
+    implementation(libs.superkassa.core)
+    implementation(libs.superkassa.storage.jdbc)
+    implementation(libs.superkassa.j2se.adapters)
+    implementation(libs.superkassa.time.j2se)
+    implementation(libs.superkassa.receipt.renderer)
+    implementation(libs.superkassa.offline.queue)
+    implementation(libs.superkassa.delivery)
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ofd.network.client)

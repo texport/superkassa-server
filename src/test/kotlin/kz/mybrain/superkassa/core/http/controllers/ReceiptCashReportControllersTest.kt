@@ -18,8 +18,6 @@ import kz.mybrain.superkassa.core.application.service.KkmService
 import kz.mybrain.superkassa.core.domain.model.CashOperationRequest
 import kz.mybrain.superkassa.core.domain.model.CashOperationResult
 import kz.mybrain.superkassa.core.domain.model.DeliveryStatus
-import kz.mybrain.superkassa.core.domain.model.ReceiptOperationType
-import kz.mybrain.superkassa.core.domain.model.ReceiptRequest
 import kz.mybrain.superkassa.core.domain.model.ReceiptResult
 import kz.mybrain.superkassa.core.domain.model.ReportResult
 import kotlin.test.Test
