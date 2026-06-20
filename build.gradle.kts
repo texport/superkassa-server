@@ -10,6 +10,7 @@ group = "kz.mybrain"
 version = "1.0"
 
 repositories {
+    mavenLocal()
     mavenCentral()
     google()
 }
