@@ -39,7 +39,7 @@ kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 
 # Resilience4j
-resilience4j = { group = "io.github.resilience4j", name = "resilience4j-spring-boot3", version.ref = "resilience4j" }
+resilience4j = { group = "io.github.resilience4j", name = "resilience4j-spring-boot4", version.ref = "resilience4j" }
 
 # PDF Rendering
 

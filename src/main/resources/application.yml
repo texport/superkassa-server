@@ -9,7 +9,6 @@ spring:
   jackson:
     serialization:
       fail-on-empty-beans: false
-      write-dates-as-timestamps: true
 
 app:
   version: 1.0
