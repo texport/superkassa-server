@@ -93,23 +93,7 @@ class ReceiptsController(private val kkmService: KkmService) {
         @RequestBody @Valid request: ReceiptSellRequest
     ): ReceiptResult {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val receiptRequest = ReceiptMapper.toReceiptRequest(
-            kkmId = kkmId,
-            pin = pin,
-            operation = ReceiptOperationType.SELL,
-            idempotencyKey = request.idempotencyKey,
-            items = request.items,
-            discountPercent = request.discountPercent,
-            discountSum = request.discountSum,
-            markupPercent = request.markupPercent,
-            markupSum = request.markupSum,
-            payments = request.payments,
-            taken = request.taken,
-            change = request.change,
-            defaultVatGroup = request.defaultVatGroup,
-            customerBin = request.customerBin
-        )
-        return kkmService.createReceipt(receiptRequest)
+        return kkmService.createSellReceipt(kkmId, pin, request)
     }
 
     /**
@@ -171,24 +155,7 @@ class ReceiptsController(private val kkmService: KkmService) {
         @RequestBody @Valid request: ReceiptSellReturnRequest
     ): ReceiptResult {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val receiptRequest = ReceiptMapper.toReceiptRequest(
-            kkmId = kkmId,
-            pin = pin,
-            operation = ReceiptOperationType.SELL_RETURN,
-            idempotencyKey = request.idempotencyKey,
-            items = request.items,
-            discountPercent = request.discountPercent,
-            discountSum = request.discountSum,
-            markupPercent = request.markupPercent,
-            markupSum = request.markupSum,
-            payments = request.payments,
-            taken = request.taken,
-            change = request.change,
-            parentTicket = request.parentTicket,
-            defaultVatGroup = request.defaultVatGroup,
-            customerBin = request.customerBin
-        )
-        return kkmService.createReceipt(receiptRequest)
+        return kkmService.createSellReturnReceipt(kkmId, pin, request)
     }
 
     /**
@@ -249,23 +216,7 @@ class ReceiptsController(private val kkmService: KkmService) {
         @RequestBody @Valid request: ReceiptBuyRequest
     ): ReceiptResult {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val receiptRequest = ReceiptMapper.toReceiptRequest(
-            kkmId = kkmId,
-            pin = pin,
-            operation = ReceiptOperationType.BUY,
-            idempotencyKey = request.idempotencyKey,
-            items = request.items,
-            discountPercent = request.discountPercent,
-            discountSum = request.discountSum,
-            markupPercent = request.markupPercent,
-            markupSum = request.markupSum,
-            payments = request.payments,
-            taken = request.taken,
-            change = request.change,
-            defaultVatGroup = request.defaultVatGroup,
-            customerBin = request.customerBin
-        )
-        return kkmService.createReceipt(receiptRequest)
+        return kkmService.createBuyReceipt(kkmId, pin, request)
     }
 
     /**
@@ -326,23 +277,6 @@ class ReceiptsController(private val kkmService: KkmService) {
         @RequestBody @Valid request: ReceiptBuyReturnRequest
     ): ReceiptResult {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val receiptRequest = ReceiptMapper.toReceiptRequest(
-            kkmId = kkmId,
-            pin = pin,
-            operation = ReceiptOperationType.BUY_RETURN,
-            idempotencyKey = request.idempotencyKey,
-            items = request.items,
-            discountPercent = request.discountPercent,
-            discountSum = request.discountSum,
-            markupPercent = request.markupPercent,
-            markupSum = request.markupSum,
-            payments = request.payments,
-            taken = request.taken,
-            change = request.change,
-            parentTicket = request.parentTicket,
-            defaultVatGroup = request.defaultVatGroup,
-            customerBin = request.customerBin
-        )
-        return kkmService.createReceipt(receiptRequest)
+        return kkmService.createBuyReturnReceipt(kkmId, pin, request)
     }
 }

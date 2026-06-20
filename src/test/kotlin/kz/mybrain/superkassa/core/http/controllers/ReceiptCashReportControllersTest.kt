@@ -35,8 +35,10 @@ class ReceiptCashReportControllersTest {
 
     @Test
     fun `createSellReceipt maps request and passes pin from bearer header`() {
-        val captured = slot<ReceiptRequest>()
-        every { service.createReceipt(capture(captured)) } returns ReceiptResult("doc-sell")
+        val capturedKkmId = slot<String>()
+        val capturedPin = slot<String>()
+        val capturedRequest = slot<ReceiptSellRequest>()
+        every { service.createSellReceipt(capture(capturedKkmId), capture(capturedPin), capture(capturedRequest)) } returns ReceiptResult("doc-sell")
 
         val response =
             receiptsController.createSellReceipt(
@@ -46,17 +48,18 @@ class ReceiptCashReportControllersTest {
             )
 
         assertEquals("doc-sell", response.documentId)
-        assertEquals(ReceiptOperationType.SELL, captured.captured.operation)
-        assertEquals("kkm-1", captured.captured.kkmId)
-        assertEquals("1234", captured.captured.pin)
-        assertEquals("idem-sell", captured.captured.idempotencyKey)
-        verify(exactly = 1) { service.createReceipt(any()) }
+        assertEquals("kkm-1", capturedKkmId.captured)
+        assertEquals("1234", capturedPin.captured)
+        assertEquals("idem-sell", capturedRequest.captured.idempotencyKey)
+        verify(exactly = 1) { service.createSellReceipt(any(), any(), any()) }
     }
 
     @Test
     fun `createSellReturnReceipt maps parent ticket and operation`() {
-        val captured = slot<ReceiptRequest>()
-        every { service.createReceipt(capture(captured)) } returns ReceiptResult("doc-sell-return")
+        val capturedKkmId = slot<String>()
+        val capturedPin = slot<String>()
+        val capturedRequest = slot<ReceiptSellReturnRequest>()
+        every { service.createSellReturnReceipt(capture(capturedKkmId), capture(capturedPin), capture(capturedRequest)) } returns ReceiptResult("doc-sell-return")
         val request =
             ReceiptSellReturnRequest(
                 idempotencyKey = "idem-sell-return",
@@ -74,28 +77,34 @@ class ReceiptCashReportControllersTest {
 
         receiptsController.createSellReturnReceipt("kkm-2", "2222", request)
 
-        assertEquals(ReceiptOperationType.SELL_RETURN, captured.captured.operation)
-        assertNotNull(captured.captured.parentTicket)
-        assertEquals("2222", captured.captured.pin)
-        verify(exactly = 1) { service.createReceipt(any()) }
+        assertEquals("kkm-2", capturedKkmId.captured)
+        assertEquals("2222", capturedPin.captured)
+        assertEquals("idem-sell-return", capturedRequest.captured.idempotencyKey)
+        assertNotNull(capturedRequest.captured.parentTicket)
+        verify(exactly = 1) { service.createSellReturnReceipt(any(), any(), any()) }
     }
 
     @Test
     fun `createBuyReceipt maps operation BUY`() {
-        val captured = slot<ReceiptRequest>()
-        every { service.createReceipt(capture(captured)) } returns ReceiptResult("doc-buy")
+        val capturedKkmId = slot<String>()
+        val capturedPin = slot<String>()
+        val capturedRequest = slot<ReceiptBuyRequest>()
+        every { service.createBuyReceipt(capture(capturedKkmId), capture(capturedPin), capture(capturedRequest)) } returns ReceiptResult("doc-buy")
 
         receiptsController.createBuyReceipt("kkm-3", "Bearer 3333", buyRequest("idem-buy"))
 
-        assertEquals(ReceiptOperationType.BUY, captured.captured.operation)
-        assertEquals("3333", captured.captured.pin)
-        verify(exactly = 1) { service.createReceipt(any()) }
+        assertEquals("kkm-3", capturedKkmId.captured)
+        assertEquals("3333", capturedPin.captured)
+        assertEquals("idem-buy", capturedRequest.captured.idempotencyKey)
+        verify(exactly = 1) { service.createBuyReceipt(any(), any(), any()) }
     }
 
     @Test
     fun `createBuyReturnReceipt maps operation BUY_RETURN`() {
-        val captured = slot<ReceiptRequest>()
-        every { service.createReceipt(capture(captured)) } returns ReceiptResult("doc-buy-return")
+        val capturedKkmId = slot<String>()
+        val capturedPin = slot<String>()
+        val capturedRequest = slot<ReceiptBuyReturnRequest>()
+        every { service.createBuyReturnReceipt(capture(capturedKkmId), capture(capturedPin), capture(capturedRequest)) } returns ReceiptResult("doc-buy-return")
         val request =
             ReceiptBuyReturnRequest(
                 idempotencyKey = "idem-buy-return",
@@ -105,9 +114,10 @@ class ReceiptCashReportControllersTest {
 
         receiptsController.createBuyReturnReceipt("kkm-4", "Bearer 4444", request)
 
-        assertEquals(ReceiptOperationType.BUY_RETURN, captured.captured.operation)
-        assertEquals("4444", captured.captured.pin)
-        verify(exactly = 1) { service.createReceipt(any()) }
+        assertEquals("kkm-4", capturedKkmId.captured)
+        assertEquals("4444", capturedPin.captured)
+        assertEquals("idem-buy-return", capturedRequest.captured.idempotencyKey)
+        verify(exactly = 1) { service.createBuyReturnReceipt(any(), any(), any()) }
     }
 
     @Test
