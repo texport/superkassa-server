@@ -69,7 +69,7 @@ superkassa-storage-jdbc = { group = "kz.mybrain", name = "superkassa-storage-jdb
 superkassa-j2se-adapters = { group = "kz.mybrain", name = "superkassa-j2se-adapters", version.ref = "superkassaJ2seAdapters" }
 superkassa-time-java = { group = "io.github.texport", name = "superkassa-time-java", version.ref = "superkassaTimeJava" } # Resolved from Maven Central
 superkassa-receipt-renderer = { group = "kz.mybrain", name = "superkassa-receipt-renderer", version.ref = "superkassaReceiptRenderer" }
-superkassa-offline-queue = { group = "kz.mybrain", name = "superkassa-offline-queue", version.ref = "superkassaOfflineQueue" }
+superkassa-offline-queue = { group = "io.github.texport", name = "superkassa-offline-queue", version.ref = "superkassaOfflineQueue" }
 superkassa-delivery = { group = "kz.mybrain", name = "superkassa-delivery", version.ref = "superkassaDelivery" }
 
 
