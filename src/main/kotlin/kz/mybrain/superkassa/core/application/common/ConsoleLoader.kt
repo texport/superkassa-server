@@ -83,10 +83,13 @@ class ConsoleLoader(
             lines.add(" Режим: ${coreSettings.mode.name} | узел: ${coreSettings.nodeId}")
         }
         lines.add(" ----------------------------------------")
+        val swaggerPath = env.getProperty("springdoc.swagger-ui.path") ?: "/swagger"
+        val apiDocsPath = env.getProperty("springdoc.api-docs.path") ?: "/v3/api-docs"
+
         lines.add(" Локально:    $protocol://localhost:$serverPort$contextPath")
         lines.add(" В сети:      $protocol://$hostAddress:$serverPort$contextPath")
-        lines.add(" Swagger UI:  $protocol://localhost:$serverPort/swagger")
-        lines.add(" API Docs:    $protocol://localhost:$serverPort/v3/api-docs")
+        lines.add(" Swagger UI:  $protocol://localhost:$serverPort$swaggerPath")
+        lines.add(" API Docs:    $protocol://localhost:$serverPort$apiDocsPath")
 
         val plainLengths = lines.map { visibleLength(it) }
         val innerWidth = maxOf(MIN_BOX_WIDTH, plainLengths.maxOrNull() ?: MIN_BOX_WIDTH)
