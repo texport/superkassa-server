@@ -67,7 +67,7 @@ ofd-network-client = { group = "io.github.texport", name = "ofd-network-client",
 superkassa-core = { group = "kz.mybrain", name = "superkassa-core", version.ref = "superkassaCore" }
 superkassa-storage-jdbc = { group = "kz.mybrain", name = "superkassa-storage-jdbc", version.ref = "superkassaStorageJdbc" }
 superkassa-j2se-adapters = { group = "kz.mybrain", name = "superkassa-j2se-adapters", version.ref = "superkassaJ2seAdapters" }
-superkassa-time-java = { group = "io.github.texport", name = "superkassa-time-java", version.ref = "superkassaTimeJava" }
+superkassa-time-java = { group = "io.github.texport", name = "superkassa-time-java", version.ref = "superkassaTimeJava" } # Resolved locally via composite build until published to Maven Central
 superkassa-receipt-renderer = { group = "kz.mybrain", name = "superkassa-receipt-renderer", version.ref = "superkassaReceiptRenderer" }
 superkassa-offline-queue = { group = "kz.mybrain", name = "superkassa-offline-queue", version.ref = "superkassaOfflineQueue" }
 superkassa-delivery = { group = "kz.mybrain", name = "superkassa-delivery", version.ref = "superkassaDelivery" }
