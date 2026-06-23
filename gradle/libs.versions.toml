@@ -14,7 +14,7 @@ serialization = "1.11.0"
 superkassaCore = "1.0"
 superkassaStorageJdbc = "1.0"
 superkassaJ2seAdapters = "1.0"
-superkassaTimeJ2se = "1.0"
+superkassaTimeJava = "1.0.1"
 superkassaReceiptRenderer = "1.0"
 superkassaOfflineQueue = "1.0"
 superkassaDelivery = "1.0"
@@ -67,7 +67,7 @@ ofd-network-client = { group = "io.github.texport", name = "ofd-network-client",
 superkassa-core = { group = "kz.mybrain", name = "superkassa-core", version.ref = "superkassaCore" }
 superkassa-storage-jdbc = { group = "kz.mybrain", name = "superkassa-storage-jdbc", version.ref = "superkassaStorageJdbc" }
 superkassa-j2se-adapters = { group = "kz.mybrain", name = "superkassa-j2se-adapters", version.ref = "superkassaJ2seAdapters" }
-superkassa-time-j2se = { group = "kz.mybrain", name = "superkassa-time-j2se", version.ref = "superkassaTimeJ2se" }
+superkassa-time-java = { group = "io.github.texport", name = "superkassa-time-java", version.ref = "superkassaTimeJava" }
 superkassa-receipt-renderer = { group = "kz.mybrain", name = "superkassa-receipt-renderer", version.ref = "superkassaReceiptRenderer" }
 superkassa-offline-queue = { group = "kz.mybrain", name = "superkassa-offline-queue", version.ref = "superkassaOfflineQueue" }
 superkassa-delivery = { group = "kz.mybrain", name = "superkassa-delivery", version.ref = "superkassaDelivery" }

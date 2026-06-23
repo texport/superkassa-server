@@ -22,7 +22,7 @@ dependencies {
     implementation(libs.superkassa.core)
     implementation(libs.superkassa.storage.jdbc)
     implementation(libs.superkassa.j2se.adapters)
-    implementation(libs.superkassa.time.j2se)
+    implementation(libs.superkassa.time.java)
     implementation(libs.superkassa.receipt.renderer)
     implementation(libs.superkassa.offline.queue)
     implementation(libs.superkassa.delivery)
