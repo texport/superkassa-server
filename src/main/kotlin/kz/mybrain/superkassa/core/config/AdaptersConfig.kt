@@ -200,7 +200,13 @@ class AdaptersConfig {
     }
 
     @Bean
-    fun receiptRenderPort(): ReceiptRenderPort = kz.mybrain.superkassa.core.data.receipt.ReceiptHtmlRenderer(kz.mybrain.superkassa.core.data.receipt.QrCodeDataUriGenerator)
+    fun receiptRenderPort(settings: CoreSettings): ReceiptRenderPort {
+        val providers = settings.ofdProviders ?: kz.mybrain.superkassa.core.data.receipt.ReceiptHtmlRenderer.defaultOfdProviders
+        return kz.mybrain.superkassa.core.data.receipt.ReceiptHtmlRenderer(
+            qrCodeGenerator = kz.mybrain.superkassa.core.data.receipt.QrCodeDataUriGenerator,
+            ofdProviders = providers
+        )
+    }
 
     @Bean
     fun documentConvertPort(): DocumentConvertPort = kz.mybrain.superkassa.core.data.receipt.DocumentConvertAdapter()

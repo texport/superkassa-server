@@ -27,7 +27,8 @@ fun KkmInfo.toResponse(): KkmResponse {
         autoCloseShift = autoCloseShift,
         lastFiscalHashBase64 = lastFiscalHashBase64,
         taxRegime = taxRegime.name,
-        defaultVatGroup = defaultVatGroup.name
+        defaultVatGroup = defaultVatGroup.name,
+        branding = branding
     )
 }
 

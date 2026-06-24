@@ -18,6 +18,7 @@ import kz.mybrain.superkassa.core.application.http.toResponse
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
 import kz.mybrain.superkassa.core.application.model.*
 import kz.mybrain.superkassa.core.domain.model.OfdCommandResult
+import kz.mybrain.superkassa.core.domain.model.ReceiptBranding
 import kz.mybrain.superkassa.core.application.service.KkmService
 import org.springframework.web.bind.annotation.*
 
@@ -155,6 +156,41 @@ class KkmManagementController(private val kkmService: KkmService) {
             )
             .toResponse()
     }
+
+    /**
+     * Обновить настройки брендирования чеков.
+     * Требует режима программирования и прав администратора.
+     */
+    @PutMapping("/{kkmId}/settings/branding")
+    @Operation(
+        summary = "Обновить настройки брендирования чеков",
+        description = """
+            Обновляет настройки отображения, локализации и брендирования чеков и отчетов ККМ.
+            Позволяет задавать ширину бумаги (58мм или 80мм), язык чека (RU, KK, MIXED),
+            а также кастомный HTML-код для шапки и подвала и кастомные CSS-стили.
+            
+            Ограничения:
+            - ККМ должна быть в режиме программирования (PROGRAMMING)
+            - Требуются права администратора (ADMIN)
+            - ПИН-код администратора передается в заголовке Authorization
+        """
+    )
+    @KkmApiResponses(
+        ok = MSG_200_SETTINGS_UPDATED,
+        badRequest = MSG_400_NOT_PROGRAMMING_MODE,
+        forbidden = MSG_403_FORBIDDEN,
+        notFound = MSG_404_KKM_NOT_FOUND
+    )
+    fun updateBrandingSettings(
+        @PathVariable kkmId: String,
+        @RequestHeader("Authorization") authHeader: String?,
+        @RequestBody request: ReceiptBranding
+    ): KkmResponse {
+        val pin = AuthHeaderUtils.extractPin(authHeader)
+        return kkmService.updateBrandingSettings(kkmId, pin, request).toResponse()
+    }
+
+
 
 
     /**
