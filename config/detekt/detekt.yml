@@ -82,10 +82,10 @@ exceptions:
   active: true
   SwallowedException:
     active: true
-    excludes: ['**/OfdInfoCountersSnapshotParser.kt', '**/OfdResponseUtils.kt', '**/OfdManagerAdapter.kt', '**/DeliveryPortAdapter.kt', '**/ReceiptHtmlRenderer.kt', '**/ConsoleLoader.kt', '**/*Controller.kt', '**/*Mapper.kt', '**/*Indicator.kt', '**/*Delegate.kt', '**/*Repository.kt', '**/*Session.kt', '**/*HealthChecker.kt', '**/*Adapter.kt', '**/EscPosConverter.kt']
+    excludes: ['**/OfdInfoCountersSnapshotParser.kt', '**/OfdResponseUtils.kt', '**/OfdManagerAdapter.kt', '**/DeliveryAdapter.kt', '**/ReceiptHtmlRenderer.kt', '**/ConsoleLoader.kt', '**/*Controller.kt', '**/*Mapper.kt', '**/*Indicator.kt', '**/*Delegate.kt', '**/*Repository.kt', '**/*Session.kt', '**/*HealthChecker.kt', '**/*Adapter.kt', '**/EscPosConverter.kt']
   TooGenericExceptionCaught:
     active: true
-    excludes: ['**/OfdCodec.kt', '**/OfdInfoCountersSnapshotParser.kt', '**/OfdQueueCommandHandler.kt', '**/OfdResponseUtils.kt', '**/OfdManagerAdapter.kt', '**/Base64TokenCodecPort.kt', '**/ResilienceOfdManagerPortAdapter.kt', '**/DeliveryPortAdapter.kt', '**/ReceiptHtmlRenderer.kt', '**/ConsoleLoader.kt', '**/*Controller.kt', '**/*Mapper.kt', '**/*Indicator.kt', '**/*Delegate.kt', '**/*Repository.kt', '**/*Session.kt', '**/*HealthChecker.kt', '**/*Adapter.kt', '**/EscPosConverter.kt']
+    excludes: ['**/OfdCodec.kt', '**/OfdInfoCountersSnapshotParser.kt', '**/OfdQueueCommandHandler.kt', '**/OfdResponseUtils.kt', '**/OfdManagerAdapter.kt', '**/Base64TokenCodecAdapter.kt', '**/ResilienceOfdManagerAdapter.kt', '**/DeliveryAdapter.kt', '**/ReceiptHtmlRenderer.kt', '**/ConsoleLoader.kt', '**/*Controller.kt', '**/*Mapper.kt', '**/*Indicator.kt', '**/*Delegate.kt', '**/*Repository.kt', '**/*Session.kt', '**/*HealthChecker.kt', '**/*Adapter.kt', '**/EscPosConverter.kt']
 
 formatting:
   active: true
@@ -117,3 +117,6 @@ formatting:
     active: true
   Wrapping:
     active: false
+  PackageName:
+    active: false
+

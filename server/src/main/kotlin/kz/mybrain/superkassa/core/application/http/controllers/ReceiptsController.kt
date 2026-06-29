@@ -10,9 +10,9 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_K
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_SHIFT_NOT_OPEN
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.application.model.receipt.*
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.domain.model.ReceiptResult
+import kz.mybrain.superkassa.core.presentation.model.*
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptResult
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/kkm/{kkmId}/receipt")
 @Tag(name = "Чеки", description = "Создание чеков различных типов операций")
-class ReceiptsController(private val kkmService: KkmService) {
+class ReceiptsController(private val kkmService: SuperkassaApi) {
 
     /**
      * Создать чек продажи.

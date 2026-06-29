@@ -1,11 +1,21 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.detekt)
+    `maven-publish`
     jacoco
 }
 
 group = "io.github.texport"
 version = libs.versions.superkassaTimeJava.get()
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            artifactId = "superkassa-time-java"
+            from(components["java"])
+        }
+    }
+}
 
 repositories {
     mavenLocal()
@@ -21,7 +31,7 @@ detekt {
 }
 
 dependencies {
-    implementation(libs.superkassa.core)
+    implementation(libs.superkassa.core.domain)
     implementation(libs.slf4j.api)
     
     testImplementation(kotlin("test"))
@@ -29,11 +39,11 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(libs.versions.java.get().toInt())
+    jvmToolchain(libs.versions.javaTargetCore.get().toInt())
 }
 
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
-    jvmTarget = libs.versions.java.get()
+    jvmTarget = libs.versions.javaTargetCore.get()
 }
 
 jacoco {

@@ -12,10 +12,11 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.superkassa.core)
+    implementation(libs.superkassa.core.domain)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.slf4j.api)
 
+    testImplementation(libs.superkassa.core.presentation)
     testImplementation(kotlin("test"))
     testImplementation(libs.mockk)
     detektPlugins(libs.detekt.formatting)

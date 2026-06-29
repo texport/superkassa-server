@@ -4,8 +4,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import io.github.texport.superkassa.jvm.settings.CoreSettingsValidator
 import io.github.texport.superkassa.jvm.settings.IllegalServerConfigurationException
-import kz.mybrain.superkassa.core.application.model.CoreSettings
-import kz.mybrain.superkassa.core.application.service.CoreSettingsRepository
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
 import org.slf4j.LoggerFactory
 import java.sql.Connection
 import java.sql.DriverManager
@@ -25,7 +25,7 @@ class DatabaseCoreSettingsRepository(
         prettyPrint = true
         ignoreUnknownKeys = true
     }
-) : CoreSettingsRepository {
+) : CoreSettingsRepositoryPort {
 
     private val logger = LoggerFactory.getLogger(DatabaseCoreSettingsRepository::class.java)
 

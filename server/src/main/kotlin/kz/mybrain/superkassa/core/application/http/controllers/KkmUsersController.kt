@@ -15,14 +15,15 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_U
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_PIN_BUSY
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.application.model.*
-import kz.mybrain.superkassa.core.application.service.KkmService
+import kz.mybrain.superkassa.core.domain.model.settings.*
+import kz.mybrain.superkassa.core.presentation.model.*
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/kkm/{kkmId}")
 @Tag(name = "Управление кассирами и операторами ККМ", description = "Операции с пользователями ККМ")
-class KkmUsersController(private val kkmService: KkmService) {
+class KkmUsersController(private val kkmService: SuperkassaApi) {
 
     /** Получить список пользователей, зарегистрированных в ККМ. */
     @GetMapping("/users")

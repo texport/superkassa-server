@@ -7,26 +7,26 @@ import io.mockk.verify
 import kz.mybrain.superkassa.core.application.http.controllers.CashOperationsController
 import kz.mybrain.superkassa.core.application.http.controllers.ReceiptsController
 import kz.mybrain.superkassa.core.application.http.controllers.ReportsController
-import kz.mybrain.superkassa.core.application.model.receipt.ParentTicketDto
-import kz.mybrain.superkassa.core.application.model.receipt.ReceiptBuyRequest
-import kz.mybrain.superkassa.core.application.model.receipt.ReceiptBuyReturnRequest
-import kz.mybrain.superkassa.core.application.model.receipt.ReceiptItemDto
-import kz.mybrain.superkassa.core.application.model.receipt.ReceiptPaymentDto
-import kz.mybrain.superkassa.core.application.model.receipt.ReceiptSellRequest
-import kz.mybrain.superkassa.core.application.model.receipt.ReceiptSellReturnRequest
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.domain.model.CashOperationRequest
-import kz.mybrain.superkassa.core.domain.model.CashOperationResult
-import kz.mybrain.superkassa.core.domain.model.DeliveryStatus
-import kz.mybrain.superkassa.core.domain.model.ReceiptResult
-import kz.mybrain.superkassa.core.domain.model.ReportResult
+import kz.mybrain.superkassa.core.presentation.model.ParentTicketDto
+import kz.mybrain.superkassa.core.presentation.model.ReceiptBuyRequest
+import kz.mybrain.superkassa.core.presentation.model.ReceiptBuyReturnRequest
+import kz.mybrain.superkassa.core.presentation.model.ReceiptItemDto
+import kz.mybrain.superkassa.core.presentation.model.ReceiptPaymentDto
+import kz.mybrain.superkassa.core.presentation.model.ReceiptSellRequest
+import kz.mybrain.superkassa.core.presentation.model.ReceiptSellReturnRequest
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.domain.model.kkm.CashOperationRequest
+import kz.mybrain.superkassa.core.domain.model.kkm.CashOperationResult
+import kz.mybrain.superkassa.core.domain.model.delivery.DeliveryStatus
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptResult
+import kz.mybrain.superkassa.core.domain.model.report.ReportResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class ReceiptCashReportControllersTest {
 
-    private val service = mockk<KkmService>()
+    private val service = mockk<SuperkassaApi>()
     private val receiptsController = ReceiptsController(service)
     private val cashController = CashOperationsController(service)
     private val reportsController = ReportsController(service)

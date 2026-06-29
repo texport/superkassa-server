@@ -1,8 +1,8 @@
 package io.github.texport.superkassa.jvm.settings
 
 import io.github.texport.superkassa.jvm.settings.validation.*
-import kz.mybrain.superkassa.core.application.model.CoreMode
-import kz.mybrain.superkassa.core.application.model.CoreSettings
+import kz.mybrain.superkassa.core.domain.model.settings.CoreMode
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
 
 /**
  * Валидатор для проверки корректности конфигурации ядра.
@@ -49,7 +49,5 @@ object CoreSettingsValidator {
         if (delivery != null) {
             DeliveryValidator.validateDeliveryChannels(delivery)
         }
-
-        OfdProvidersValidator.validateOfdProviders(settings)
     }
 }

@@ -16,16 +16,17 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_S
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.toResponse
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.application.model.*
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.domain.model.OfdCommandResult
-import kz.mybrain.superkassa.core.domain.model.ReceiptBranding
+import kz.mybrain.superkassa.core.domain.model.settings.*
+import kz.mybrain.superkassa.core.presentation.model.*
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptBranding
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/kkm")
 @Tag(name = "Управление ККМ", description = "Управление настройками и параметрами ККМ, интеграция с ОФД")
-class KkmManagementController(private val kkmService: KkmService) {
+class KkmManagementController(private val kkmService: SuperkassaApi) {
 
     /**
      * Получить подробную информацию о конкретной ККМ.

@@ -9,9 +9,9 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_F
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_KKM_NOT_FOUND
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.application.model.OfdAuthInfoResponse
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.domain.model.OfdCommandResult
+import kz.mybrain.superkassa.core.presentation.model.OfdAuthInfoResponse
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/kkm/{kkmId}/ofd")
 @Tag(name = "Диагностика ККМ", description = "Диагностика ККМ и проверка связи с ОФД")
-class KkmDiagnosticsController(private val kkmService: KkmService) {
+class KkmDiagnosticsController(private val kkmService: SuperkassaApi) {
 
     /**
      * Получить информацию о ККМ от ОФД.

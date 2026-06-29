@@ -1,8 +1,8 @@
 package kz.mybrain.superkassa.core.data.adapter
 
-import kz.mybrain.superkassa.core.domain.model.KkmInfo
-import kz.mybrain.superkassa.core.domain.model.KkmUser
-import kz.mybrain.superkassa.core.domain.model.UserRole
+import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
+import kz.mybrain.superkassa.core.domain.model.auth.KkmUser
+import kz.mybrain.superkassa.core.domain.model.auth.UserRole
 import kz.mybrain.superkassa.storage.application.session.StorageSession
 import kz.mybrain.superkassa.storage.domain.model.KkmUserRecord
 
@@ -18,6 +18,10 @@ class JdbcKkmDelegate(private val sessionProvider: () -> StorageSession) {
 
     fun findKkm(id: String): KkmInfo? {
         return sessionProvider().cashboxes.findById(id)?.let { StorageMapper.mapKkm(it) }
+    }
+
+    fun findKkmForUpdate(id: String): KkmInfo? {
+        return sessionProvider().cashboxes.findByIdForUpdate(id)?.let { StorageMapper.mapKkm(it) }
     }
 
     fun findKkmByRegistrationNumber(registrationNumber: String): KkmInfo? {

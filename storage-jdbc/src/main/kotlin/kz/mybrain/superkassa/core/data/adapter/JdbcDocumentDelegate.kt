@@ -2,10 +2,10 @@ package kz.mybrain.superkassa.core.data.adapter
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
-import kz.mybrain.superkassa.core.domain.model.FiscalDocumentSnapshot
-import kz.mybrain.superkassa.core.domain.model.Money
-import kz.mybrain.superkassa.core.domain.model.ReceiptRequest
-import kz.mybrain.superkassa.core.domain.model.ReceiptStoredPayload
+import kz.mybrain.superkassa.core.domain.model.kkm.FiscalDocumentSnapshot
+import kz.mybrain.superkassa.core.domain.model.common.Money
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptRequest
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptStoredPayload
 import kz.mybrain.superkassa.storage.application.session.StorageSession
 import kz.mybrain.superkassa.storage.domain.model.FiscalDocumentRecord
 import kz.mybrain.superkassa.storage.domain.model.IdempotencyRecord

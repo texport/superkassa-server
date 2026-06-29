@@ -4,9 +4,9 @@ package kz.mybrain.superkassa.core.data.adapter
 
 import io.github.texport.superkassa.jvm.settings.IllegalServerConfigurationException
 import io.mockk.*
-import kz.mybrain.superkassa.core.application.model.CoreMode
-import kz.mybrain.superkassa.core.application.model.CoreSettings
-import kz.mybrain.superkassa.core.application.model.StorageSettings
+import kz.mybrain.superkassa.core.domain.model.settings.CoreMode
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.domain.model.settings.StorageSettings
 import java.sql.Connection
 import java.sql.DatabaseMetaData
 import java.sql.DriverManager

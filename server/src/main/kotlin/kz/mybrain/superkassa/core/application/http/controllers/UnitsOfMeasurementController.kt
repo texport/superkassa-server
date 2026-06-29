@@ -2,15 +2,15 @@ package kz.mybrain.superkassa.core.application.http.controllers
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
-import kz.mybrain.superkassa.core.application.error.ErrorMessages
-import kz.mybrain.superkassa.core.application.error.NotFoundException
+import kz.mybrain.superkassa.core.domain.exception.ErrorMessages
+import kz.mybrain.superkassa.core.domain.exception.NotFoundException
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_UNITS_LIST
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_UNIT_FOUND
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_UNIT_NOT_FOUND
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
-import kz.mybrain.superkassa.core.application.model.PaginatedResponse
-import kz.mybrain.superkassa.core.application.model.UnitOfMeasurementResponse
-import kz.mybrain.superkassa.core.domain.model.UnitOfMeasurement
+import kz.mybrain.superkassa.core.presentation.model.PaginatedResponse
+import kz.mybrain.superkassa.core.presentation.model.UnitOfMeasurementResponse
+import kz.mybrain.superkassa.core.domain.model.common.UnitOfMeasurement
 import org.springframework.web.bind.annotation.*
 
 /**

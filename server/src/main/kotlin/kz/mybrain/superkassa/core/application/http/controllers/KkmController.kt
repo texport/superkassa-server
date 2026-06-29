@@ -17,14 +17,14 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_S
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_SHIFT_OPEN
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.application.model.DeliveryRetryItemResponse
-import kz.mybrain.superkassa.core.application.model.DeliveryRetryResponse
-import kz.mybrain.superkassa.core.application.model.PrintDocumentType
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.domain.model.FiscalDocumentSnapshot
-import kz.mybrain.superkassa.core.domain.model.ReceiptLayoutType
-import kz.mybrain.superkassa.core.domain.model.ReportResult
-import kz.mybrain.superkassa.core.domain.model.ShiftInfo
+import kz.mybrain.superkassa.core.presentation.model.DeliveryRetryItemResponse
+import kz.mybrain.superkassa.core.presentation.model.DeliveryRetryResponse
+import kz.mybrain.superkassa.core.domain.model.report.PrintDocumentType
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.domain.model.kkm.FiscalDocumentSnapshot
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptLayoutType
+import kz.mybrain.superkassa.core.domain.model.report.ReportResult
+import kz.mybrain.superkassa.core.domain.model.shift.ShiftInfo
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/kkm")
 @Tag(name = "Управление сменой(Z-Отчет) ККМ", description = "Операции со сменами, чеками и отчетами")
-class KkmController(private val kkmService: KkmService) {
+class KkmController(private val kkmService: SuperkassaApi) {
 
     /** Открыть новую смену. */
     @PostMapping("/{kkmId}/shift/open")

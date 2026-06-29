@@ -1,8 +1,8 @@
 package kz.mybrain.superkassa.core.data.adapter
 
-import kz.mybrain.superkassa.core.domain.model.CounterSnapshot
-import kz.mybrain.superkassa.core.domain.model.ShiftInfo
-import kz.mybrain.superkassa.core.domain.model.ShiftStatus
+import kz.mybrain.superkassa.core.domain.model.common.CounterSnapshot
+import kz.mybrain.superkassa.core.domain.model.shift.ShiftInfo
+import kz.mybrain.superkassa.core.domain.model.shift.ShiftStatus
 import kz.mybrain.superkassa.storage.application.session.StorageSession
 import kz.mybrain.superkassa.storage.domain.model.CounterRecord
 import kz.mybrain.superkassa.storage.domain.model.ShiftRecord

@@ -2,9 +2,16 @@ package kz.mybrain.superkassa.core.data.adapter
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
-import kz.mybrain.superkassa.core.application.error.ErrorMessages
-import kz.mybrain.superkassa.core.application.error.ValidationException
-import kz.mybrain.superkassa.core.domain.model.*
+import kz.mybrain.superkassa.core.domain.exception.StorageException
+import kz.mybrain.superkassa.core.domain.exception.TrilingualMessage
+import kz.mybrain.superkassa.core.domain.model.common.*
+import kz.mybrain.superkassa.core.domain.model.auth.*
+import kz.mybrain.superkassa.core.domain.model.kkm.*
+import kz.mybrain.superkassa.core.domain.model.shift.*
+import kz.mybrain.superkassa.core.domain.model.queue.*
+import kz.mybrain.superkassa.core.domain.model.report.*
+import kz.mybrain.superkassa.core.domain.model.ofd.*
+import kz.mybrain.superkassa.core.domain.model.receipt.*
 import kz.mybrain.superkassa.storage.application.session.StorageSession
 import kz.mybrain.superkassa.storage.domain.model.FiscalDocumentRecord
 import kz.mybrain.superkassa.storage.domain.model.KkmUserRecord
@@ -112,9 +119,10 @@ object StorageMapper {
             Base64.getDecoder().decode(value)
         } catch (ex: IllegalArgumentException) {
             logger.error("Invalid Base64 format in database", ex)
-            throw ValidationException(
-                ErrorMessages.invalidBase64Format(),
-                "INVALID_BASE64_FORMAT"
+            throw StorageException(
+                StorageErrorMessages.invalidBase64Format(),
+                "INVALID_BASE64_FORMAT",
+                ex
             )
         }
     }
@@ -134,9 +142,10 @@ object StorageMapper {
             UserRole.valueOf(roleString)
         } catch (ex: IllegalArgumentException) {
             logger.error("Invalid user role in database: $roleString", ex)
-            throw ValidationException(
-                ErrorMessages.userRoleInvalid(roleString),
-                "INVALID_USER_ROLE"
+            throw StorageException(
+                StorageErrorMessages.userRoleInvalid(roleString),
+                "INVALID_USER_ROLE",
+                ex
             )
         }
     }
@@ -146,9 +155,10 @@ object StorageMapper {
             ShiftStatus.valueOf(statusString)
         } catch (ex: IllegalArgumentException) {
             logger.error("Invalid shift status in database: $statusString", ex)
-            throw ValidationException(
-                ErrorMessages.shiftStatusInvalid(statusString),
-                "INVALID_SHIFT_STATUS"
+            throw StorageException(
+                StorageErrorMessages.shiftStatusInvalid(statusString),
+                "INVALID_SHIFT_STATUS",
+                ex
             )
         }
     }
@@ -205,4 +215,24 @@ object StorageMapper {
             ofdProvider = cashbox?.ofdProvider
         )
     }
+}
+
+private object StorageErrorMessages {
+    fun userRoleInvalid(role: String) = TrilingualMessage(
+        ru = "Неверная роль пользователя в БД: $role",
+        kk = "Деректер қорындағы пайдаланушының қате рөлі: $role",
+        en = "Invalid user role in database: $role"
+    )
+
+    fun shiftStatusInvalid(status: String) = TrilingualMessage(
+        ru = "Неверный статус смены в БД: $status",
+        kk = "Деректер қорындағы ауысымның қате статусы: $status",
+        en = "Invalid shift status in database: $status"
+    )
+
+    fun invalidBase64Format() = TrilingualMessage(
+        ru = "Неверный формат Base64 в БД",
+        kk = "Деректер қорындағы Base64 қате форматы",
+        en = "Invalid Base64 format in database"
+    )
 }

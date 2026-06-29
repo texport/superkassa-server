@@ -3,20 +3,20 @@ package kz.mybrain.superkassa.core.application.http.controllers
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import kz.mybrain.superkassa.core.application.error.SettingsFrozenException
+import kz.mybrain.superkassa.core.domain.exception.SettingsFrozenException
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_SETTINGS
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_SETTINGS_UPDATED
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_SETTINGS_FROZEN
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
-import kz.mybrain.superkassa.core.application.model.CoreSettings
-import kz.mybrain.superkassa.core.application.service.CoreSettingsRepository
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/")
 @Tag(name = "Настройки Superkassa", description = "Управление системными настройками Superkassa.")
 class SuperkassaSettingsController(
-    private val settingsRepository: CoreSettingsRepository,
+    private val settingsRepository: CoreSettingsRepositoryPort,
     private val coreSettings: CoreSettings
 ) {
 

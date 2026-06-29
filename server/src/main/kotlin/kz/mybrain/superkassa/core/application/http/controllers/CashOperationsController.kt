@@ -10,15 +10,15 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_K
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_SHIFT_NOT_OPEN
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.domain.model.CashOperationRequest
-import kz.mybrain.superkassa.core.domain.model.CashOperationResult
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.domain.model.kkm.CashOperationRequest
+import kz.mybrain.superkassa.core.domain.model.kkm.CashOperationResult
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/kkm")
 @Tag(name = "Внесение и изъятие наличных денег", description = "Операции с наличными")
-class CashOperationsController(private val kkmService: KkmService) {
+class CashOperationsController(private val kkmService: SuperkassaApi) {
 
     /**
      * Внесение наличных денег в кассу (Cash In).

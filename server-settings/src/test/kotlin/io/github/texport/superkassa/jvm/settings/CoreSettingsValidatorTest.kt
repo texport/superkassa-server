@@ -2,8 +2,8 @@ package io.github.texport.superkassa.jvm.settings
 
 import io.github.texport.superkassa.jvm.settings.validation.*
 import kotlinx.serialization.json.Json
-import kz.mybrain.superkassa.core.application.model.*
-import kz.mybrain.superkassa.core.domain.model.OfdProviderConfig
+import kz.mybrain.superkassa.core.domain.model.settings.*
+import kz.mybrain.superkassa.core.presentation.model.*
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
@@ -568,33 +568,6 @@ class CoreSettingsValidatorTest {
     }
 
     @Test
-    fun `validateSettings ofdProviders validation checks`() {
-        // blank provider key
-        assertValidationFails("""
-            {
-                "mode": "DESKTOP",
-                "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:db.db" },
-                "ofdProtocolVersion": "203",
-                "ofdProviders": {
-                    "": { "nameRu": "Ru", "nameKk": "Kk", "website": "https://web.com", "checkDomain": "domain" }
-                }
-            }
-        """)
-
-        // invalid website URL scheme
-        assertValidationFails("""
-            {
-                "mode": "DESKTOP",
-                "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:db.db" },
-                "ofdProtocolVersion": "203",
-                "ofdProviders": {
-                    "prov": { "nameRu": "Ru", "nameKk": "Kk", "website": "ftp://web.com", "checkDomain": "domain" }
-                }
-            }
-        """)
-    }
-
-    @Test
     fun `validateSettings server mode valid settings`() {
         val jsonStr = """
             {
@@ -921,19 +894,6 @@ class CoreSettingsValidatorTest {
             )
         ))
 
-        // 22. ofdProviders check config nameRu, nameKk, website, checkDomain blank
-        val validOfd = OfdProviderConfig(
-            nameRu = "Ru",
-            nameKk = "Kk",
-            website = "http://web.com",
-            checkDomain = "domain"
-        )
-        assertValidationFails(base.copy(ofdProviders = mapOf("prov" to validOfd.copy(nameRu = ""))))
-        assertValidationFails(base.copy(ofdProviders = mapOf("prov" to validOfd.copy(nameKk = ""))))
-        assertValidationFails(base.copy(ofdProviders = mapOf("prov" to validOfd.copy(website = ""))))
-        assertValidationFails(base.copy(ofdProviders = mapOf("prov" to validOfd.copy(checkDomain = ""))))
-        assertValidationFails(base.copy(ofdProviders = mapOf("" to validOfd)))
-
         // 23. isValidEmail spacing check
         assertValidationFails(base.copy(
             delivery = DeliverySettings(
@@ -999,28 +959,9 @@ class CoreSettingsValidatorTest {
     }
 
     @Test
-    fun `validateSettings with valid ofd providers`() {
-        val base = CoreSettings(
-            mode = CoreMode.DESKTOP,
-            storage = StorageSettings(engine = "SQLITE", jdbcUrl = "jdbc:sqlite:db.db"),
-            ofdProtocolVersion = "203",
-            ofdProviders = mapOf(
-                "prov1" to OfdProviderConfig(
-                    nameRu = "Ru",
-                    nameKk = "Kk",
-                    website = "https://ofd.check.kz",
-                    checkDomain = "domain"
-                )
-            )
-        )
-        CoreSettingsValidator.validateSettings(base)
-    }
-
-    @Test
     fun `test object constructors for coverage`() {
         // Initialize objects to trigger class loading and constructor coverage
         kotlin.test.assertNotNull(StorageValidator)
-        kotlin.test.assertNotNull(OfdProvidersValidator)
         kotlin.test.assertNotNull(DeliveryValidator)
         kotlin.test.assertNotNull(PrintValidator)
         kotlin.test.assertNotNull(EmailValidator)
@@ -1035,5 +976,44 @@ class CoreSettingsValidatorTest {
         constructor.isAccessible = true
         val instance = constructor.newInstance()
         kotlin.test.assertNotNull(instance)
+    }
+
+    @Test
+    fun `test validation errors coverage`() {
+        kotlin.test.assertNotNull(ValidationErrors.SQLITE_NOT_ALLOWED_ERROR)
+        kotlin.test.assertNotNull(ValidationErrors.SERVER_MODE_ONLY_ERROR)
+        kotlin.test.assertNotNull(ValidationErrors.OFD_PROTOCOL_VERSION_ERROR)
+        kotlin.test.assertNotNull(ValidationErrors.OFD_TIMEOUT_ERROR)
+        kotlin.test.assertNotNull(ValidationErrors.OFD_RECONNECT_INTERVAL_ERROR)
+        kotlin.test.assertNotNull(ValidationErrors.STORAGE_ENGINE_BLANK)
+        kotlin.test.assertNotNull(ValidationErrors.STORAGE_ENGINE_INVALID)
+        kotlin.test.assertNotNull(ValidationErrors.JDBC_URL_BLANK)
+        kotlin.test.assertNotNull(ValidationErrors.JDBC_URL_INVALID_SCHEME)
+        kotlin.test.assertNotNull(ValidationErrors.NODE_ID_BLANK)
+        kotlin.test.assertNotNull(ValidationErrors.DATABASE_USER_BLANK)
+        kotlin.test.assertNotNull(ValidationErrors.DATABASE_PASSWORD_BLANK)
+        kotlin.test.assertNotNull(ValidationErrors.OFD_PROVIDER_KEY_BLANK)
+        kotlin.test.assertNotNull(ValidationErrors.CHANNEL_NAME_BLANK)
+        kotlin.test.assertNotNull(ValidationErrors.unknownChannel("TEST"))
+        kotlin.test.assertNotNull(ValidationErrors.payloadTypeBlank("TEST"))
+        kotlin.test.assertNotNull(ValidationErrors.documentFormatBlank("TEST"))
+        kotlin.test.assertNotNull(ValidationErrors.destinationBlank("TEST"))
+        kotlin.test.assertNotNull(ValidationErrors.EMAIL_DESTINATION_INVALID)
+        kotlin.test.assertNotNull(ValidationErrors.phoneDestinationInvalid("TEST"))
+        kotlin.test.assertNotNull(ValidationErrors.TELEGRAM_DESTINATION_INVALID)
+        kotlin.test.assertNotNull(ValidationErrors.PRINT_CONFIG_MISSING)
+        kotlin.test.assertNotNull(ValidationErrors.PRINT_PAPER_WIDTH_INVALID)
+        kotlin.test.assertNotNull(ValidationErrors.PRINT_HOST_INVALID)
+        kotlin.test.assertNotNull(ValidationErrors.PRINT_PORT_INVALID)
+        kotlin.test.assertNotNull(ValidationErrors.EMAIL_CONFIG_MISSING)
+        kotlin.test.assertNotNull(ValidationErrors.EMAIL_PARAMS_INVALID)
+        kotlin.test.assertNotNull(ValidationErrors.SMS_CONFIG_MISSING)
+        kotlin.test.assertNotNull(ValidationErrors.SMS_PROVIDER_URL_INVALID)
+        kotlin.test.assertNotNull(ValidationErrors.SMS_API_KEY_BLANK)
+        kotlin.test.assertNotNull(ValidationErrors.TELEGRAM_CONFIG_MISSING)
+        kotlin.test.assertNotNull(ValidationErrors.TELEGRAM_BOT_TOKEN_INVALID)
+        kotlin.test.assertNotNull(ValidationErrors.WHATSAPP_CONFIG_MISSING)
+        kotlin.test.assertNotNull(ValidationErrors.WHATSAPP_ACCESS_TOKEN_BLANK)
+        kotlin.test.assertNotNull(ValidationErrors.WHATSAPP_PHONE_ID_INVALID)
     }
 }

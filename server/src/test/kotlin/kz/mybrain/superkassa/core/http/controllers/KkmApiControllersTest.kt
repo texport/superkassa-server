@@ -10,37 +10,37 @@ import kz.mybrain.superkassa.core.application.http.controllers.KkmDiagnosticsCon
 import kz.mybrain.superkassa.core.application.http.controllers.KkmManagementController
 import kz.mybrain.superkassa.core.application.http.controllers.KkmProgrammingController
 import kz.mybrain.superkassa.core.application.http.controllers.KkmUsersController
-import kz.mybrain.superkassa.core.application.model.AutoCloseShiftRequest
-import kz.mybrain.superkassa.core.application.model.FactoryNumberResponse
-import kz.mybrain.superkassa.core.application.model.KkmInitSimpleRequest
-import kz.mybrain.superkassa.core.application.model.KkmTaxSettingsUpdateRequest
-import kz.mybrain.superkassa.core.application.model.OfdAuthInfoResponse
-import kz.mybrain.superkassa.core.application.model.OfdTokenUpdateRequest
-import kz.mybrain.superkassa.core.application.model.UserCreateRequest
-import kz.mybrain.superkassa.core.application.model.UserUpdateRequest
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.domain.model.CounterSnapshot
-import kz.mybrain.superkassa.core.domain.model.DeliveryStatus
-import kz.mybrain.superkassa.core.domain.model.FiscalDocumentSnapshot
-import kz.mybrain.superkassa.core.domain.model.KkmInfo
-import kz.mybrain.superkassa.core.domain.model.KkmMode
-import kz.mybrain.superkassa.core.domain.model.KkmState
-import kz.mybrain.superkassa.core.domain.model.OfdCommandResult
-import kz.mybrain.superkassa.core.domain.model.OfdCommandStatus
-import kz.mybrain.superkassa.core.domain.model.ReceiptLayoutType
-import kz.mybrain.superkassa.core.domain.model.ReportResult
-import kz.mybrain.superkassa.core.domain.model.ShiftInfo
-import kz.mybrain.superkassa.core.domain.model.ShiftStatus
-import kz.mybrain.superkassa.core.domain.model.TaxRegime
-import kz.mybrain.superkassa.core.domain.model.UserRole
-import kz.mybrain.superkassa.core.domain.model.VatGroup
+import kz.mybrain.superkassa.core.presentation.model.AutoCloseShiftRequest
+import kz.mybrain.superkassa.core.presentation.model.FactoryNumberResponse
+import kz.mybrain.superkassa.core.presentation.model.KkmInitSimpleRequest
+import kz.mybrain.superkassa.core.presentation.model.KkmTaxSettingsUpdateRequest
+import kz.mybrain.superkassa.core.presentation.model.OfdAuthInfoResponse
+import kz.mybrain.superkassa.core.presentation.model.OfdTokenUpdateRequest
+import kz.mybrain.superkassa.core.presentation.model.UserCreateRequest
+import kz.mybrain.superkassa.core.presentation.model.UserUpdateRequest
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.domain.model.common.CounterSnapshot
+import kz.mybrain.superkassa.core.domain.model.delivery.DeliveryStatus
+import kz.mybrain.superkassa.core.domain.model.kkm.FiscalDocumentSnapshot
+import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
+import kz.mybrain.superkassa.core.domain.model.kkm.KkmMode
+import kz.mybrain.superkassa.core.domain.model.kkm.KkmState
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandStatus
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptLayoutType
+import kz.mybrain.superkassa.core.domain.model.report.ReportResult
+import kz.mybrain.superkassa.core.domain.model.shift.ShiftInfo
+import kz.mybrain.superkassa.core.domain.model.shift.ShiftStatus
+import kz.mybrain.superkassa.core.domain.model.common.TaxRegime
+import kz.mybrain.superkassa.core.domain.model.auth.UserRole
+import kz.mybrain.superkassa.core.domain.model.common.VatGroup
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class KkmApiControllersTest {
 
-    private val service = mockk<KkmService>()
+    private val service = mockk<SuperkassaApi>()
 
     private val kkmController = KkmController(service)
     private val countersController = KkmCountersController(service)
@@ -93,10 +93,10 @@ class KkmApiControllersTest {
     @Test
     fun `kkm print endpoints build proper response entities`() {
         every {
-            service.getPrintHtml("kkm-2", kz.mybrain.superkassa.core.application.model.PrintDocumentType.DOCUMENT, "doc-2", null, "2222", ReceiptLayoutType.TAPE_58MM)
+            service.getPrintHtml("kkm-2", kz.mybrain.superkassa.core.domain.model.report.PrintDocumentType.DOCUMENT, "doc-2", null, "2222", ReceiptLayoutType.TAPE_58MM)
         } returns "<html>ok 58mm</html>"
         every {
-            service.getPrintPdf("kkm-2", kz.mybrain.superkassa.core.application.model.PrintDocumentType.DOCUMENT, "doc-2", null, "2222", ReceiptLayoutType.FULLSCREEN)
+            service.getPrintPdf("kkm-2", kz.mybrain.superkassa.core.domain.model.report.PrintDocumentType.DOCUMENT, "doc-2", null, "2222", ReceiptLayoutType.FULLSCREEN)
         } returns byteArrayOf(1, 2, 3, 4)
 
         val htmlResponse = kkmController.getDocumentPrintHtml(
@@ -245,14 +245,14 @@ class KkmApiControllersTest {
     @Test
     fun `users endpoints delegate and map responses`() {
         val admin =
-            kz.mybrain.superkassa.core.application.model.UserResponse(
+            kz.mybrain.superkassa.core.presentation.model.UserResponse(
                 userId = "u-1",
                 name = "Admin",
                 role = UserRole.ADMIN,
                 pin = "0000"
             )
         val cashier =
-            kz.mybrain.superkassa.core.application.model.UserResponse(
+            kz.mybrain.superkassa.core.presentation.model.UserResponse(
                 userId = "u-2",
                 name = "Cashier",
                 role = UserRole.CASHIER,

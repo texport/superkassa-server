@@ -8,8 +8,8 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_F
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_KKM_NOT_FOUND
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.domain.model.ReportResult
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.domain.model.report.ReportResult
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/kkm/{kkmId}/report")
 @Tag(name = "Отчеты", description = "Создание отчетов ККМ")
-class ReportsController(private val kkmService: KkmService) {
+class ReportsController(private val kkmService: SuperkassaApi) {
 
     /**
      * Сформировать X-отчет (без закрытия смены).

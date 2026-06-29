@@ -108,6 +108,21 @@ class JdbcCashboxRepository(
         }
     }
 
+    override fun findByIdForUpdate(id: String): CashboxRecord? {
+        val databaseName = connection.metaData.databaseProductName ?: ""
+        val sql = if (databaseName.contains("SQLite", ignoreCase = true)) {
+            "SELECT * FROM cashbox WHERE id = ?"
+        } else {
+            "SELECT * FROM cashbox WHERE id = ? FOR UPDATE"
+        }
+        connection.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, id)
+            stmt.executeQuery().use { rs ->
+                return if (rs.next()) mapRecord(rs) else null
+            }
+        }
+    }
+
     override fun findByRegistrationNumber(registrationNumber: String): CashboxRecord? {
         val sql = "SELECT * FROM cashbox WHERE registration_number = ?"
         connection.prepareStatement(sql).use { stmt ->

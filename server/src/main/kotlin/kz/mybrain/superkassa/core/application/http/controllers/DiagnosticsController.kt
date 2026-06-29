@@ -4,9 +4,9 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_OK
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.domain.model.KkmInfo
-import kz.mybrain.superkassa.core.domain.model.OfdCommandStatus
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandStatus
 import kz.mybrain.superkassa.storage.application.health.StorageHealthChecker
 import kz.mybrain.superkassa.storage.domain.config.StorageConfig
 import org.springframework.http.HttpStatus
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController
 class DiagnosticsController(
     private val storageHealthChecker: StorageHealthChecker,
     private val storageConfig: StorageConfig,
-    private val kkmService: KkmService? = null
+    private val kkmService: SuperkassaApi? = null
 ) {
 
     /**
@@ -129,14 +129,14 @@ class DiagnosticsController(
     }
 
     private fun checkOfdHealth(
-        kkmService: KkmService,
+        kkmService: SuperkassaApi,
         ofdEnvironment: String?,
         ofdProvider: String?,
         status: MutableMap<String, Any>
     ): Boolean {
         val kkms = try {
             kkmService.listKkms(
-                kz.mybrain.superkassa.core.application.model.KkmListParams(
+                kz.mybrain.superkassa.core.presentation.model.KkmListParams(
                     limit = 1000,
                     offset = 0
                 )
@@ -194,7 +194,7 @@ class DiagnosticsController(
     }
 
     private fun checkSingleGroupOfdConnection(
-        kkmService: KkmService,
+        kkmService: SuperkassaApi,
         providerTag: String,
         kkm: KkmInfo,
         ofdResults: MutableMap<String, String>

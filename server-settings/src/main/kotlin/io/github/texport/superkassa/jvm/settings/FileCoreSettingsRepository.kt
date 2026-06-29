@@ -1,8 +1,8 @@
 package io.github.texport.superkassa.jvm.settings
 
 import kotlinx.serialization.json.Json
-import kz.mybrain.superkassa.core.application.model.CoreSettings
-import kz.mybrain.superkassa.core.application.service.CoreSettingsRepository
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -16,7 +16,7 @@ class FileCoreSettingsRepository(
         prettyPrint = true
         ignoreUnknownKeys = true
     }
-) : CoreSettingsRepository {
+) : CoreSettingsRepositoryPort {
 
     private val lock = Any()
 

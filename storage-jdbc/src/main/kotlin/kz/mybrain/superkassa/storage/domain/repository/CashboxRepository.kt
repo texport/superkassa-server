@@ -27,6 +27,11 @@ interface CashboxRepository {
     fun findById(id: String): CashboxRecord?
 
     /**
+     * Ищет кассу по id с блокировкой строки (FOR UPDATE).
+     */
+    fun findByIdForUpdate(id: String): CashboxRecord?
+
+    /**
      * Ищет кассу по регистрационному номеру.
      */
     fun findByRegistrationNumber(registrationNumber: String): CashboxRecord?

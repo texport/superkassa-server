@@ -13,8 +13,9 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_D
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.toResponse
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.application.model.*
-import kz.mybrain.superkassa.core.application.service.KkmService
+import kz.mybrain.superkassa.core.domain.model.settings.*
+import kz.mybrain.superkassa.core.presentation.model.*
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/kkm")
 @Tag(name = "Ввод/Вывод из/в эксплуатацию ККМ", description = "Регистрация, инициализация и удаление ККМ")
-class KkmDecommissioningController(private val kkmService: KkmService) {
+class KkmDecommissioningController(private val kkmService: SuperkassaApi) {
 
     /**
      * Упрощенная инициализация ККМ без черновика.

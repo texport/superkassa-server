@@ -1,10 +1,10 @@
 package kz.mybrain.superkassa.core.receipt
 
-import kz.mybrain.superkassa.core.application.error.ValidationException
-import kz.mybrain.superkassa.core.application.model.receipt.ReceiptItemDto
-import kz.mybrain.superkassa.core.application.model.receipt.ReceiptMapper
-import kz.mybrain.superkassa.core.application.model.receipt.ReceiptPaymentDto
-import kz.mybrain.superkassa.core.domain.model.ReceiptOperationType
+import kz.mybrain.superkassa.core.domain.exception.ValidationException
+import kz.mybrain.superkassa.core.presentation.model.ReceiptItemDto
+import kz.mybrain.superkassa.core.presentation.mapper.ReceiptMapper
+import kz.mybrain.superkassa.core.presentation.model.ReceiptPaymentDto
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptOperationType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

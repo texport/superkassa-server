@@ -1,7 +1,7 @@
 package kz.mybrain.superkassa.core.application.http.utils
 
-import kz.mybrain.superkassa.core.application.error.ErrorMessages
-import kz.mybrain.superkassa.core.application.error.ForbiddenException
+import kz.mybrain.superkassa.core.domain.exception.ErrorMessages
+import kz.mybrain.superkassa.core.domain.exception.ForbiddenException
 
 /**
  * Утилиты для работы с заголовком Authorization.

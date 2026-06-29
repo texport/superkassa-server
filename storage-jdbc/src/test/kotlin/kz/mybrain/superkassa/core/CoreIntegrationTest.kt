@@ -3,27 +3,28 @@ package kz.mybrain.superkassa.core
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import kz.mybrain.superkassa.core.application.model.KkmInitDirectRequest
-import kz.mybrain.superkassa.core.application.policy.DefaultCounterUpdater
-import kz.mybrain.superkassa.core.application.policy.SystemClock
-import kz.mybrain.superkassa.core.application.policy.UuidGenerator
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.data.adapter.DeliveryPortAdapter
-import kz.mybrain.superkassa.core.data.adapter.OfflineQueuePortAdapter
-import kz.mybrain.superkassa.core.data.adapter.StorageBackedLeaseLockPort
-import kz.mybrain.superkassa.core.data.adapter.StorageBackedQueueStoragePort
-import kz.mybrain.superkassa.core.data.adapter.StoragePortAdapter
-import kz.mybrain.superkassa.core.domain.model.Money
-import kz.mybrain.superkassa.core.domain.model.OfdCommandRequest
-import kz.mybrain.superkassa.core.domain.model.OfdCommandResult
-import kz.mybrain.superkassa.core.domain.model.OfdCommandStatus
-import kz.mybrain.superkassa.core.domain.model.OfdCommandType
-import kz.mybrain.superkassa.core.domain.model.OfdServiceInfo
-import kz.mybrain.superkassa.core.domain.model.PaymentType
-import kz.mybrain.superkassa.core.domain.model.ReceiptItem
-import kz.mybrain.superkassa.core.domain.model.ReceiptOperationType
-import kz.mybrain.superkassa.core.domain.model.ReceiptPayment
-import kz.mybrain.superkassa.core.domain.model.ReceiptRequest
+import kz.mybrain.superkassa.core.presentation.model.KkmInitDirectRequest
+import kz.mybrain.superkassa.core.presentation.model.UserUpdateRequest
+import kz.mybrain.superkassa.core.domain.model.auth.UserRole
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApiImpl
+import kz.mybrain.superkassa.core.data.adapter.SystemClock
+import kz.mybrain.superkassa.core.data.adapter.UuidGeneratorAdapter
+import kz.mybrain.superkassa.core.data.adapter.DeliveryServiceAdapter
+import kz.mybrain.superkassa.core.data.adapter.OfflineQueueAdapter
+import kz.mybrain.superkassa.core.data.adapter.StorageBackedLeaseLockAdapter
+import kz.mybrain.superkassa.core.data.adapter.StorageBackedQueueStorageAdapter
+import kz.mybrain.superkassa.core.data.adapter.StorageAdapter
+import kz.mybrain.superkassa.core.domain.model.common.Money
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandRequest
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandStatus
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandType
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdServiceInfo
+import kz.mybrain.superkassa.core.domain.model.receipt.PaymentType
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptItem
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptOperationType
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptPayment
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptRequest
 import kz.mybrain.superkassa.core.domain.port.OfdManagerPort
 import io.github.texport.superkassa.delivery.application.service.DeliveryService
 import io.github.texport.superkassa.delivery.domain.model.DeliveryChannel
@@ -47,11 +48,11 @@ class CoreIntegrationTest {
         val storageBootstrap = DefaultStorageBootstrap()
         storageBootstrap.migrate(storageConfig)
 
-        val storage = StoragePortAdapter(storageBootstrap, storageConfig)
-        val queueStorage = StorageBackedQueueStoragePort(storage)
-        val queueLocks = StorageBackedLeaseLockPort(storage)
+        val storage = StorageAdapter(storageBootstrap, storageConfig)
+        val queueStorage = StorageBackedQueueStorageAdapter(storage)
+        val queueLocks = StorageBackedLeaseLockAdapter(storage)
         val queueHandler = QueueCommandHandler { DispatchResult(QueueStatus.SENT) }
-        val queuePort = OfflineQueuePortAdapter(queueStorage, queueLocks, queueHandler, ownerId = "node-1")
+        val queuePort = OfflineQueueAdapter(queueStorage, queueLocks, queueHandler, ownerId = "node-1")
 
         val deliveryService = DeliveryService(
             listOf(
@@ -61,7 +62,7 @@ class CoreIntegrationTest {
                 }
             )
         )
-        val deliveryPort = DeliveryPortAdapter(deliveryService)
+        val deliveryPort = DeliveryServiceAdapter(deliveryService)
 
         val ofdManager = object : OfdManagerPort {
             override fun send(command: OfdCommandRequest): OfdCommandResult {
@@ -125,75 +126,12 @@ class CoreIntegrationTest {
             }
         }
 
-        val ofdConfigPort = kz.mybrain.superkassa.core.data.adapter.OfdConfigPortAdapter()
-        val pinHasher = kz.mybrain.superkassa.core.data.adapter.Sha256PinHasherPort()
-        val authorization = kz.mybrain.superkassa.core.application.service.AuthorizationService(
-            storage = storage,
-            pinHasher = pinHasher
-        )
-        val kkmUserService = kz.mybrain.superkassa.core.application.service.KkmUserService(
-            storage = storage,
-            idGenerator = UuidGenerator,
-            clock = SystemClock,
-            pinHasher = pinHasher,
-            authorization = authorization
-        )
-        val tokenCodec = kz.mybrain.superkassa.core.data.adapter.Base64TokenCodecPort()
-        val autonomousModeService = kz.mybrain.superkassa.core.application.service.AutonomousModeService(
-            storage = storage,
-            queue = queuePort,
-            clock = SystemClock
-        )
-        val fiscalOperationExecutor = kz.mybrain.superkassa.core.application.service.FiscalOperationExecutor(
-            storage = storage,
-            idGenerator = UuidGenerator,
-            clock = SystemClock,
-            authorization = authorization
-        )
-        val reqNumService = kz.mybrain.superkassa.core.application.service.ReqNumService(
-            storage = storage
-        )
-        val ofdCommandRequestBuilder = kz.mybrain.superkassa.core.application.service.OfdCommandRequestBuilder(
-            ofdConfigPort
-        )
-        val ofdSyncService = kz.mybrain.superkassa.core.application.service.OfdSyncService(
-            storage = storage,
-            queue = queuePort,
-            ofd = ofdManager,
-            idGenerator = UuidGenerator,
-            clock = SystemClock,
-            authorization = authorization,
-            ofdCommandRequestBuilder = ofdCommandRequestBuilder,
-            tokenCodec = tokenCodec,
-            autonomousModeService = autonomousModeService,
-            reqNumService = reqNumService,
-            timeValidator = kz.mybrain.superkassa.core.application.policy.SystemTimeGuard
-        )
-        val shiftService = kz.mybrain.superkassa.core.application.service.ShiftService(
-            storage = storage,
-            queue = queuePort,
-            ofdSyncService = ofdSyncService,
-            idGenerator = UuidGenerator,
-            clock = SystemClock,
-            authorization = authorization
-        )
-        val kkmRegistrationService = kz.mybrain.superkassa.core.application.service.KkmRegistrationService(
-            storage = storage,
-            ofd = ofdManager,
-            ofdConfig = ofdConfigPort,
-            tokenCodec = tokenCodec,
-            idGenerator = UuidGenerator,
-            clock = SystemClock,
-            pinHasher = pinHasher,
-            authorization = authorization,
-            ofdCommandRequestBuilder = ofdCommandRequestBuilder,
-            reqNumService = reqNumService,
-            counters = DefaultCounterUpdater(storage),
-            timeValidator = kz.mybrain.superkassa.core.application.policy.SystemTimeGuard
-        )
-        val coreSettings = kz.mybrain.superkassa.core.application.model.CoreSettings(
-            mode = kz.mybrain.superkassa.core.application.model.CoreMode.DESKTOP,
-            storage = kz.mybrain.superkassa.core.application.model.StorageSettings(
+        val ofdConfigPort = kz.mybrain.superkassa.core.data.adapter.OfdConfigAdapter()
+        val pinHasher = kz.mybrain.superkassa.core.data.adapter.Sha256PinHasherAdapter()
+        val tokenCodec = kz.mybrain.superkassa.core.data.adapter.Base64TokenCodecAdapter()
+        val coreSettings = kz.mybrain.superkassa.core.domain.model.settings.CoreSettings(
+            mode = kz.mybrain.superkassa.core.domain.model.settings.CoreMode.DESKTOP,
+            storage = kz.mybrain.superkassa.core.domain.model.settings.StorageSettings(
                 engine = "SQLITE",
                 jdbcUrl = "jdbc:sqlite:build/test-core.db"
             ),
@@ -208,30 +146,20 @@ class CoreIntegrationTest {
             override fun htmlToImage(html: String): ByteArray = byteArrayOf(1, 2, 3)
             override fun htmlToEscPos(html: String, paperWidthMm: Int): ByteArray = byteArrayOf(1, 2, 3)
         }
-        val service = KkmService(
+        val service = SuperkassaApiImpl(
             storage = storage,
             queue = queuePort,
             ofd = ofdManager,
             ofdConfig = ofdConfigPort,
             delivery = deliveryPort,
-            kkmUserService = kkmUserService,
-            shiftService = shiftService,
-            ofdSyncService = ofdSyncService,
-            kkmRegistrationService = kkmRegistrationService,
             tokenCodec = tokenCodec,
-            autonomousModeService = autonomousModeService,
-            fiscalOperationExecutor = fiscalOperationExecutor,
-            reqNumService = reqNumService,
-            counters = DefaultCounterUpdater(storage),
-            idGenerator = UuidGenerator,
+            idGenerator = UuidGeneratorAdapter,
             clock = SystemClock,
             pinHasher = pinHasher,
-            authorization = authorization,
-            ofdCommandRequestBuilder = ofdCommandRequestBuilder,
             coreSettings = coreSettings,
             receiptRenderPort = receiptRenderPort,
             documentConvertPort = documentConvertPort,
-            timeValidator = kz.mybrain.superkassa.core.application.policy.SystemTimeGuard
+            timeValidator = kz.mybrain.superkassa.core.data.adapter.SystemTimeGuard
         )
 
         val init = service.initKkm(
@@ -257,12 +185,35 @@ class CoreIntegrationTest {
             )
         )
         val kkmId = init.id
-        val shift = service.openShift(kkmId, "0000")
+
+        // List and change PINs to secure ones
+        val users = service.listUsers(kkmId, "0000")
+        val admin = users.first { it.role == UserRole.ADMIN }
+        val cashier = users.first { it.role == UserRole.CASHIER }
+
+        service.updateUser(
+            kkmId = kkmId,
+            userId = admin.userId,
+            pin = "0000",
+            request = UserUpdateRequest(
+                userPin = "4321"
+            )
+        )
+        service.updateUser(
+            kkmId = kkmId,
+            userId = cashier.userId,
+            pin = "4321",
+            request = UserUpdateRequest(
+                userPin = "5432"
+            )
+        )
+
+        val shift = service.openShift(kkmId, "4321")
         assertNotNull(shift)
 
         val receipt = ReceiptRequest(
             kkmId = kkmId,
-            pin = "1111",
+            pin = "5432",
             operation = ReceiptOperationType.SELL,
             items = listOf(ReceiptItem("Item", "1", 1, Money(1000, 0), Money(1000, 0))),
             payments = listOf(ReceiptPayment(PaymentType.CASH, Money(1000, 0))),
@@ -272,7 +223,7 @@ class CoreIntegrationTest {
         val result = service.createReceipt(receipt)
         assertNotNull(result.documentId)
 
-        val report = service.closeShift(kkmId, "1111")
+        val report = service.closeShift(kkmId, "5432")
         assertNotNull(report.documentId)
     }
 }

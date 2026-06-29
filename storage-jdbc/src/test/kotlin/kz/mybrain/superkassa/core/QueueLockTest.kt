@@ -1,7 +1,7 @@
 package kz.mybrain.superkassa.core
 
-import kz.mybrain.superkassa.core.data.adapter.StorageBackedLeaseLockPort
-import kz.mybrain.superkassa.core.data.adapter.StoragePortAdapter
+import kz.mybrain.superkassa.core.data.adapter.StorageBackedLeaseLockAdapter
+import kz.mybrain.superkassa.core.data.adapter.StorageAdapter
 import kz.mybrain.superkassa.storage.data.bootstrap.DefaultStorageBootstrap
 import kz.mybrain.superkassa.storage.domain.config.StorageConfig
 import java.nio.file.Files
@@ -18,9 +18,9 @@ class QueueLockTest {
         val storageBootstrap = DefaultStorageBootstrap()
         storageBootstrap.migrate(storageConfig)
 
-        val storage = StoragePortAdapter(storageBootstrap, storageConfig)
-        val lockPort1 = StorageBackedLeaseLockPort(storage)
-        val lockPort2 = StorageBackedLeaseLockPort(storage)
+        val storage = StorageAdapter(storageBootstrap, storageConfig)
+        val lockPort1 = StorageBackedLeaseLockAdapter(storage)
+        val lockPort2 = StorageBackedLeaseLockAdapter(storage)
 
         val cashboxId = "cashbox-123"
         val now = System.currentTimeMillis()

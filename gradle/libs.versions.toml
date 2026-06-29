@@ -5,17 +5,15 @@ sqliteJdbc = "3.53.2.0"
 postgresql = "42.7.11"
 mysql = "9.7.0"
 hikariCP = "7.1.0"
-resilience4j = "2.4.0"
 mockk = "1.14.11"
 springdocOpenapi = "3.0.3"
 detekt = "1.23.8"
-ofdNetworkClient = "1.0.1"
+ofdNetworkClient = "1.1.0"
 serialization = "1.11.0"
-superkassaCore = "1.0"
-superkassaTimeJava = "1.0.1"
-superkassaReceiptRenderer = "1.0.2"
-superkassaOfflineQueue = "1.0.1"
-superkassaDelivery = "1.0"
+superkassaCore = "1.0.0"
+superkassaTimeJava = "1.0.2"
+superkassaReceiptRenderer = "1.0.3"
+superkassaDelivery = "1.1.0"
 openhtmltopdf = "1.0.10"
 zxing = "3.5.4"
 jakartaMail = "2.0.2"
@@ -23,7 +21,7 @@ slf4j = "2.0.18"
 jackson = "2.18.2"
 jacocoVersion = "0.8.12"
 java = "21"
-
+javaTargetCore = "17"
 
 [libraries]
 # Logging
@@ -49,16 +47,12 @@ springdoc-openapi = { group = "org.springdoc", name = "springdoc-openapi-starter
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 
-# Resilience4j
-resilience4j = { group = "io.github.resilience4j", name = "resilience4j-spring-boot4", version.ref = "resilience4j" }
-
 # PDF Rendering
 openhtmltopdf-core = { group = "com.openhtmltopdf", name = "openhtmltopdf-core", version.ref = "openhtmltopdf" }
 openhtmltopdf-pdfbox = { group = "com.openhtmltopdf", name = "openhtmltopdf-pdfbox", version.ref = "openhtmltopdf" }
 
 # QR Codes
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
-zxing-javase = { group = "com.google.zxing", name = "javase", version.ref = "zxing" }
 
 # Mail
 jakarta-mail = { group = "com.sun.mail", name = "jakarta.mail", version.ref = "jakartaMail" }
@@ -66,15 +60,17 @@ jakarta-mail = { group = "com.sun.mail", name = "jakarta.mail", version.ref = "j
 # Testing
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 ofd-network-client = { group = "io.github.texport", name = "ofd-network-client", version.ref = "ofdNetworkClient" }
-superkassa-core = { group = "kz.mybrain", name = "superkassa-core", version.ref = "superkassaCore" }
+superkassa-core-domain = { group = "io.github.texport", name = "core-domain-jvm", version.ref = "superkassaCore" }
+superkassa-core-data = { group = "io.github.texport", name = "core-data-jvm", version.ref = "superkassaCore" }
+superkassa-core-presentation = { group = "io.github.texport", name = "core-presentation-jvm", version.ref = "superkassaCore" }
 superkassa-time-java = { group = "io.github.texport", name = "superkassa-time-java", version.ref = "superkassaTimeJava" } # Resolved from Maven Central
 superkassa-receipt-renderer = { group = "io.github.texport", name = "superkassa-receipt-renderer", version.ref = "superkassaReceiptRenderer" } # Resolved from Maven Central
-superkassa-offline-queue = { group = "io.github.texport", name = "superkassa-offline-queue", version.ref = "superkassaOfflineQueue" } # Resolved from Maven Central
 superkassa-delivery = { group = "io.github.texport", name = "superkassa-delivery", version.ref = "superkassaDelivery" }
 detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }

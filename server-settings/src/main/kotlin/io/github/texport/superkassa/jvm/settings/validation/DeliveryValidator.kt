@@ -1,7 +1,7 @@
 package io.github.texport.superkassa.jvm.settings.validation
 
 import io.github.texport.superkassa.jvm.settings.IllegalServerConfigurationException
-import kz.mybrain.superkassa.core.application.model.DeliverySettings
+import kz.mybrain.superkassa.core.domain.model.settings.DeliverySettings
 
 internal object DeliveryValidator {
 

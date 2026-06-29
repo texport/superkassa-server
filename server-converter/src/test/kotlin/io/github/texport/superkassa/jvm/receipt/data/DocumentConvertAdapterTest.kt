@@ -1,13 +1,13 @@
 package io.github.texport.superkassa.jvm.receipt.data
 
 import kz.mybrain.superkassa.core.data.receipt.ReceiptHtmlRenderer
-import kz.mybrain.superkassa.core.domain.model.FiscalDocumentSnapshot
-import kz.mybrain.superkassa.core.domain.model.Money
-import kz.mybrain.superkassa.core.domain.model.PaymentType
-import kz.mybrain.superkassa.core.domain.model.ReceiptItem
-import kz.mybrain.superkassa.core.domain.model.ReceiptOperationType
-import kz.mybrain.superkassa.core.domain.model.ReceiptPayment
-import kz.mybrain.superkassa.core.domain.model.ReceiptRequest
+import kz.mybrain.superkassa.core.domain.model.kkm.FiscalDocumentSnapshot
+import kz.mybrain.superkassa.core.domain.model.common.Money
+import kz.mybrain.superkassa.core.domain.model.receipt.PaymentType
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptItem
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptOperationType
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptPayment
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptRequest
 import java.nio.charset.Charset
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -98,7 +98,7 @@ class DocumentConvertAdapterTest {
             factoryNumber = "1365345245"
         )
 
-        val kkm = kz.mybrain.superkassa.core.domain.model.KkmInfo(
+        val kkm = kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo(
             id = doc.cashboxId,
             createdAt = doc.createdAt,
             updatedAt = doc.createdAt,
@@ -106,8 +106,8 @@ class DocumentConvertAdapterTest {
             state = "READY",
             registrationNumber = doc.registrationNumber ?: "",
             factoryNumber = doc.factoryNumber ?: "",
-            branding = kz.mybrain.superkassa.core.domain.model.ReceiptBranding(),
-            ofdServiceInfo = kz.mybrain.superkassa.core.domain.model.OfdServiceInfo(
+            branding = kz.mybrain.superkassa.core.domain.model.receipt.ReceiptBranding(),
+            ofdServiceInfo = kz.mybrain.superkassa.core.domain.model.ofd.OfdServiceInfo(
                 orgTitle = doc.taxpayerName ?: "ИП МИЧКА ПАВЕЛ АНДРЕЕВИЧ",
                 orgAddress = doc.taxpayerAddress ?: "обл. Павлодарская, Республика 1, 2",
                 orgAddressKz = "обл. Павлодарская, Республика 1, 2",

@@ -3,8 +3,8 @@ package kz.mybrain.superkassa.core.application.http.controllers
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
-import kz.mybrain.superkassa.core.application.model.VatRateResponse
-import kz.mybrain.superkassa.core.application.service.KkmService
+import kz.mybrain.superkassa.core.presentation.model.VatRateResponse
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/vat-rates")
 @Tag(name = "Ставки НДС", description = "Справочник ставок НДС, поддерживаемых ККМ")
-class VatRatesController(private val kkmService: KkmService) {
+class VatRatesController(private val kkmService: SuperkassaApi) {
 
     @GetMapping
     @Operation(

@@ -10,15 +10,15 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_K
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_SYNC_BLOCKED
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.domain.model.CounterSnapshot
-import kz.mybrain.superkassa.core.domain.model.OfdCommandResult
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.domain.model.common.CounterSnapshot
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/kkm")
 @Tag(name = "Управление счетчиками ККМ", description = "Работа со счетчиками кассового аппарата")
-class KkmCountersController(private val kkmService: KkmService) {
+class KkmCountersController(private val kkmService: SuperkassaApi) {
 
     /**
      * Получить текущие значения счетчиков ККМ.

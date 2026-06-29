@@ -3,26 +3,26 @@ package kz.mybrain.superkassa.core.config
 import kz.mybrain.superkassa.core.data.adapter.DatabaseCoreSettingsRepository
 import io.github.texport.superkassa.jvm.settings.FileCoreSettingsRepository
 import kz.mybrain.network.OfdTcpNetworkClient
-import kz.mybrain.superkassa.core.application.model.CoreMode
-import kz.mybrain.superkassa.core.application.model.CoreSettings
-import kz.mybrain.superkassa.core.application.model.StorageSettings
-import kz.mybrain.superkassa.core.application.service.CoreSettingsRepository
-import kz.mybrain.superkassa.core.application.service.ShiftCountersRecalculator
-import kz.mybrain.superkassa.core.data.adapter.CloseShiftRequestBuilderStrategy
-import kz.mybrain.superkassa.core.data.adapter.DeliveryPortAdapter
-import kz.mybrain.superkassa.core.data.adapter.MoneyPlacementRequestBuilderStrategy
-import kz.mybrain.superkassa.core.data.adapter.OfdConfigPortAdapter
+import kz.mybrain.superkassa.core.domain.model.settings.CoreMode
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.domain.model.settings.StorageSettings
+import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
+import kz.mybrain.superkassa.core.domain.usecase.shift.RecalculateShiftCountersUseCase
+import kz.mybrain.superkassa.core.data.ofd.builder.strategy.CloseShiftRequestBuilderStrategy
+import kz.mybrain.superkassa.core.data.adapter.DeliveryServiceAdapter
+import kz.mybrain.superkassa.core.data.ofd.builder.strategy.MoneyPlacementRequestBuilderStrategy
+import kz.mybrain.superkassa.core.data.adapter.OfdConfigAdapter
 import kz.mybrain.superkassa.core.data.adapter.OfdManagerAdapter
-import kz.mybrain.superkassa.core.data.adapter.OfflineQueuePortAdapter
-import kz.mybrain.superkassa.core.data.adapter.ReportRequestBuilderStrategy
-import kz.mybrain.superkassa.core.data.adapter.ResilienceOfdManagerPortAdapter
-import kz.mybrain.superkassa.core.data.adapter.ServiceRequestBuilderStrategy
-import kz.mybrain.superkassa.core.data.adapter.Sha256PinHasherPort
-import kz.mybrain.superkassa.core.data.adapter.StorageBackedLeaseLockPort
-import kz.mybrain.superkassa.core.data.adapter.StorageBackedQueueStoragePort
-import kz.mybrain.superkassa.core.data.adapter.StoragePortAdapter
-import kz.mybrain.superkassa.core.data.adapter.TicketRequestBuilderStrategy
-import kz.mybrain.superkassa.core.data.ofd.OfdCodecService
+import kz.mybrain.superkassa.core.data.adapter.OfflineQueueAdapter
+import kz.mybrain.superkassa.core.data.ofd.builder.strategy.ReportRequestBuilderStrategy
+import kz.mybrain.superkassa.core.data.adapter.ResilienceOfdManagerAdapter
+import kz.mybrain.superkassa.core.data.ofd.builder.strategy.ServiceRequestBuilderStrategy
+import kz.mybrain.superkassa.core.data.adapter.Sha256PinHasherAdapter
+import kz.mybrain.superkassa.core.data.adapter.StorageBackedLeaseLockAdapter
+import kz.mybrain.superkassa.core.data.adapter.StorageBackedQueueStorageAdapter
+import kz.mybrain.superkassa.core.data.adapter.StorageAdapter
+import kz.mybrain.superkassa.core.data.ofd.builder.strategy.TicketRequestBuilderStrategy
+import kz.mybrain.superkassa.core.data.ofd.OfdProtocolCodec
 import kz.mybrain.superkassa.core.data.ofd.OfdConfig
 import kz.mybrain.superkassa.core.domain.port.*
 import io.github.texport.superkassa.delivery.application.service.DeliveryService
@@ -53,7 +53,7 @@ class AdaptersConfig {
         @Value("\${spring.datasource.url:}") dbUrl: String,
         @Value("\${spring.datasource.username:}") dbUser: String?,
         @Value("\${spring.datasource.password:}") dbPass: String?
-    ): CoreSettingsRepository {
+    ): CoreSettingsRepositoryPort {
         val urlLower = dbUrl.lowercase()
         return if (urlLower.startsWith("jdbc:postgresql:") || urlLower.startsWith("jdbc:mysql:")) {
             DatabaseCoreSettingsRepository(jdbcUrl = dbUrl, user = dbUser, password = dbPass)
@@ -63,7 +63,7 @@ class AdaptersConfig {
     }
 
     @Bean
-    fun coreSettings(repository: CoreSettingsRepository): CoreSettings {
+    fun coreSettings(repository: CoreSettingsRepositoryPort): CoreSettings {
         val defaults = if (repository is DatabaseCoreSettingsRepository) {
             CoreSettings(
                 mode = CoreMode.SERVER,
@@ -106,17 +106,17 @@ class AdaptersConfig {
         val storageBootstrap = DefaultStorageBootstrap()
         logger.info("Connecting to storage: ${config.jdbcUrl}")
         storageBootstrap.migrate(config)
-        return StoragePortAdapter(storageBootstrap, config)
+        return StorageAdapter(storageBootstrap, config)
     }
 
     @Bean
     fun queueStoragePort(storagePort: StoragePort): QueueStoragePort {
-        return StorageBackedQueueStoragePort(storagePort)
+        return StorageBackedQueueStorageAdapter(storagePort)
     }
 
     @Bean
     fun queueLeaseLockPort(storagePort: StoragePort): LeaseLockPort {
-        return StorageBackedLeaseLockPort(storagePort)
+        return StorageBackedLeaseLockAdapter(storagePort)
     }
 
     @Bean
@@ -127,7 +127,7 @@ class AdaptersConfig {
         queueCommandHandler: QueueCommandHandler
     ): OfflineQueuePort {
         val ownerId = settings.nodeId
-        return OfflineQueuePortAdapter(queueStoragePort, queueLeaseLockPort, queueCommandHandler, ownerId = ownerId)
+        return OfflineQueueAdapter(queueStoragePort, queueLeaseLockPort, queueCommandHandler, ownerId = ownerId)
     }
 
     @Bean
@@ -148,12 +148,12 @@ class AdaptersConfig {
         if (adapters.isEmpty()) {
             adapters.add(stubAdapter(DeliveryChannel.PRINT))
         }
-        return DeliveryPortAdapter(DeliveryService(adapters))
+        return DeliveryServiceAdapter(DeliveryService(adapters))
     }
 
     private fun createDeliveryAdapter(
         channelName: String,
-        delivery: kz.mybrain.superkassa.core.application.model.DeliverySettings?
+        delivery: kz.mybrain.superkassa.core.domain.model.settings.DeliverySettings?
     ): DeliveryAdapter? {
         val channel = runCatching { DeliveryChannel.valueOf(channelName) }
             .onFailure { logger.warn("Unknown delivery channel: $channelName", it) }
@@ -168,7 +168,7 @@ class AdaptersConfig {
         }
     }
 
-    private fun createPrintAdapter(print: kz.mybrain.superkassa.core.application.model.PrintDeliverySettings?): DeliveryAdapter {
+    private fun createPrintAdapter(print: kz.mybrain.superkassa.core.domain.model.settings.PrintDeliverySettings?): DeliveryAdapter {
         val connection = print?.connection ?: return stubAdapter(DeliveryChannel.PRINT)
         val host = connection.host
         val port = connection.port
@@ -178,24 +178,24 @@ class AdaptersConfig {
         return stubAdapter(DeliveryChannel.PRINT)
     }
 
-    private fun createEmailAdapter(email: kz.mybrain.superkassa.core.application.model.EmailProviderSettings?): DeliveryAdapter {
+    private fun createEmailAdapter(email: kz.mybrain.superkassa.core.domain.model.settings.EmailProviderSettings?): DeliveryAdapter {
         if (email == null) return stubAdapter(DeliveryChannel.EMAIL)
         return io.github.texport.superkassa.jvm.delivery.data.EmailDeliveryAdapter(
             email.host, email.port, email.user ?: "", email.password ?: "", email.from
         )
     }
 
-    private fun createSmsAdapter(sms: kz.mybrain.superkassa.core.application.model.SmsProviderSettings?): DeliveryAdapter {
+    private fun createSmsAdapter(sms: kz.mybrain.superkassa.core.domain.model.settings.SmsProviderSettings?): DeliveryAdapter {
         val url = sms?.providerUrl ?: return stubAdapter(DeliveryChannel.SMS)
         return io.github.texport.superkassa.jvm.delivery.data.SmsDeliveryAdapter(url, sms.apiKey)
     }
 
-    private fun createTelegramAdapter(tg: kz.mybrain.superkassa.core.application.model.TelegramProviderSettings?): DeliveryAdapter {
+    private fun createTelegramAdapter(tg: kz.mybrain.superkassa.core.domain.model.settings.TelegramProviderSettings?): DeliveryAdapter {
         val token = tg?.botToken ?: return stubAdapter(DeliveryChannel.TELEGRAM)
         return io.github.texport.superkassa.jvm.delivery.data.TelegramDeliveryAdapter(token)
     }
 
-    private fun createWhatsAppAdapter(wa: kz.mybrain.superkassa.core.application.model.WhatsAppProviderSettings?): DeliveryAdapter {
+    private fun createWhatsAppAdapter(wa: kz.mybrain.superkassa.core.domain.model.settings.WhatsAppProviderSettings?): DeliveryAdapter {
         val token = wa?.accessToken ?: return stubAdapter(DeliveryChannel.WHATSAPP)
         val phoneId = wa.phoneNumberId ?: return stubAdapter(DeliveryChannel.WHATSAPP)
         return io.github.texport.superkassa.jvm.delivery.data.WhatsAppDeliveryAdapter(token, phoneId)
@@ -210,11 +210,9 @@ class AdaptersConfig {
     }
 
     @Bean
-    fun receiptRenderPort(settings: CoreSettings): ReceiptRenderPort {
-        val providers = settings.ofdProviders ?: kz.mybrain.superkassa.core.domain.model.DefaultOfdProvidersRegistry.defaultOfdProviders
+    fun receiptRenderPort(): ReceiptRenderPort {
         return kz.mybrain.superkassa.core.data.receipt.ReceiptHtmlRenderer(
-            qrCodeGenerator = io.github.texport.superkassa.jvm.receipt.data.QrCodeDataUriGenerator,
-            ofdProviders = providers
+            qrCodeGenerator = io.github.texport.superkassa.jvm.receipt.data.QrCodeDataUriGenerator
         )
     }
 
@@ -222,17 +220,17 @@ class AdaptersConfig {
     fun documentConvertPort(): DocumentConvertPort = io.github.texport.superkassa.jvm.receipt.data.DocumentConvertAdapter()
 
     @Bean
-    fun timeValidatorPort(): TimeValidatorPort = kz.mybrain.superkassa.core.application.policy.SystemTimeGuard
+    fun timeValidatorPort(): TimeValidatorPort = kz.mybrain.superkassa.core.data.adapter.SystemTimeGuard
 
     @Bean
-    fun ofdConfigPort(): OfdConfigPort = OfdConfigPortAdapter()
+    fun ofdConfigPort(): OfdConfigPort = OfdConfigAdapter()
 
     @Bean
-    fun pinHasherPort(): PinHasherPort = Sha256PinHasherPort()
+    fun pinHasherPort(): PinHasherPort = Sha256PinHasherAdapter()
 
     @Bean
     fun ofdManagerPort(settings: CoreSettings, storage: StoragePort): OfdManagerPort {
-        val shiftCountersRecalculator = ShiftCountersRecalculator(storage)
+        val shiftCountersRecalculator = RecalculateShiftCountersUseCase(storage)
         val requestBuilders = listOf(
             ServiceRequestBuilderStrategy(),
             MoneyPlacementRequestBuilderStrategy(storage),
@@ -242,16 +240,16 @@ class AdaptersConfig {
         )
         val delegate = OfdManagerAdapter(
             OfdConfig(protocolVersion = settings.ofdProtocolVersion),
-            OfdCodecService(),
+            OfdProtocolCodec(),
             OfdTcpNetworkClient(),
             requestBuilders = requestBuilders,
             timeoutSeconds = settings.ofdTimeoutSeconds.coerceAtLeast(5L),
             reconnectIntervalSeconds = settings.ofdReconnectIntervalSeconds.coerceAtLeast(60L)
         )
-        return ResilienceOfdManagerPortAdapter(delegate)
+        return ResilienceOfdManagerAdapter(delegate)
     }
 
     @Bean
     fun tokenCodecPort(): TokenCodecPort =
-        kz.mybrain.superkassa.core.data.adapter.Base64TokenCodecPort()
+        kz.mybrain.superkassa.core.data.adapter.Base64TokenCodecAdapter()
 }

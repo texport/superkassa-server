@@ -80,12 +80,6 @@ internal object ValidationErrors {
         "СЖД (ОФД) провайдерінің кілті бос болмауы керек."
     )
 
-    fun ofdProviderDetailsInvalid(key: String): String = errorMsg(
-        "OFD provider details (nameRu, nameKk, website, checkDomain) cannot be blank for key '$key'. Website must be a valid URL.",
-        "Данные провайдера ОФД (nameRu, nameKk, website, checkDomain) не могут быть пустыми для ключа '$key'. Веб-сайт должен быть корректным URL.",
-        "СЖД (ОФД) провайдерінің деректері (nameRu, nameKk, website, checkDomain) '$key' кілті үшін бос болмауы керек. Веб-сайт дұрыс URL болуы тиіс."
-    )
-
     val CHANNEL_NAME_BLANK = errorMsg(
         "Channel name cannot be blank.",
         "Имя канала не может быть пустым.",

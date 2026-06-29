@@ -1,7 +1,7 @@
 package kz.mybrain.superkassa.core.application.common
 
-import kz.mybrain.superkassa.core.application.model.CoreSettings
-import kz.mybrain.superkassa.core.domain.model.KkmState
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.domain.model.kkm.KkmState
 import kz.mybrain.superkassa.core.domain.port.StoragePort
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -94,19 +94,19 @@ class ConsoleLoader(
         val plainLengths = lines.map { visibleLength(it) }
         val innerWidth = maxOf(MIN_BOX_WIDTH, plainLengths.maxOrNull() ?: MIN_BOX_WIDTH)
 
-        fun border(char: Char) = ANSI_GREEN + char + "═".repeat(innerWidth) + char + ANSI_RESET
+        fun border(left: Char, right: Char) = ANSI_GREEN + left + "═".repeat(innerWidth) + right + ANSI_RESET
         fun row(content: String, plainLen: Int) =
             ANSI_GREEN + "║" + ANSI_RESET +
                 content + " ".repeat((innerWidth - plainLen).coerceAtLeast(0)) +
                 ANSI_GREEN + "║" + ANSI_RESET
 
-        println(border('╔'))
+        println(border('╔', '╗'))
         println(row(lines[0], plainLengths[0]))
-        println(border('╠'))
+        println(border('╠', '╣'))
         for (i in 1 until lines.size) {
             println(row(lines[i], plainLengths[i]))
         }
-        println(border('╚'))
+        println(border('╚', '╝'))
     }
 
     private fun formatDeliverySummary(): String {

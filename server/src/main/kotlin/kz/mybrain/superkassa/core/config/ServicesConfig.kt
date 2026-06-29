@@ -1,153 +1,90 @@
 package kz.mybrain.superkassa.core.config
 
-import kz.mybrain.superkassa.core.application.model.CoreSettings
-import kz.mybrain.superkassa.core.application.policy.DefaultCounterUpdater
-import kz.mybrain.superkassa.core.application.policy.SystemClock
-import kz.mybrain.superkassa.core.application.policy.UuidGenerator
-import kz.mybrain.superkassa.core.application.service.AuthorizationService
-import kz.mybrain.superkassa.core.application.service.AutonomousModeService
-import kz.mybrain.superkassa.core.application.service.FiscalOperationExecutor
-import kz.mybrain.superkassa.core.application.service.KkmRegistrationService
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.application.service.KkmUserService
-import kz.mybrain.superkassa.core.application.service.OfdCommandRequestBuilder
-import kz.mybrain.superkassa.core.application.service.OfdQueueCommandHandler
-import kz.mybrain.superkassa.core.application.service.OfdSyncService
-import kz.mybrain.superkassa.core.application.service.QueueManagementService
-import kz.mybrain.superkassa.core.application.service.ReqNumService
-import kz.mybrain.superkassa.core.application.service.ShiftService
-import kz.mybrain.superkassa.core.data.adapter.Sha256PinHasherPort
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.data.adapter.SystemClock
+import kz.mybrain.superkassa.core.data.adapter.UuidGeneratorAdapter
+import kz.mybrain.superkassa.core.data.adapter.OfdQueueCommandHandlerAdapter
+import kz.mybrain.superkassa.core.domain.helper.KkmCommonHelper
+import kz.mybrain.superkassa.core.domain.usecase.auth.AuthorizeUserUseCase
+import kz.mybrain.superkassa.core.domain.usecase.ofd.GenerateRequestNumberUseCase
+import kz.mybrain.superkassa.core.domain.helper.ofd.OfdCommandRequestFactory
+import kz.mybrain.superkassa.core.domain.usecase.ofd.SendFiscalCommandUseCase
+import kz.mybrain.superkassa.core.domain.usecase.queue.ListQueueItemsUseCase
+import kz.mybrain.superkassa.core.domain.usecase.queue.RetryFailedQueueItemsUseCase
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApiImpl
 import kz.mybrain.superkassa.core.domain.port.*
 import kz.mybrain.superkassa.offline_queue.application.service.QueueCommandHandler
 import kz.mybrain.superkassa.offline_queue.domain.port.QueueStoragePort
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Lazy
 
 @Configuration
 class ServicesConfig {
 
     @Bean
+    fun authorizeUserUseCase(storage: StoragePort, pinHasher: PinHasherPort): AuthorizeUserUseCase =
+        AuthorizeUserUseCase(storage, pinHasher)
+
+    @Bean
+    fun generateRequestNumberUseCase(storage: StoragePort): GenerateRequestNumberUseCase =
+        GenerateRequestNumberUseCase(storage)
+
+    @Bean
+    fun ofdCommandRequestFactory(ofdConfig: OfdConfigPort): OfdCommandRequestFactory =
+        OfdCommandRequestFactory(ofdConfig)
+
+    @Bean
+    fun kkmCommonHelper(
+        storage: StoragePort,
+        timeValidator: TimeValidatorPort,
+        tokenCodec: TokenCodecPort,
+        generateRequestNumberUseCase: GenerateRequestNumberUseCase,
+        ofdCommandRequestFactory: OfdCommandRequestFactory,
+        ofd: OfdManagerPort
+    ): KkmCommonHelper =
+        KkmCommonHelper(
+            storage = storage,
+            clock = SystemClock,
+            timeValidator = timeValidator,
+            tokenCodec = tokenCodec,
+            generateRequestNumberUseCase = generateRequestNumberUseCase,
+            ofdCommandRequestFactory = ofdCommandRequestFactory,
+            ofd = ofd
+        )
+
+    @Bean
+    fun sendFiscalCommandUseCase(
+        authorizeUserUseCase: AuthorizeUserUseCase,
+        kkmCommonHelper: KkmCommonHelper
+    ): SendFiscalCommandUseCase =
+        SendFiscalCommandUseCase(authorizeUserUseCase, kkmCommonHelper)
+
+    @Bean
     fun queueCommandHandler(
-        ofdSyncService: OfdSyncService,
+        sendFiscalCommandUseCase: SendFiscalCommandUseCase,
         storagePort: StoragePort
     ): QueueCommandHandler =
-        OfdQueueCommandHandler(
-            ofdSyncService = ofdSyncService,
+        OfdQueueCommandHandlerAdapter(
+            sendFiscalCommand = sendFiscalCommandUseCase,
             storage = storagePort,
             clock = SystemClock
         )
 
     @Bean
-    fun authorizationService(storage: StoragePort, pinHasher: PinHasherPort): AuthorizationService =
-        AuthorizationService(storage, pinHasher)
+    fun listQueueItemsUseCase(
+        queueStorage: QueueStoragePort,
+        authorizeUserUseCase: AuthorizeUserUseCase
+    ): ListQueueItemsUseCase =
+        ListQueueItemsUseCase(queueStorage, authorizeUserUseCase)
 
     @Bean
-    fun kkmUserService(
+    fun retryFailedQueueItemsUseCase(
         storage: StoragePort,
-        pinHasher: PinHasherPort,
-        authorization: AuthorizationService
-    ): KkmUserService =
-        KkmUserService(storage, UuidGenerator, SystemClock, pinHasher, authorization)
-
-    @Bean
-    fun ofdCommandRequestBuilder(ofdConfig: OfdConfigPort): OfdCommandRequestBuilder =
-        OfdCommandRequestBuilder(ofdConfig)
-
-    @Bean
-    fun autonomousModeService(
-        storage: StoragePort,
-        @Lazy queue: OfflineQueuePort
-    ): AutonomousModeService =
-        AutonomousModeService(
-            storage = storage,
-            queue = queue,
-            clock = SystemClock
-        )
-
-    @Bean
-    fun fiscalOperationExecutor(
-        storage: StoragePort,
-        authorization: AuthorizationService
-    ): FiscalOperationExecutor =
-        FiscalOperationExecutor(
-            storage = storage,
-            idGenerator = UuidGenerator,
-            clock = SystemClock,
-            authorization = authorization
-        )
-
-    @Bean
-    fun reqNumService(storage: StoragePort): ReqNumService =
-        ReqNumService(storage = storage)
-
-    @Bean
-    fun ofdSyncService(
-        storage: StoragePort,
-        @Lazy queue: OfflineQueuePort,
-        ofd: OfdManagerPort,
-        authorization: AuthorizationService,
-        ofdCommandRequestBuilder: OfdCommandRequestBuilder,
-        tokenCodec: TokenCodecPort,
-        autonomousModeService: AutonomousModeService,
-        reqNumService: ReqNumService,
-        timeValidator: TimeValidatorPort
-    ): OfdSyncService =
-        OfdSyncService(
-            storage = storage,
-            queue = queue,
-            ofd = ofd,
-            idGenerator = UuidGenerator,
-            clock = SystemClock,
-            authorization = authorization,
-            ofdCommandRequestBuilder = ofdCommandRequestBuilder,
-            tokenCodec = tokenCodec,
-            autonomousModeService = autonomousModeService,
-            reqNumService = reqNumService,
-            timeValidator = timeValidator
-        )
-
-    @Bean
-    fun shiftService(
-        storage: StoragePort,
-        queue: OfflineQueuePort,
-        ofdSyncService: OfdSyncService,
-        authorization: AuthorizationService
-    ): ShiftService =
-        ShiftService(
-            storage = storage,
-            queue = queue,
-            ofdSyncService = ofdSyncService,
-            idGenerator = UuidGenerator,
-            clock = SystemClock,
-            authorization = authorization
-        )
-
-    @Bean
-    fun kkmRegistrationService(
-        storage: StoragePort,
-        ofd: OfdManagerPort,
-        ofdConfig: OfdConfigPort,
-        tokenCodec: TokenCodecPort,
-        authorization: AuthorizationService,
-        ofdCommandRequestBuilder: OfdCommandRequestBuilder,
-        reqNumService: ReqNumService,
-        timeValidator: TimeValidatorPort
-    ): KkmRegistrationService =
-        KkmRegistrationService(
-            storage = storage,
-            ofd = ofd,
-            ofdConfig = ofdConfig,
-            tokenCodec = tokenCodec,
-            idGenerator = UuidGenerator,
-            clock = SystemClock,
-            pinHasher = Sha256PinHasherPort(),
-            authorization = authorization,
-            ofdCommandRequestBuilder = ofdCommandRequestBuilder,
-            reqNumService = reqNumService,
-            counters = DefaultCounterUpdater(storage),
-            timeValidator = timeValidator
-        )
+        queueStorage: QueueStoragePort,
+        authorizeUserUseCase: AuthorizeUserUseCase
+    ): RetryFailedQueueItemsUseCase =
+        RetryFailedQueueItemsUseCase(storage, queueStorage, authorizeUserUseCase)
 
     @Bean
     fun kkmService(
@@ -156,60 +93,27 @@ class ServicesConfig {
         ofd: OfdManagerPort,
         ofdConfig: OfdConfigPort,
         delivery: DeliveryPort,
-        kkmUserService: KkmUserService,
-        shiftService: ShiftService,
-        ofdSyncService: OfdSyncService,
-        kkmRegistrationService: KkmRegistrationService,
         tokenCodec: TokenCodecPort,
-        autonomousModeService: AutonomousModeService,
-        fiscalOperationExecutor: FiscalOperationExecutor,
-        reqNumService: ReqNumService,
         pinHasher: PinHasherPort,
-        authorization: AuthorizationService,
-        ofdCommandRequestBuilder: OfdCommandRequestBuilder,
         coreSettings: CoreSettings,
         receiptRenderPort: ReceiptRenderPort,
         documentConvertPort: DocumentConvertPort,
         timeValidator: TimeValidatorPort
-    ): KkmService {
-        return KkmService(
+    ): SuperkassaApi {
+        return SuperkassaApiImpl(
             storage = storage,
             queue = queue,
             ofd = ofd,
             ofdConfig = ofdConfig,
             delivery = delivery,
-            kkmUserService = kkmUserService,
-            shiftService = shiftService,
-            ofdSyncService = ofdSyncService,
-            kkmRegistrationService = kkmRegistrationService,
             tokenCodec = tokenCodec,
-            autonomousModeService = autonomousModeService,
-            fiscalOperationExecutor = fiscalOperationExecutor,
-            reqNumService = reqNumService,
-            counters = DefaultCounterUpdater(storage),
-            idGenerator = UuidGenerator,
+            idGenerator = UuidGeneratorAdapter,
             clock = SystemClock,
             pinHasher = pinHasher,
-            authorization = authorization,
-            ofdCommandRequestBuilder = ofdCommandRequestBuilder,
             coreSettings = coreSettings,
             receiptRenderPort = receiptRenderPort,
             documentConvertPort = documentConvertPort,
             timeValidator = timeValidator
         )
     }
-
-    @Bean
-    fun queueManagementService(
-        storage: StoragePort,
-        queuePort: OfflineQueuePort,
-        queueStoragePort: QueueStoragePort,
-        authorization: AuthorizationService
-    ): QueueManagementService =
-        QueueManagementService(
-            storage = storage,
-            queuePort = queuePort,
-            queueStorage = queueStoragePort,
-            authorization = authorization
-        )
 }

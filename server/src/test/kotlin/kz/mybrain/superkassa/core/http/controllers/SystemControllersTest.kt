@@ -3,26 +3,25 @@ package kz.mybrain.superkassa.core.http.controllers
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kz.mybrain.superkassa.core.application.error.SettingsFrozenException
+import kz.mybrain.superkassa.core.domain.exception.SettingsFrozenException
 import kz.mybrain.superkassa.core.application.http.controllers.DiagnosticsController
 import kz.mybrain.superkassa.core.application.http.controllers.QueueController
 import kz.mybrain.superkassa.core.application.http.controllers.SuperkassaInfoController
 import kz.mybrain.superkassa.core.application.http.controllers.SuperkassaSettingsController
 import kz.mybrain.superkassa.core.application.http.controllers.UnitsOfMeasurementController
-import kz.mybrain.superkassa.core.application.model.CoreMode
-import kz.mybrain.superkassa.core.application.model.CoreSettings
-import kz.mybrain.superkassa.core.application.model.KkmListResult
-import kz.mybrain.superkassa.core.application.model.StorageSettings
-import kz.mybrain.superkassa.core.application.service.CoreSettingsRepository
-import kz.mybrain.superkassa.core.application.service.KkmService
-import kz.mybrain.superkassa.core.application.service.QueueManagementService
-import kz.mybrain.superkassa.core.domain.model.KkmInfo
-import kz.mybrain.superkassa.core.domain.model.KkmMode
-import kz.mybrain.superkassa.core.domain.model.KkmState
-import kz.mybrain.superkassa.core.domain.model.OfdCommandResult
-import kz.mybrain.superkassa.core.domain.model.OfdCommandStatus
-import kz.mybrain.superkassa.core.domain.model.TaxRegime
-import kz.mybrain.superkassa.core.domain.model.VatGroup
+import kz.mybrain.superkassa.core.domain.model.settings.CoreMode
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.presentation.model.KkmListResult
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.domain.model.settings.StorageSettings
+import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
+import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
+import kz.mybrain.superkassa.core.domain.model.kkm.KkmMode
+import kz.mybrain.superkassa.core.domain.model.kkm.KkmState
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
+import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandStatus
+import kz.mybrain.superkassa.core.domain.model.common.TaxRegime
+import kz.mybrain.superkassa.core.domain.model.common.VatGroup
 import kz.mybrain.superkassa.core.domain.port.StoragePort
 import kz.mybrain.superkassa.storage.application.health.StorageHealthChecker
 import kz.mybrain.superkassa.storage.application.health.StorageHealthStatus
@@ -36,10 +35,13 @@ class SystemControllersTest {
 
     @Test
     fun `queue controller delegates list and retry with parsed pin`() {
-        val queueService = mockk<QueueManagementService>()
-        val controller = QueueController(queueService)
+        val listQueueItemsUseCase =
+            mockk<kz.mybrain.superkassa.core.domain.usecase.queue.ListQueueItemsUseCase>()
+        val retryFailedQueueItemsUseCase =
+            mockk<kz.mybrain.superkassa.core.domain.usecase.queue.RetryFailedQueueItemsUseCase>()
+        val controller = QueueController(listQueueItemsUseCase, retryFailedQueueItemsUseCase)
         val queueItem =
-            QueueManagementService.QueueItemView(
+            kz.mybrain.superkassa.core.domain.usecase.queue.ListQueueItemsUseCase.QueueItemView(
                 id = "q-1",
                 lane = "OFFLINE",
                 type = "TICKET",
@@ -48,16 +50,16 @@ class SystemControllersTest {
                 nextAttemptAt = null,
                 lastError = "err"
             )
-        every { queueService.listQueue("kkm-q", "1234") } returns listOf(queueItem)
-        every { queueService.retryFailed("kkm-q", "1234") } returns 3
+        every { listQueueItemsUseCase.execute("kkm-q", "1234") } returns listOf(queueItem)
+        every { retryFailedQueueItemsUseCase.execute("kkm-q", "1234") } returns 3
 
         val list = controller.listQueue("kkm-q", "Bearer 1234")
         val retry = controller.retryFailed("kkm-q", "Bearer 1234")
 
         assertEquals(1, list.size)
         assertEquals(3, retry["updated"])
-        verify(exactly = 1) { queueService.listQueue("kkm-q", "1234") }
-        verify(exactly = 1) { queueService.retryFailed("kkm-q", "1234") }
+        verify(exactly = 1) { listQueueItemsUseCase.execute("kkm-q", "1234") }
+        verify(exactly = 1) { retryFailedQueueItemsUseCase.execute("kkm-q", "1234") }
     }
 
     @Test
@@ -69,7 +71,7 @@ class SystemControllersTest {
                 allowChanges = true
             )
         val storage = mockk<StoragePort>()
-        val kkmService = mockk<KkmService>()
+        val kkmService = mockk<SuperkassaApi>()
         val controller = SuperkassaInfoController(settings, storage, kkmService, "9.9.9")
         val kkm = sampleKkm("kkm-1")
         every { kkmService.listKkms(any()) } returns KkmListResult(items = listOf(kkm), total = 1)
@@ -100,7 +102,7 @@ class SystemControllersTest {
                 storage = StorageSettings(engine = "SQLITE", jdbcUrl = "jdbc:sqlite:build/core.db"),
                 allowChanges = true
             )
-        val repo = mockk<CoreSettingsRepository>()
+        val repo = mockk<CoreSettingsRepositoryPort>()
         every { repo.loadOrCreate(initial) } returns initial
         every { repo.save(any()) } returns true
 
@@ -127,7 +129,7 @@ class SystemControllersTest {
                 storage = StorageSettings(engine = "SQLITE", jdbcUrl = "jdbc:sqlite:build/core.db"),
                 allowChanges = false
             )
-        val repo = mockk<CoreSettingsRepository>()
+        val repo = mockk<CoreSettingsRepositoryPort>()
         val controller = SuperkassaSettingsController(repo, frozen)
 
         assertFailsWith<SettingsFrozenException> {
@@ -153,7 +155,7 @@ class SystemControllersTest {
     fun `diagnostics health degrades when ofd check fails`() {
         val checker = mockk<StorageHealthChecker>()
         val config = StorageConfig(jdbcUrl = "jdbc:sqlite:build/core.db")
-        val kkmService = mockk<KkmService>()
+        val kkmService = mockk<SuperkassaApi>()
         val controller = DiagnosticsController(checker, config, kkmService)
         every { checker.check(config, 3) } returns StorageHealthStatus(ok = true, message = "Connection OK")
         every { kkmService.listKkms(any()) } returns KkmListResult(items = listOf(sampleKkm("kkm-2")), total = 1)

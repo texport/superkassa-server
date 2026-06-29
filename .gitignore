@@ -10,3 +10,13 @@ build/
 
 # Android local configs
 local.properties
+
+# OS files
+.DS_Store
+
+# Text files
+*.txt
+
+# Kotlin
+.kotlin/
+

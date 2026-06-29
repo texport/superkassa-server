@@ -17,18 +17,21 @@ repositories {
 
 dependencies {
     implementation(platform(libs.spring.boot.dependencies))
-    implementation(libs.superkassa.core)
+    implementation(libs.superkassa.core.domain)
+    implementation(libs.superkassa.core.data)
+    implementation(libs.superkassa.core.presentation)
+    
+    implementation(project(":offline-queue"))
+    implementation(libs.superkassa.delivery)
+    implementation(libs.ofd.network.client)
     implementation(project(":storage-jdbc"))
     implementation(project(":server-settings"))
     implementation(project(":server-delivery"))
     implementation(project(":server-converter"))
     implementation(project(":time-java"))
     implementation(libs.superkassa.receipt.renderer)
-    implementation(libs.superkassa.offline.queue)
-    implementation(libs.superkassa.delivery)
 
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.ofd.network.client)
     implementation(libs.hikariCP)
     
     runtimeOnly(libs.sqlite.jdbc)
@@ -40,7 +43,6 @@ dependencies {
     implementation(libs.jackson.module.kotlin)
     implementation(libs.kotlin.reflect)
     implementation(libs.springdoc.openapi)
-    implementation(libs.resilience4j)
     implementation(libs.spring.boot.starter.aspectj)
 
     testImplementation(kotlin("test"))
@@ -103,7 +105,8 @@ tasks.jacocoTestCoverageVerification {
                 "*Mappers*",
                 "*AuthHeaderUtils*",
                 "*ApiResponseMessages*",
-                "*Controller*"
+                "*Controller*",
+                "*TraceIdFilter*"
             )
             limit {
                 minimum = "1.0".toBigDecimal()

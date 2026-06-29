@@ -153,4 +153,56 @@ class OpenApiConfig {
             openApi.tags = orderedTags
         }
     }
+
+    @Bean
+    fun kmpSchemaConverter(): io.swagger.v3.core.converter.ModelConverter {
+        return object : io.swagger.v3.core.converter.ModelConverter {
+            override fun resolve(
+                type: io.swagger.v3.core.converter.AnnotatedType,
+                context: io.swagger.v3.core.converter.ModelConverterContext,
+                chain: Iterator<io.swagger.v3.core.converter.ModelConverter>
+            ): io.swagger.v3.oas.models.media.Schema<*>? {
+                val resolved = if (chain.hasNext()) chain.next().resolve(type, context, chain) else null
+                val anns = type.ctxAnnotations
+                if (anns != null && resolved != null) {
+                    val kmpSchema = anns.firstOrNull {
+                        it is kz.mybrain.superkassa.core.presentation.annotations.Schema
+                    } as? kz.mybrain.superkassa.core.presentation.annotations.Schema
+                    if (kmpSchema != null) {
+                        if (kmpSchema.description.isNotEmpty()) {
+                            resolved.description = kmpSchema.description
+                        }
+                        if (kmpSchema.example.isNotEmpty()) {
+                            resolved.example = kmpSchema.example
+                        }
+                        if (kmpSchema.type.isNotEmpty()) {
+                            resolved.type = kmpSchema.type
+                        }
+                        if (kmpSchema.format.isNotEmpty()) {
+                            resolved.format = kmpSchema.format
+                        }
+                        if (kmpSchema.minimum.isNotEmpty()) {
+                            resolved.minimum = java.math.BigDecimal(kmpSchema.minimum)
+                        }
+                        if (kmpSchema.maximum.isNotEmpty()) {
+                            resolved.maximum = java.math.BigDecimal(kmpSchema.maximum)
+                        }
+                        if (kmpSchema.allowableValues.isNotEmpty()) {
+                            resolved.enum = kmpSchema.allowableValues.toList()
+                        }
+                        if (kmpSchema.hidden) {
+                            return null
+                        }
+                        if (kmpSchema.minLength > 0) {
+                            resolved.minLength = kmpSchema.minLength
+                        }
+                        if (kmpSchema.maxLength < Int.MAX_VALUE) {
+                            resolved.maxLength = kmpSchema.maxLength
+                        }
+                    }
+                }
+                return resolved
+            }
+        }
+    }
 }

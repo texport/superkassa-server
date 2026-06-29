@@ -1,12 +1,12 @@
 package kz.mybrain.superkassa.core.data.adapter
 
-import kz.mybrain.superkassa.core.domain.model.QueueTaskDto
+import kz.mybrain.superkassa.core.domain.model.queue.QueueTask
 import kz.mybrain.superkassa.storage.application.session.StorageSession
 import kz.mybrain.superkassa.storage.domain.model.QueueTaskRecord
 
 class JdbcQueueDelegate(private val sessionProvider: () -> StorageSession) {
 
-    fun enqueueQueueTask(dto: QueueTaskDto): Boolean {
+    fun enqueueQueueTask(dto: QueueTask): Boolean {
         return sessionProvider().queueTask.enqueue(
             QueueTaskRecord(
                 id = dto.id,
@@ -23,9 +23,9 @@ class JdbcQueueDelegate(private val sessionProvider: () -> StorageSession) {
         )
     }
 
-    fun listQueueTasksByCashbox(cashboxId: String, lane: String, limit: Int, offset: Int): List<QueueTaskDto> {
+    fun listQueueTasksByCashbox(cashboxId: String, lane: String, limit: Int, offset: Int): List<QueueTask> {
         return sessionProvider().queueTask.listByCashbox(cashboxId, lane, limit, offset).map {
-            QueueTaskDto(
+            QueueTask(
                 id = it.id,
                 cashboxId = it.cashboxId,
                 lane = it.lane,
@@ -40,9 +40,9 @@ class JdbcQueueDelegate(private val sessionProvider: () -> StorageSession) {
         }
     }
 
-    fun nextPendingQueueTask(cashboxId: String, lane: String, now: Long): QueueTaskDto? {
+    fun nextPendingQueueTask(cashboxId: String, lane: String, now: Long): QueueTask? {
         return sessionProvider().queueTask.nextPending(cashboxId, lane, now)?.let {
-            QueueTaskDto(
+            QueueTask(
                 id = it.id,
                 cashboxId = it.cashboxId,
                 lane = it.lane,

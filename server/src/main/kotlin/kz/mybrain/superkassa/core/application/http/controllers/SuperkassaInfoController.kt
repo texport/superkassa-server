@@ -6,11 +6,11 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_K
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_VERSION
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.toResponse
-import kz.mybrain.superkassa.core.application.model.CoreSettings
-import kz.mybrain.superkassa.core.application.model.KkmListParams
-import kz.mybrain.superkassa.core.application.model.KkmResponse
-import kz.mybrain.superkassa.core.application.model.PaginatedResponse
-import kz.mybrain.superkassa.core.application.service.KkmService
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.presentation.model.KkmListParams
+import kz.mybrain.superkassa.core.presentation.model.KkmResponse
+import kz.mybrain.superkassa.core.presentation.model.PaginatedResponse
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import kz.mybrain.superkassa.core.domain.port.StoragePort
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.bind.annotation.GetMapping
@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController
 class SuperkassaInfoController(
     private val coreSettings: CoreSettings,
     private val storage: StoragePort,
-    private val kkmService: KkmService,
+    private val kkmService: SuperkassaApi,
     @Value("\${app.version:1.0}") private val appVersion: String
 ) {
 

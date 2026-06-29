@@ -1,7 +1,7 @@
 package kz.mybrain.superkassa.core.application.http
 
-import kz.mybrain.superkassa.core.application.model.KkmResponse
-import kz.mybrain.superkassa.core.domain.model.KkmInfo
+import kz.mybrain.superkassa.core.presentation.model.KkmResponse
+import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
 
 fun KkmInfo.toResponse(): KkmResponse {
     val (ofdId, ofdEnvironment) = splitOfdTag(ofdProvider)
