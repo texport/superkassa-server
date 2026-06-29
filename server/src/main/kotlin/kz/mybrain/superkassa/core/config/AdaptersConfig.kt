@@ -49,6 +49,7 @@ class AdaptersConfig {
     private val logger = LoggerFactory.getLogger(AdaptersConfig::class.java)
 
     @Bean
+    @Suppress("CanConvertToMultiDollarString")
     fun settingsRepository(
         @Value("\${spring.datasource.url:}") dbUrl: String,
         @Value("\${spring.datasource.username:}") dbUser: String?,
@@ -63,13 +64,21 @@ class AdaptersConfig {
     }
 
     @Bean
-    fun coreSettings(repository: CoreSettingsRepositoryPort): CoreSettings {
+    fun coreSettings(
+        repository: CoreSettingsRepositoryPort,
+        @Value("\${spring.datasource.url:}") dbUrl: String,
+        @Value("\${spring.datasource.username:}") dbUser: String?,
+        @Value("\${spring.datasource.password:}") dbPass: String?
+    ): CoreSettings {
         val defaults = if (repository is DatabaseCoreSettingsRepository) {
+            val engineType = if (dbUrl.lowercase().contains("mysql")) "MYSQL" else "POSTGRESQL"
             CoreSettings(
                 mode = CoreMode.SERVER,
                 storage = StorageSettings(
-                    engine = "POSTGRESQL",
-                    jdbcUrl = "jdbc:postgresql://localhost:5432/db"
+                    engine = engineType,
+                    jdbcUrl = dbUrl,
+                    user = dbUser,
+                    password = dbPass
                 ),
                 allowChanges = true
             )
@@ -78,7 +87,7 @@ class AdaptersConfig {
                 mode = CoreMode.DESKTOP,
                 storage = StorageSettings(
                     engine = "SQLITE",
-                    jdbcUrl = "jdbc:sqlite:build/core.db"
+                    jdbcUrl = "jdbc:sqlite:build/core.db?busy_timeout=30000"
                 ),
                 allowChanges = true
             )
@@ -236,7 +245,7 @@ class AdaptersConfig {
             MoneyPlacementRequestBuilderStrategy(storage),
             ReportRequestBuilderStrategy(storage, shiftCountersRecalculator),
             CloseShiftRequestBuilderStrategy(storage, shiftCountersRecalculator),
-            TicketRequestBuilderStrategy()
+            TicketRequestBuilderStrategy(storage)
         )
         val delegate = OfdManagerAdapter(
             OfdConfig(protocolVersion = settings.ofdProtocolVersion),

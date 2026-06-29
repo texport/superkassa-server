@@ -42,10 +42,13 @@ class JdbcMigrationRunner(
     }
 
     private fun ensureSchemaMigrationsTable(connection: Connection) {
+        val isMysql = connection.metaData.databaseProductName.lowercase().contains("mysql")
+        val versionType = if (isMysql) "VARCHAR(255)" else "TEXT"
+        val checksumType = if (isMysql) "VARCHAR(255)" else "TEXT"
         val sql = """
             CREATE TABLE IF NOT EXISTS schema_migrations (
-                version TEXT PRIMARY KEY,
-                checksum TEXT NOT NULL,
+                version $versionType PRIMARY KEY,
+                checksum $checksumType NOT NULL,
                 applied_at BIGINT NOT NULL
             )
         """.trimIndent()

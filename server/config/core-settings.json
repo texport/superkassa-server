@@ -2,7 +2,8 @@
     "mode": "DESKTOP",
     "storage": {
         "engine": "SQLITE",
-        "jdbcUrl": "jdbc:sqlite:build/core.db"
+        "jdbcUrl": "jdbc:sqlite:build/core.db?busy_timeout=30000"
     },
-    "allowChanges": true
+    "allowChanges": true,
+    "ofdTimeoutSeconds": 15
 }

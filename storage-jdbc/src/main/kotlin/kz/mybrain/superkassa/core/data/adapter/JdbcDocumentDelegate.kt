@@ -89,7 +89,8 @@ class JdbcDocumentDelegate(private val sessionProvider: () -> StorageSession) {
         if (record.docType != "CHECK" || record.payloadBin == null || record.payloadBin.isEmpty()) return null
         val payload = try {
             json.decodeFromString<ReceiptStoredPayload>(String(record.payloadBin, Charsets.UTF_8))
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            e.printStackTrace()
             return null
         }
         return StorageMapper.toFiscalDocumentSnapshot(record, session) to payload.toReceiptRequest()
