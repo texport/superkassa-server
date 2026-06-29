@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.security.SecurityRequirement
 import io.swagger.v3.oas.models.security.SecurityScheme
 import io.swagger.v3.oas.models.tags.Tag
 import org.springdoc.core.customizers.OpenApiCustomizer
+import org.springdoc.core.customizers.PropertyCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -190,9 +191,6 @@ class OpenApiConfig {
                         if (kmpSchema.allowableValues.isNotEmpty()) {
                             resolved.enum = kmpSchema.allowableValues.toList()
                         }
-                        if (kmpSchema.hidden) {
-                            return null
-                        }
                         if (kmpSchema.minLength > 0) {
                             resolved.minLength = kmpSchema.minLength
                         }
@@ -203,6 +201,22 @@ class OpenApiConfig {
                 }
                 return resolved
             }
+        }
+    }
+
+    @Bean
+    fun kmpPropertyCustomizer(): PropertyCustomizer {
+        return PropertyCustomizer { schema, type ->
+            val anns = type.ctxAnnotations
+            if (anns != null) {
+                val kmpSchema = anns.firstOrNull {
+                    it is kz.mybrain.superkassa.core.presentation.annotations.Schema
+                } as? kz.mybrain.superkassa.core.presentation.annotations.Schema
+                if (kmpSchema != null && kmpSchema.hidden) {
+                    return@PropertyCustomizer null
+                }
+            }
+            schema
         }
     }
 }
