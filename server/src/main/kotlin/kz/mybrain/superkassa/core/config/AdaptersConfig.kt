@@ -64,6 +64,7 @@ class AdaptersConfig {
     }
 
     @Bean
+    @Suppress("CanConvertToMultiDollarString")
     fun coreSettings(
         repository: CoreSettingsRepositoryPort,
         @Value("\${spring.datasource.url:}") dbUrl: String,
@@ -87,7 +88,7 @@ class AdaptersConfig {
                 mode = CoreMode.DESKTOP,
                 storage = StorageSettings(
                     engine = "SQLITE",
-                    jdbcUrl = "jdbc:sqlite:build/core.db?busy_timeout=30000"
+                    jdbcUrl = dbUrl.ifEmpty { "jdbc:sqlite:build/core.db?busy_timeout=30000" }
                 ),
                 allowChanges = true
             )

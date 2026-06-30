@@ -38,7 +38,7 @@ class SuperkassaSettingsController(
         description = """
             Возвращает текущую конфигурацию системы Superkassa Core.
             
-            Настройки загружаются из файла config/core-settings.json. Если файл не существует,
+            Настройки загружаются из файла config/core-settings.json (в режиме DESKTOP) или из базы данных (в режиме SERVER). Если хранилище не существует,
             возвращаются настройки по умолчанию.
             
             Параметры конфигурации:
@@ -96,7 +96,7 @@ class SuperkassaSettingsController(
      * Обновление настроек ядра Superkassa.
      *
      * Позволяет изменить конфигурацию системы через API.
-     * Настройки сохраняются в файл config/core-settings.json.
+     * Настройки сохраняются в файл config/core-settings.json (в режиме DESKTOP) или в базу данных (в режиме SERVER).
      *
      * Ограничения:
      * - Изменения разрешены только если allowChanges=true в текущих настройках
@@ -118,7 +118,7 @@ class SuperkassaSettingsController(
             Процесс обновления:
             1. Проверяется флаг allowChanges
             2. Новые настройки валидируются
-            3. Настройки сохраняются в файл config/core-settings.json
+            3. Настройки сохраняются в файл config/core-settings.json (в режиме DESKTOP) или в базу данных (в режиме SERVER)
             4. Возвращаются обновленные настройки
             
             Правила заполнения настроек:
