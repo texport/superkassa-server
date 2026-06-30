@@ -68,10 +68,12 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
             
             Что возвращается:
             - ReceiptResult с полями:
-              * receiptNumber: номер созданного чека
-              * fiscalSign: фискальный признак
-              * fiscalDocumentNumber: номер фискального документа
-              * status: статус операции
+              * documentId: Уникальный идентификатор фискального документа чека в БД.
+              * fiscalSign: Фискальный признак (подпись) чека, полученный от ОФД (null при офлайн-оформлении).
+              * autonomousSign: Автономный фискальный признак чека (при офлайн-оформлении).
+              * deliveryStatus: Текущий статус отправки чека в ОФД/клиенту (ONLINE_OK, ONLINE_ERROR, OFFLINE_QUEUED, NOT_SENT).
+              * deliveryError: Текст возникшей ошибки при попытке отправки/печати чека (опционально).
+              * deliveryPayload: Сгенерированная печатная форма чека (опционально).
             
             Важно:
             - Все суммы передаются в тенге как Double (например, 1234.56)
@@ -130,10 +132,12 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
             
             Что возвращается:
             - ReceiptResult с полями:
-              * receiptNumber: номер созданного чека
-              * fiscalSign: фискальный признак
-              * fiscalDocumentNumber: номер фискального документа
-              * status: статус операции
+              * documentId: Уникальный идентификатор фискального документа чека в БД.
+              * fiscalSign: Фискальный признак (подпись) чека, полученный от ОФД (null при офлайн-оформлении).
+              * autonomousSign: Автономный фискальный признак чека (при офлайн-оформлении).
+              * deliveryStatus: Текущий статус отправки чека в ОФД/клиенту (ONLINE_OK, ONLINE_ERROR, OFFLINE_QUEUED, NOT_SENT).
+              * deliveryError: Текст возникшей ошибки при попытке отправки/печати чека (опционально).
+              * deliveryPayload: Сгенерированная печатная форма чека (опционально).
             
             Важно:
             - Все суммы передаются в тенге как Double (например, 1234.56)
@@ -191,10 +195,12 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
             
             Что возвращается:
             - ReceiptResult с полями:
-              * receiptNumber: номер созданного чека
-              * fiscalSign: фискальный признак
-              * fiscalDocumentNumber: номер фискального документа
-              * status: статус операции
+              * documentId: Уникальный идентификатор фискального документа чека в БД.
+              * fiscalSign: Фискальный признак (подпись) чека, полученный от ОФД (null при офлайн-оформлении).
+              * autonomousSign: Автономный фискальный признак чека (при офлайн-оформлении).
+              * deliveryStatus: Текущий статус отправки чека в ОФД/клиенту (ONLINE_OK, ONLINE_ERROR, OFFLINE_QUEUED, NOT_SENT).
+              * deliveryError: Текст возникшей ошибки при попытке отправки/печати чека (опционально).
+              * deliveryPayload: Сгенерированная печатная форма чека (опционально).
             
             Важно:
             - Все суммы передаются в тенге как Double (например, 1234.56)
@@ -252,10 +258,12 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
             
             Что возвращается:
             - ReceiptResult с полями:
-              * receiptNumber: номер созданного чека
-              * fiscalSign: фискальный признак
-              * fiscalDocumentNumber: номер фискального документа
-              * status: статус операции
+              * documentId: Уникальный идентификатор фискального документа чека в БД.
+              * fiscalSign: Фискальный признак (подпись) чека, полученный от ОФД (null при офлайн-оформлении).
+              * autonomousSign: Автономный фискальный признак чека (при офлайн-оформлении).
+              * deliveryStatus: Текущий статус отправки чека в ОФД/клиенту (ONLINE_OK, ONLINE_ERROR, OFFLINE_QUEUED, NOT_SENT).
+              * deliveryError: Текст возникшей ошибки при попытке отправки/печати чека (опционально).
+              * deliveryPayload: Сгенерированная печатная форма чека (опционально).
             
             Важно:
             - Все суммы передаются в тенге как Double (например, 1234.56)

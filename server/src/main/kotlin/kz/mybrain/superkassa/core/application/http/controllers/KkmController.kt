@@ -116,10 +116,10 @@ class KkmController(private val kkmService: SuperkassaApi) {
                 
                 Что возвращается:
                 - ReportResult с полями:
-                  * reportNumber: номер созданного Z-отчета
-                  * fiscalSign: фискальный признак
-                  * fiscalDocumentNumber: номер фискального документа
-                  * status: статус операции
+                  * documentId: Идентификатор сгенерированного фискального документа отчета в БД.
+                  * deliveryStatus: Статус доставки отчета в ОФД/клиенту (ONLINE_OK, ONLINE_ERROR, OFFLINE_QUEUED, NOT_SENT).
+                  * deliveryError: Текст ошибки доставки, если отправка завершилась неудачно (опционально).
+                  * deliveryPayload: Бинарное представление сгенерированного отчета (опционально).
                 
                 Важно:
                 - После закрытия смены необходимо открыть новую смену через POST /kkm/{kkmId}/shift/open
