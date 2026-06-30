@@ -13,7 +13,6 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_D
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.toResponse
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.domain.model.settings.*
 import kz.mybrain.superkassa.core.presentation.model.*
 import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import org.springframework.web.bind.annotation.*
@@ -61,8 +60,20 @@ class KkmDecommissioningController(private val kkmService: SuperkassaApi) {
     @Operation(
         operationId = "02_generateFactoryInfo",
         summary = "Сгенерировать заводской номер и год выпуска",
-        description = "Возвращает заводской номер и год выпуска для регистрации ККМ в ОФД. " +
-            "Не создаёт запись ККМ в базе."
+        description = """
+            Генерирует и возвращает уникальный заводской номер ККМ и год выпуска.
+            
+            Этот эндпоинт необходим на этапе подготовки к регистрации кассового аппарата в ОФД и налоговых органах:
+            - Заводской номер генерируется по специальному алгоритму производителя, проходящему валидацию в ОФД.
+            - Год выпуска возвращается в соответствии с текущим календарным годом.
+            
+            Важно:
+            - Метод носит вспомогательный характер.
+            - Вызов этого метода не создаёт ККМ в базе данных Superkassa.
+            - Полученный заводской номер нужно использовать в последующем запросе инициализации ККМ.
+            
+            Метод является публичным и не требует авторизации.
+        """
     )
     @KkmApiResponses(
         ok = MSG_200_KKM_INIT,
