@@ -11,7 +11,6 @@ detekt = "1.23.8"
 ofdNetworkClient = "1.1.0"
 serialization = "1.11.0"
 superkassaCore = "1.0.1"
-superkassaTimeJava = "1.0.2"
 superkassaReceiptRenderer = "1.0.4"
 superkassaDelivery = "1.1.0"
 openhtmltopdf = "1.0.10"
@@ -63,7 +62,6 @@ ofd-network-client = { group = "io.github.texport", name = "ofd-network-client",
 superkassa-core-domain = { group = "io.github.texport", name = "core-domain-jvm", version.ref = "superkassaCore" }
 superkassa-core-data = { group = "io.github.texport", name = "core-data-jvm", version.ref = "superkassaCore" }
 superkassa-core-presentation = { group = "io.github.texport", name = "core-presentation-jvm", version.ref = "superkassaCore" }
-superkassa-time-java = { group = "io.github.texport", name = "superkassa-time-java", version.ref = "superkassaTimeJava" } # Resolved from Maven Central
 superkassa-receipt-renderer = { group = "io.github.texport", name = "superkassa-receipt-renderer", version.ref = "superkassaReceiptRenderer" } # Resolved from Maven Central
 superkassa-delivery = { group = "io.github.texport", name = "superkassa-delivery", version.ref = "superkassaDelivery" }
 detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }

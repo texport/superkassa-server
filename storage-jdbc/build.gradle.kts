@@ -29,7 +29,7 @@ dependencies {
     testImplementation(libs.superkassa.core.presentation)
     testImplementation(kotlin("test"))
     testImplementation(libs.mockk)
-    testImplementation(libs.superkassa.time.java)
+    testImplementation(project(":time-java"))
     testImplementation(libs.superkassa.delivery)
     testImplementation(libs.superkassa.receipt.renderer)
     detektPlugins(libs.detekt.formatting)

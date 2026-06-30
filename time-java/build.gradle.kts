@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.github.texport"
-version = libs.versions.superkassaTimeJava.get()
+version = libs.versions.superkassaCore.get()
 
 publishing {
     publications {
