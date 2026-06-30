@@ -84,6 +84,18 @@
    ```bash
    java -jar -Dserver.port=8080 -Dsuperkassa.debug-cache=true server-1.0.1.jar
    ```
+
+#### Настройка пути к файлу базы данных SQLite (Опционально):
+По умолчанию файл базы данных автоматически создается в подпапке `data/superkassa.db` относительно места запуска. Если вы хотите сохранить базу данных в другое место (например, на диск D:\ или в конкретную папку документов), переопределите параметр `spring.datasource.url`:
+* **Для Windows**:
+  ```cmd
+  java -jar -Dspring.datasource.url=jdbc:sqlite:D:\custom_folder\my_kassa.db server-1.0.1.jar
+  ```
+* **Для macOS / Linux**:
+  ```bash
+  java -jar -Dspring.datasource.url=jdbc:sqlite:/Users/username/Documents/my_kassa.db server-1.0.1.jar
+  ```
+
 3. Когда появится строчка `Started ServerApplicationKt in ... seconds`, сервер готов к работе.
 4. **Как остановить**: Нажмите комбинацию клавиш `Ctrl + C` в этом же окне командной строки.
 
