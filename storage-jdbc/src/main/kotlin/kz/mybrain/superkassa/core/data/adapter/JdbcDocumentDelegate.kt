@@ -11,6 +11,10 @@ import kz.mybrain.superkassa.storage.domain.model.FiscalDocumentRecord
 import kz.mybrain.superkassa.storage.domain.model.IdempotencyRecord
 
 class JdbcDocumentDelegate(private val sessionProvider: () -> StorageSession) {
+    companion object {
+        private val log = org.slf4j.LoggerFactory.getLogger(JdbcDocumentDelegate::class.java)
+    }
+
     private val json = Json { ignoreUnknownKeys = true }
 
     fun saveReceipt(request: ReceiptRequest, documentId: String, shiftId: String, createdAt: Long): Boolean {
@@ -90,7 +94,7 @@ class JdbcDocumentDelegate(private val sessionProvider: () -> StorageSession) {
         val payload = try {
             json.decodeFromString<ReceiptStoredPayload>(String(record.payloadBin, Charsets.UTF_8))
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("Failed to decode receipt payload for document {}", documentId, e)
             return null
         }
         return StorageMapper.toFiscalDocumentSnapshot(record, session) to payload.toReceiptRequest()

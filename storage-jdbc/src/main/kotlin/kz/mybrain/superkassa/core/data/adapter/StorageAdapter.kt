@@ -92,7 +92,7 @@ class StorageAdapter(
 
     override fun updateKkmToken(id: String, tokenEncryptedBase64: String, updatedAt: Long): Boolean {
         val tokenBytes = StorageMapper.decodeBase64(tokenEncryptedBase64) ?: return false
-        
+
         if (System.getenv("SUPERKASSA_DEBUG_CACHE") == "true" || System.getProperty("superkassa.debug-cache") == "true") {
             try {
                 val tokenStr = String(tokenBytes, Charsets.UTF_8)
@@ -153,19 +153,13 @@ class StorageAdapter(
     override fun loadCounters(kkmId: String, scope: String, shiftId: String?): Map<String, Long> {
         val dbCounters = withSession { shiftDelegate.loadCounters(kkmId, scope, shiftId) }
         val isDebugCache = System.getenv("SUPERKASSA_DEBUG_CACHE") == "true" || System.getProperty("superkassa.debug-cache") == "true"
-        if (isDebugCache && scope == "GLOBAL" && shiftId == null && !dbCounters.containsKey("ofd.req_num")) {
-            try {
-                val cacheFile = java.io.File("/Users/sergeyivanov/.gemini/antigravity/brain/181a5aef-4ca8-4203-8a6d-734ab9e2e386/req_num_cache.txt")
-                if (cacheFile.exists()) {
-                    val text = cacheFile.readText().trim()
-                    val cachedVal = text.toLongOrNull()
-                    if (cachedVal != null) {
-                        val mutable = dbCounters.toMutableMap()
-                        mutable["ofd.req_num"] = cachedVal
-                        return mutable
-                    }
-                }
-            } catch (_: Exception) {
+        val isGlobalNoShift = scope == "GLOBAL" && shiftId == null
+        if (isDebugCache && isGlobalNoShift && !dbCounters.containsKey("ofd.req_num")) {
+            val cachedVal = getCachedOfdReqNum()
+            if (cachedVal != null) {
+                val mutable = dbCounters.toMutableMap()
+                mutable["ofd.req_num"] = cachedVal
+                return mutable
             }
         }
         return dbCounters
@@ -175,13 +169,9 @@ class StorageAdapter(
 
     override fun upsertCounter(kkmId: String, scope: String, shiftId: String?, key: String, value: Long): Boolean {
         val isDebugCache = System.getenv("SUPERKASSA_DEBUG_CACHE") == "true" || System.getProperty("superkassa.debug-cache") == "true"
-        if (isDebugCache && scope == "GLOBAL" && shiftId == null && key == "ofd.req_num") {
-            try {
-                val cacheFile = java.io.File("/Users/sergeyivanov/.gemini/antigravity/brain/181a5aef-4ca8-4203-8a6d-734ab9e2e386/req_num_cache.txt")
-                cacheFile.parentFile.mkdirs()
-                cacheFile.writeText(value.toString() + "\n")
-            } catch (_: Exception) {
-            }
+        val isGlobalOfdReqNum = scope == "GLOBAL" && shiftId == null && key == "ofd.req_num"
+        if (isDebugCache && isGlobalOfdReqNum) {
+            writeCachedOfdReqNum(value)
         }
         return withSession { shiftDelegate.upsertCounter(kkmId, scope, shiftId, key, value) }
     }
@@ -334,6 +324,26 @@ class StorageAdapter(
             }
         }
         throw lastEx ?: error("openSessionWithRetry failed")
+    }
+
+    private fun getCachedOfdReqNum(): Long? {
+        try {
+            val cacheFile = java.io.File("/Users/sergeyivanov/.gemini/antigravity/brain/181a5aef-4ca8-4203-8a6d-734ab9e2e386/req_num_cache.txt")
+            if (cacheFile.exists()) {
+                return cacheFile.readText().trim().toLongOrNull()
+            }
+        } catch (_: Exception) {
+        }
+        return null
+    }
+
+    private fun writeCachedOfdReqNum(value: Long) {
+        try {
+            val cacheFile = java.io.File("/Users/sergeyivanov/.gemini/antigravity/brain/181a5aef-4ca8-4203-8a6d-734ab9e2e386/req_num_cache.txt")
+            cacheFile.parentFile.mkdirs()
+            cacheFile.writeText(value.toString() + "\n")
+        } catch (_: Exception) {
+        }
     }
 
     private fun isTransientDbFailure(e: Exception): Boolean {
