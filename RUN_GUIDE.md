@@ -1,105 +1,161 @@
-# Руководство по развертыванию, конфигурации и запуску Superkassa Server
+# Подробное пошаговое руководство по запуску и настройке Superkassa Server
 
-Этот документ содержит исчерпывающее руководство по установке, конфигурированию и запуску `superkassa-server` в различных режимах эксплуатации: от локального запуска через JAR-файл до масштабируемого отказоустойчивого кластера в Kubernetes с внешними СУБД.
-
----
-
-## 1. Запуск через исполняемый JAR-файл (Локальный запуск)
-
-Этот способ подходит для локальной отладки или развертывания на отдельных кассовых компьютерах.
-
-### Предварительные требования:
-* Установленная Java Runtime Environment (JRE) версии 17 или выше.
-* Синхронизированное системное время по NTP (критично для фискализации).
-
-### Скачивание готового релиза:
-Скачайте готовый исполняемый JAR-файл последней версии (`1.0.1`) напрямую со страницы релизов GitHub:
-```bash
-curl -L -O https://github.com/texport/superkassa-server/releases/download/v1.0.1/server-1.0.1.jar
-```
-
-### Настройка конфигурации (`application.yml` / Системные свойства):
-При запуске через JAR конфигурацию можно переопределить через переменные окружения или системные свойства Java (`-D`):
-* `server.port` — порт сервера (по умолчанию `8080`).
-* `spring.datasource.url` — путь к базе данных SQLite (по умолчанию `jdbc:sqlite:data/superkassa.db`).
-* `superkassa.debug-cache` — включение отладочного кэширования для работы без ОФД (по умолчанию `false`).
-
-### Команда запуска:
-```bash
-java -jar -Dserver.port=8080 -Dsuperkassa.debug-cache=true server-1.0.1.jar
-```
+Это руководство написано простым языком и содержит пошаговые инструкции для различных операционных систем (**Windows**, **macOS** и **Linux**). Следуя ему, вы сможете запустить и настроить сервер, даже если делаете это впервые.
 
 ---
 
-## 2. Запуск через Docker в режиме DESKTOP
+## ШАГ 1. Установка необходимых программ (Подготовка)
 
-Режим `DESKTOP` используется для локальных POS-терминалов. Вся база данных хранится в файле SQLite, а настройки ядра — в локальном файле `core-settings.json`.
+Перед запуском сервера на ваш компьютер нужно установить две программы: **Java 17** (для запуска напрямую) и **Docker** (для запуска в контейнере).
 
-### Сборка Docker-образа:
-1. Поместите скачанный файл `server-1.0.1.jar` в директорию `server/build/libs/` (создайте её при необходимости):
+### 1.1. Установка Java 17
+Сервер написан на языке Kotlin/Java, поэтому для его работы обязательна виртуальная машина Java версии 17.
+
+* **Для Windows**:
+  1. Скачайте установщик Java 17 (выберите `x64 Installer`) с официального сайта: [Скачать Java 17 (Temurin)](https://adoptium.net/temurin/releases/?version=17).
+  2. Запустите скачанный файл `.msi` или `.exe` и нажимайте кнопку **Далее (Next)** до завершения установки. Во время установки убедитесь, что включены галочки `Set JAVA_HOME` и `Associate .jar`.
+  3. Проверьте установку: откройте командную строку (нажмите клавиши `Win + R`, введите `cmd` и нажмите Enter) и введите команду:
+     ```cmd
+     java -version
+     ```
+     Вы должны увидеть текст, содержащий `openjdk version "17...`.
+
+* **Для macOS**:
+  1. Скачайте установщик для macOS (выберите `.pkg` файл под ваш процессор — `x64` для Intel или `aarch64` для Apple M1/M2/M3) с сайта adoptium.net.
+  2. Запустите `.pkg` файл и следуйте стандартным шагам установки на Mac.
+  3. Проверьте установку через Терминал:
+     ```bash
+     java -version
+     ```
+
+* **Для Linux (Ubuntu/Debian)**:
+  Откройте терминал и выполните команды:
+  ```bash
+  sudo apt update
+  sudo apt install -y openjdk-17-jre
+  ```
+
+---
+
+### 1.2. Установка Docker
+Docker нужен, чтобы запускать сервер в изолированном контейнере со всеми его зависимостями «в один клик».
+
+* **Для Windows и macOS**:
+  1. Скачайте программу **Docker Desktop**: [Скачать Docker Desktop](https://www.docker.com/products/docker-desktop/).
+  2. Установите её как обычную программу. На Windows в процессе установки согласитесь на установку компонентов WSL 2 (если потребуется).
+  3. После установки запустите Docker Desktop. В нижнем левом углу программы должна загореться зеленая иконка (это означает, что Docker запущен и готов к работе).
+
+* **Для Linux**:
+  Установите Docker через терминал:
+  ```bash
+  sudo apt update
+  sudo apt install -y docker.io docker-compose
+  sudo systemctl start docker
+  sudo systemctl enable docker
+  ```
+
+---
+
+## ШАГ 2. Скачивание готового файла сервера (Release JAR)
+
+Вам не нужно компилировать код из исходников. Мы уже собрали готовый файл программы.
+
+1. Откройте страницу релизов проекта в браузере: [Релизы Superkassa Server на GitHub](https://github.com/texport/superkassa-server/releases).
+2. Найдите последний релиз (например, `v1.0.1`).
+3. В разделе **Assets** (в самом низу описания релиза) кликните мышкой на файл **`server-1.0.1.jar`** и сохраните его на компьютер (например, в созданную папку `C:\superkassa` на Windows или `/Users/имя_пользователя/superkassa` на Mac).
+
+---
+
+## ШАГ 3. Варианты запуска сервера (Выберите один)
+
+Ниже описаны три разных способа запуска сервера. Для простой проверки выберите **Вариант 3.1** или **Вариант 3.2**.
+
+---
+
+### Вариант 3.1. Простой запуск напрямую через Java (без Docker)
+Этот способ запускает сервер прямо на вашем компьютере. База данных SQLite автоматически создастся в той же папке, куда вы скачали JAR-файл.
+
+1. Откройте командную строку/терминал и перейдите в папку со скачанным файлом:
+   * **На Windows**:
+     ```cmd
+     cd C:\superkassa
+     ```
+   * **На macOS / Linux**:
+     ```bash
+     cd ~/superkassa
+     ```
+2. Запустите сервер следующей командой (порт сервера `8080`, включен режим отладки без реального ОФД):
    ```bash
-   mkdir -p server/build/libs && cp server-1.0.1.jar server/build/libs/
+   java -jar -Dserver.port=8080 -Dsuperkassa.debug-cache=true server-1.0.1.jar
    ```
-2. Запустите сборку образа в корне проекта:
+3. Вы увидите много текстовых логов на экране. Когда появится строчка `Started ServerApplicationKt in ... seconds`, сервер готов к работе.
+4. **Как остановить**: Чтобы выключить сервер, просто нажмите комбинацию клавиш `Ctrl + C` в этом же окне командной строки.
+
+---
+
+### Вариант 3.2. Запуск через Docker в режиме DESKTOP (Локальный режим)
+Этот режим изолирует сервер в контейнере, но сохраняет базу данных SQLite на вашем диске, чтобы при перезапуске данные не стирались.
+
+1. Создайте в папке проекта пустую структуру папок `server/build/libs/` и скопируйте туда скачанный ранее файл `server-1.0.1.jar`:
+   * **На Windows (в PowerShell)**:
+     ```powershell
+     New-Item -ItemType Directory -Force -Path .\server\build\libs
+     Copy-Item .\server-1.0.1.jar .\server\build\libs\server-1.0.1.jar
+     ```
+   * **На macOS / Linux**:
+     ```bash
+     mkdir -p server/build/libs && cp server-1.0.1.jar server/build/libs/
+     ```
+2. Соберите Docker-образ кассы:
    ```bash
    docker build -t superkassa-server .
    ```
-
-### Запуск контейнера:
-Для сохранения базы данных SQLite и настроек при перезапуске контейнера необходимо монтировать локальный том (volume):
-```bash
-docker run -d \
-  -p 8080:8080 \
-  -v superkassa-data:/app/data \
-  -e SUPERKASSA_DEBUG_CACHE=true \
-  --name superkassa \
-  superkassa-server
-```
-
-* **Примечание**: База данных SQLite будет находиться по пути `/app/data/superkassa.db` внутри контейнера (и сохранится в томе `superkassa-data`).
-
----
-
-## 3. Развертывание в режиме SERVER (Кластерный режим)
-
-Режим `SERVER` предназначен для развертывания в облаке банка, ОФД или крупного ритейлера. Конфигурация касс хранится во внешней базе данных, а нагрузка распределяется между несколькими нодами.
-
-### 3.1. Подготовка и настройка внешних СУБД (PostgreSQL / MySQL)
-Перед запуском кассового сервера необходимо подготовить кластер базы данных.
-
-#### А. Настройка PostgreSQL (Рекомендуется)
-1. Создайте базу данных и пользователя:
-   ```sql
-   CREATE USER superkassa_user WITH PASSWORD 'secure_password';
-   CREATE DATABASE superkassa_db OWNER superkassa_user;
+3. Запустите контейнер:
+   ```bash
+   docker run -d -p 8080:8080 -v superkassa-data:/app/data -e SUPERKASSA_DEBUG_CACHE=true --name superkassa superkassa-server
    ```
-2. Настройте пул подключений (HikariCP конфигурируется автоматически в Spring Boot). Для высоконагруженных систем рекомендуется установить размер пула минимум в 20 соединений.
-
-#### Б. Настройка MySQL
-1. Создайте базу данных с поддержкой UTF-8:
-   ```sql
-   CREATE DATABASE superkassa_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   CREATE USER 'superkassa_user'@'%' IDENTIFIED BY 'secure_password';
-   GRANT ALL PRIVILEGES ON superkassa_db.* TO 'superkassa_user'@'%';
-   FLUSH PRIVILEGES;
+   *Параметр `-v superkassa-data:/app/data` указывает Docker сохранять файлы базы данных SQLite на вашем компьютере.*
+4. **Как остановить**:
+   ```bash
+   docker stop superkassa
+   ```
+5. **Как запустить остановленный сервер снова**:
+   ```bash
+   docker start superkassa
    ```
 
 ---
 
-### 3.2. Настройка режима многонодовости (Clustering / Multi-node)
-При запуске нескольких экземпляров сервера для распределения нагрузки координация их работы происходит через базу данных.
+### Вариант 3.3. Развертывание в режиме SERVER (Кластерный режим)
+Этот режим используется для промышленной эксплуатации. Здесь сервер не хранит данные локально, а подключается к внешнему кластеру баз данных (PostgreSQL или MySQL), а нагрузка может распределяться между несколькими серверами (нодами).
 
-#### Уникальный Node ID
-Каждая запущенная нода должна получить уникальный идентификатор `nodeId` через переменную окружения `SUPERKASSA_NODE_ID`. Это необходимо для корректной работы распределенной очереди задач отправки документов в ОФД.
+#### Шаг А. Настройка СУБД (Базы данных)
+Перед запуском касс вам нужна база данных. Зайдите в консоль управления вашей СУБД и выполните настройки:
 
-#### Запуск кластера через Docker Compose (Пример)
-Ниже представлен пример конфигурации `docker-compose.yml` для запуска двух нод кассового сервера за балансировщиком Nginx и одной базой PostgreSQL:
+* **Для PostgreSQL**:
+  1. Создайте пользователя и БД:
+     ```sql
+     CREATE USER superkassa_user WITH PASSWORD 'secure_password';
+     CREATE DATABASE superkassa_db OWNER superkassa_user;
+     ```
+* **Для MySQL**:
+  1. Создайте базу данных с поддержкой UTF-8 и пользователя:
+     ```sql
+     CREATE DATABASE superkassa_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+     CREATE USER 'superkassa_user'@'%' IDENTIFIED BY 'secure_password';
+     GRANT ALL PRIVILEGES ON superkassa_db.* TO 'superkassa_user'@'%';
+     FLUSH PRIVILEGES;
+     ```
+
+#### Шаг Б. Запуск кластера из двух нод через Docker Compose
+Создайте в любой папке файл с именем `docker-compose.yml` и запишите туда следующий текст (он автоматически настроит базу PostgreSQL и запустит две копии кассового сервера):
 
 ```yaml
 version: '3.8'
 
 services:
-  postgres:
+  # Блок Базы Данных PostgreSQL
+  postgres-db:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: superkassa_db
@@ -110,107 +166,123 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # Первая нода кассового сервера
   superkassa-node1:
     image: superkassa-server:latest
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/superkassa_db
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/superkassa_db
       - SPRING_DATASOURCE_USERNAME=superkassa_user
       - SPRING_DATASOURCE_PASSWORD=secure_password
-      - SUPERKASSA_NODE_ID=node-1
+      - SUPERKASSA_NODE_ID=node-1 # Уникальный ID первой ноды для очереди ОФД
+    ports:
+      - "8081:8080" # Будет доступна на порту 8081
     depends_on:
-      - postgres
+      - postgres-db
 
+  # Вторая нода кассового сервера
   superkassa-node2:
     image: superkassa-server:latest
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/superkassa_db
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/superkassa_db
       - SPRING_DATASOURCE_USERNAME=superkassa_user
       - SPRING_DATASOURCE_PASSWORD=secure_password
-      - SUPERKASSA_NODE_ID=node-2
+      - SUPERKASSA_NODE_ID=node-2 # Уникальный ID второй ноды
+    ports:
+      - "8082:8080" # Будет доступна на порту 8082
     depends_on:
-      - postgres
+      - postgres-db
 
 volumes:
   pgdata:
 ```
 
----
-
-### 3.3. Развертывание в Kubernetes (k8s)
-
-Для промышленного запуска в облаке используется Kubernetes. Ниже приведен пример манифеста для развертывания кластера `superkassa-server` из двух реплик с автоматическим пробросом имени пода как `SUPERKASSA_NODE_ID`.
-
-#### Манифест развертывания (`superkassa-k8s.yaml`):
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: superkassa-server
-  labels:
-    app: superkassa
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: superkassa
-  template:
-    metadata:
-      labels:
-        app: superkassa
-    spec:
-      containers:
-      - name: superkassa
-        image: texport/superkassa-server:latest
-        ports:
-        - containerPort: 8080
-        env:
-        # Подключение к внешней базе данных
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:postgresql://postgres-service:5432/superkassa_db"
-        - name: SPRING_DATASOURCE_USERNAME
-          value: "superkassa_user"
-        - name: SPRING_DATASOURCE_PASSWORD
-          value: "secure_password"
-        # Динамическое получение имени пода для Node ID очереди
-        - name: SUPERKASSA_NODE_ID
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        # Настройки Health Probes для мониторинга
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 20
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 15
-          periodSeconds: 10
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: superkassa-service
-spec:
-  selector:
-    app: superkassa
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 8080
-  type: ClusterIP
+Запустите этот кластер одной командой в терминале:
+```bash
+docker-compose up -d
 ```
 
 ---
 
-## 4. Доступ к API и авторизация методов
+#### Шаг В. Развертывание в Kubernetes (k8s)
+Если вы хотите запустить сервер в Kubernetes:
 
-После запуска сервера в любом из режимов:
-1. Документация API (Swagger UI) доступна по адресу: `http://<host>:<port>/swagger-ui/index.html`
-2. Спецификация OpenAPI доступна в формате JSON: `http://<host>:<port>/v3/api-docs`
-3. Авторизация всех закрытых методов осуществляется путем передачи ПИН-кода в HTTP-заголовке:
-   `Authorization: Bearer <PIN>` (например, `Authorization: Bearer 8888`).
+1. Создайте файл конфигурации `superkassa-k8s.yaml`:
+   ```yaml
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+     name: superkassa-server
+     labels:
+       app: superkassa
+   spec:
+     replicas: 2
+     selector:
+       matchLabels:
+         app: superkassa
+     template:
+       metadata:
+         labels:
+           app: superkassa
+       spec:
+         containers:
+         - name: superkassa
+           image: texport/superkassa-server:latest
+           ports:
+           - containerPort: 8080
+           env:
+           - name: SPRING_DATASOURCE_URL
+             value: "jdbc:postgresql://postgres-service:5432/superkassa_db"
+           - name: SPRING_DATASOURCE_USERNAME
+             value: "superkassa_user"
+           - name: SPRING_DATASOURCE_PASSWORD
+             value: "secure_password"
+           # Автоматически прокидываем уникальное имя пода как Node ID:
+           - name: SUPERKASSA_NODE_ID
+             valueFrom:
+               fieldRef:
+                 fieldPath: metadata.name
+           livenessProbe:
+             httpGet:
+               path: /health
+               port: 8080
+             initialDelaySeconds: 20
+             periodSeconds: 10
+           readinessProbe:
+             httpGet:
+               path: /health
+               port: 8080
+             initialDelaySeconds: 15
+             periodSeconds: 10
+   ---
+   apiVersion: v1
+   kind: Service
+   metadata:
+     name: superkassa-service
+   spec:
+     selector:
+       app: superkassa
+     ports:
+       - protocol: TCP
+         port: 80
+         targetPort: 8080
+   ```
+2. Примените манифест в ваш кластер:
+   ```bash
+   kubectl apply -f superkassa-k8s.yaml
+   ```
+
+---
+
+## ШАГ 4. Проверка работоспособности и авторизация
+
+Как только сервер запустился (любым из способов выше на порту `8080`):
+
+1. Откройте браузер и перейдите по адресу:
+   👉 **[http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)**
+   *Вы увидите интерактивное меню со списком всех доступных API-методов кассы.*
+
+2. **Как войти в панель администратора кассы (Авторизация)**:
+   * Нажмите кнопку **Authorize** (зеленый замок) в правом верхнем углу страницы Swagger.
+   * В поле **Value** введите стандартный ПИН-код администратора: `8888`.
+   * Нажмите кнопку **Authorize**, затем **Close**.
+   * Теперь вы можете выполнять любые запросы (например, инициализацию кассы через `/kkm/init` или открытие смены `/kkm/{kkmId}/shift/open`).
