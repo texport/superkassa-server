@@ -17,9 +17,7 @@ repositories {
 
 dependencies {
     implementation(platform(libs.spring.boot.dependencies))
-    implementation(libs.superkassa.core.domain)
-    implementation(libs.superkassa.core.data)
-    implementation(libs.superkassa.core.presentation)
+    implementation(libs.superkassa.core)
     
     implementation(project(":offline-queue"))
     implementation(libs.superkassa.delivery)

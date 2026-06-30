@@ -11,8 +11,7 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.superkassa.core.domain)
-    implementation(libs.superkassa.core.presentation)
+    implementation(libs.superkassa.core)
     implementation(libs.slf4j.api)
     implementation(libs.openhtmltopdf.core)
     implementation(libs.openhtmltopdf.pdfbox)

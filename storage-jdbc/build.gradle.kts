@@ -16,8 +16,7 @@ repositories {
 
 dependencies {
     implementation(project(":server-settings"))
-    implementation(libs.superkassa.core.domain)
-    implementation(libs.superkassa.core.data)
+    implementation(libs.superkassa.core)
     implementation(project(":offline-queue"))
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.slf4j.api)
@@ -26,7 +25,7 @@ dependencies {
     implementation(libs.mysql.connector.j)
     implementation(libs.hikariCP)
 
-    testImplementation(libs.superkassa.core.presentation)
+    testImplementation(libs.superkassa.core)
     testImplementation(kotlin("test"))
     testImplementation(libs.mockk)
     testImplementation(project(":time-java"))

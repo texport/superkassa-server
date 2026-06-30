@@ -31,7 +31,7 @@ detekt {
 }
 
 dependencies {
-    implementation(libs.superkassa.core.domain)
+    implementation(libs.superkassa.core)
     implementation(libs.slf4j.api)
     
     testImplementation(kotlin("test"))
