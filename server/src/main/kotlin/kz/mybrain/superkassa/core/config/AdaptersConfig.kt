@@ -88,7 +88,7 @@ class AdaptersConfig {
                 mode = CoreMode.DESKTOP,
                 storage = StorageSettings(
                     engine = "SQLITE",
-                    jdbcUrl = dbUrl.ifEmpty { "jdbc:sqlite:build/core.db?busy_timeout=30000" }
+                    jdbcUrl = dbUrl.ifEmpty { "jdbc:sqlite:data/core.db?busy_timeout=30000" }
                 ),
                 allowChanges = true
             )

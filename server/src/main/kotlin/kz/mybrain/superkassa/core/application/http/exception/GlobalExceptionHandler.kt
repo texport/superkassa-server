@@ -83,6 +83,20 @@ class GlobalExceptionHandler {
             )
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException::class)
+    fun handleNoResourceFoundException(ex: org.springframework.web.servlet.resource.NoResourceFoundException): ResponseEntity<ApiErrorResponse> {
+        logger.warn("Resource not found: {}", ex.message)
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(
+                ApiErrorResponse(
+                    code = "RESOURCE_NOT_FOUND",
+                    message = "[EN] Requested resource was not found / " +
+                        "[RU] Запрошенный ресурс не найден / " +
+                        "[KK] Сұралған ресурс табылмады"
+                )
+            )
+    }
+
     @ExceptionHandler(Exception::class)
     fun handleGenericException(ex: Exception): ResponseEntity<ApiErrorResponse> {
         logger.error("Unhandled exception", ex)

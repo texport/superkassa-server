@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "kz.mybrain"
-version = libs.versions.superkassaCore.get()
+version = libs.versions.serverVersion.get()
 
 repositories {
     mavenLocal()

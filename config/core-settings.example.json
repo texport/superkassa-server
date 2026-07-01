@@ -2,7 +2,7 @@
   "mode": "DESKTOP",
   "storage": {
     "engine": "SQLITE",
-    "jdbcUrl": "jdbc:sqlite:build/core.db"
+    "jdbcUrl": "jdbc:sqlite:data/core.db"
   },
   "nodeId": "node-1",
   "ofdProtocolVersion": "203",
