@@ -15,3 +15,11 @@ detekt {
     buildUponDefaultConfig = true
     allRules = true
 }
+
+subprojects {
+    configurations.all {
+        exclude(group = "io.github.texport", module = "core-domain")
+        exclude(group = "io.github.texport", module = "core-data")
+        exclude(group = "io.github.texport", module = "core-presentation")
+    }
+}
