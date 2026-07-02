@@ -26,6 +26,10 @@ object AuthHeaderUtils {
 
         val trimmed = authHeader.trim()
 
+        if (trimmed.equals("Bearer", ignoreCase = true)) {
+            throw ForbiddenException(ErrorMessages.unauthorized())
+        }
+
         // Поддержка формата "Bearer <pin>"
         if (trimmed.startsWith("Bearer ", ignoreCase = true)) {
             val pin = trimmed.substring(7).trim()
