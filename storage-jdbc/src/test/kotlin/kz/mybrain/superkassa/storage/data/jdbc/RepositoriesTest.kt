@@ -226,6 +226,51 @@ class RepositoriesTest {
                 assertEquals("hello", rs.getString("val_string"))
             }
         }
+    }
+
+    @Test
+    fun testSqlInjectionPrevention() {
+        val connection = DriverManager.getConnection("jdbc:sqlite::memory:")
+        connection.createStatement().use { stmt ->
+            stmt.execute("""
+                CREATE TABLE kkm_user (
+                    id TEXT,
+                    cashbox_id TEXT,
+                    name TEXT,
+                    role TEXT,
+                    pin TEXT,
+                    pin_hash TEXT,
+                    created_at INTEGER,
+                    PRIMARY KEY (cashbox_id, id)
+                )
+            """.trimIndent())
+        }
+
+        val repo = JdbcKkmUserRepository(connection)
+
+        // Insert a normal user
+        val normalUser = KkmUserRecord(
+            id = "user-1",
+            cashboxId = "cashbox-1",
+            name = "Alice",
+            role = "CASHIER",
+            pin = "1111",
+            pinHash = "hash1111",
+            createdAt = 123456789L
+        )
+        repo.insert(normalUser)
+
+        // Try to query with SQL Injection payload
+        val sqlInjectionPayload = "' OR '1'='1"
+        val found = repo.findById("cashbox-1", sqlInjectionPayload)
+
+        // Assert that the injection was treated as literal and returned null (no such user exists)
+        assertNull(found, "SQL Injection payload must be treated as a literal and not return any user")
+
+        // Try to find user by pin hash with SQL injection
+        val foundByHash = repo.findByCashboxAndPinHash("cashbox-1", sqlInjectionPayload)
+        assertNull(foundByHash, "SQL Injection payload must not resolve to any user by pin hash")
+
         connection.close()
     }
 }
