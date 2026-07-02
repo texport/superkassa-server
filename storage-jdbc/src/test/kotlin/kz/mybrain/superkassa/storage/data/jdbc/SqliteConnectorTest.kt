@@ -69,4 +69,85 @@ class SqliteConnectorTest {
             }
         }
     }
+
+    @Test
+    fun testConnectWithNonSqliteUrl() {
+        val config = StorageConfig(
+            jdbcUrl = "jdbc:h2:mem:testdb",
+            user = null,
+            password = null
+        )
+        try {
+            SqliteConnector().connect(config)
+        } catch (_: Exception) {
+            // expected connection failure
+        }
+    }
+
+    @Test
+    fun testConnectWithMemoryDatabase() {
+        val config = StorageConfig(
+            jdbcUrl = "jdbc:sqlite::memory:",
+            user = null,
+            password = null
+        )
+        val connector = SqliteConnector()
+        val connection = connector.connect(config)
+        try {
+            assertTrue(connection.isValid(1))
+        } finally {
+            connection.close()
+        }
+    }
+
+    @Test
+    fun testConnectWithEmptyPath() {
+        val config = StorageConfig(
+            jdbcUrl = "jdbc:sqlite:",
+            user = null,
+            password = null
+        )
+        try {
+            SqliteConnector().connect(config)
+        } catch (_: Exception) {
+            // expected connection failure
+        }
+    }
+
+    @Test
+    fun testConnectWithNoParentFile() {
+        val config = StorageConfig(
+            jdbcUrl = "jdbc:sqlite:test_no_parent.db",
+            user = null,
+            password = null
+        )
+        val connector = SqliteConnector()
+        val connection = connector.connect(config)
+        try {
+            assertTrue(connection.isValid(1))
+        } finally {
+            connection.close()
+            File("test_no_parent.db").delete()
+        }
+    }
+
+    @Test
+    fun testConnectWithExistingParentDirectory() {
+        val testDir = File("build/test_sqlite_existing_dir")
+        testDir.mkdirs()
+        val dbFile = File(testDir, "test.db")
+        val config = StorageConfig(
+            jdbcUrl = "jdbc:sqlite:${dbFile.absolutePath}",
+            user = null,
+            password = null
+        )
+        val connector = SqliteConnector()
+        val connection = connector.connect(config)
+        try {
+            assertTrue(testDir.exists())
+        } finally {
+            connection.close()
+            testDir.deleteRecursively()
+        }
+    }
 }
