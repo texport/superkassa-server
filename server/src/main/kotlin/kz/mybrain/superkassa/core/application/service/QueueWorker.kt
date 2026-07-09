@@ -16,7 +16,7 @@ class QueueWorker(
 ) {
     private val logger = LoggerFactory.getLogger(QueueWorker::class.java)
 
-    @Scheduled(fixedDelayString = "\${offline-queue.worker.interval-ms:5000}", initialDelay = 10000)
+    @Scheduled(fixedDelayString = $$"${offline-queue.worker.interval-ms:5000}", initialDelay = 10000)
     fun processOfflineQueues() {
         val kkms = storage.listKkms(limit = 100, offset = 0, state = null, search = null)
         for (kkm in kkms) {

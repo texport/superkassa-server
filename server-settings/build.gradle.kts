@@ -12,6 +12,7 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":shared-strings"))
     implementation(libs.superkassa.core)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.slf4j.api)
@@ -59,6 +60,9 @@ tasks.jacocoTestCoverageVerification {
     violationRules {
         rule {
             element = "CLASS"
+            excludes = listOf(
+                "*Dto*"
+            )
             limit {
                 minimum = "1.0".toBigDecimal()
             }

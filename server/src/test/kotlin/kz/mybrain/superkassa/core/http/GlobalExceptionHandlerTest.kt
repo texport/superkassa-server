@@ -1,7 +1,7 @@
 package kz.mybrain.superkassa.core.http
 
-import kz.mybrain.superkassa.core.application.http.exception.GlobalExceptionHandler
 import io.mockk.mockk
+import kz.mybrain.superkassa.core.application.http.exception.GlobalExceptionHandler
 import org.springframework.core.MethodParameter
 import org.springframework.http.HttpInputMessage
 import org.springframework.http.HttpStatus

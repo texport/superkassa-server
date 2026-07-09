@@ -3,8 +3,8 @@ package kz.mybrain.superkassa.core.application.http.controllers
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
-import kz.mybrain.superkassa.core.presentation.model.VatRateResponse
 import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.presentation.model.VatRateResponse
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController

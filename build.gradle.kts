@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.spring.boot) apply false
 }
 
-group = "kz.mybrain"
+group = "io.github.texport"
 version = "1.0"
 
 detekt {

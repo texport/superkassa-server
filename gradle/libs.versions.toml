@@ -2,24 +2,25 @@
 kotlin = "2.4.0"
 springBoot = "4.1.0"
 sqliteJdbc = "3.53.2.0"
-postgresql = "42.7.11"
+postgresql = "42.7.12"
 mysql = "9.7.0"
 hikariCP = "7.1.0"
 mockk = "1.14.11"
 springdocOpenapi = "3.0.3"
 detekt = "1.23.8"
-ofdNetworkClient = "1.1.0"
+ofdNetworkClient = "1.2.0"
 serialization = "1.11.0"
-superkassaCore = "1.0.1"
-serverVersion = "1.0.2"
-superkassaReceiptRenderer = "1.0.4"
-superkassaDelivery = "1.1.0"
-openhtmltopdf = "1.0.10"
+superkassaCore = "1.0.4"
+superkassaOfflineQueue = "1.0.3"
+serverVersion = "1.0.3"
+superkassaReceiptRenderer = "1.0.7"
+superkassaDelivery = "1.2.0"
+openhtmltopdf = "1.1.40"
 zxing = "3.5.4"
 jakartaMail = "2.0.2"
 slf4j = "2.0.18"
 jackson = "2.18.2"
-jacocoVersion = "0.8.12"
+jacocoVersion = "0.8.15"
 java = "21"
 javaTargetCore = "17"
 
@@ -48,8 +49,8 @@ kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 
 # PDF Rendering
-openhtmltopdf-core = { group = "com.openhtmltopdf", name = "openhtmltopdf-core", version.ref = "openhtmltopdf" }
-openhtmltopdf-pdfbox = { group = "com.openhtmltopdf", name = "openhtmltopdf-pdfbox", version.ref = "openhtmltopdf" }
+openhtmltopdf-core = { group = "io.github.openhtmltopdf", name = "openhtmltopdf-core", version.ref = "openhtmltopdf" }
+openhtmltopdf-pdfbox = { group = "io.github.openhtmltopdf", name = "openhtmltopdf-pdfbox", version.ref = "openhtmltopdf" }
 
 # QR Codes
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
@@ -61,6 +62,7 @@ jakarta-mail = { group = "com.sun.mail", name = "jakarta.mail", version.ref = "j
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 ofd-network-client = { group = "io.github.texport", name = "ofd-network-client", version.ref = "ofdNetworkClient" }
 superkassa-core = { group = "io.github.texport", name = "superkassa-core-jvm", version.ref = "superkassaCore" }
+superkassa-offline-queue = { group = "io.github.texport", name = "superkassa-offline-queue-jvm", version.ref = "superkassaOfflineQueue" }
 superkassa-receipt-renderer = { group = "io.github.texport", name = "superkassa-receipt-renderer", version.ref = "superkassaReceiptRenderer" } # Resolved from Maven Central
 superkassa-delivery = { group = "io.github.texport", name = "superkassa-delivery", version.ref = "superkassaDelivery" }
 detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }

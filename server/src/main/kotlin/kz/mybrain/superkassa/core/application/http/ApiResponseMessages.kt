@@ -1,5 +1,11 @@
 package kz.mybrain.superkassa.core.application.http
 
+/**
+ * Объект, содержащий константные сообщения ответов API для OpenAPI документирования.
+ * Используется в аннотациях контроллеров для стандартизации ответов Swagger.
+ *
+ * Потокобезопасность: Константы неизменяемы и потокобезопасны.
+ */
 object ApiResponseMessages {
     // 200 OK
     const val MSG_200_KKM_INFO = "Информация о ККМ"
@@ -14,10 +20,7 @@ object ApiResponseMessages {
     const val MSG_200_REPORT_ACCEPTED = "Запрос на отчет принят"
     const val MSG_200_CASH_IN = "Операция внесения выполнена"
     const val MSG_200_CASH_OUT = "Операция изъятия выполнена"
-    const val MSG_200_DRAFT_CREATED = "Черновик создан"
     const val MSG_200_KKM_INIT = "ККМ успешно инициализирована"
-    const val MSG_200_DRAFT_FISCALIZED = "Черновик успешно фискализирован"
-    const val MSG_200_DRAFT_UPDATED = "Черновик обновлен"
     const val MSG_200_OFD_PING = "Запрос выполнен (см. статус в ответе)"
     const val MSG_200_OFD_AUTH = "Данные авторизации получены"
     const val MSG_200_OFD_TOKEN_UPDATED = "Токен обновлен"
@@ -35,9 +38,7 @@ object ApiResponseMessages {
     const val MSG_200_SETTINGS = "Текущие настройки"
     const val MSG_200_UNITS_LIST = "Список единиц измерения"
     const val MSG_200_UNIT_FOUND = "Единица измерения"
-    const val MSG_200_RECEIPT_HTML = "Чек в формате HTML"
     const val MSG_200_RECEIPT_PDF = "Чек в формате PDF"
-    const val MSG_200_RECEIPT_IMAGE = "Чек в формате изображения"
     const val MSG_200_PRINT_HTML = "Печатная форма (HTML)"
     const val MSG_200_DELIVERY_RETRY = "Результаты повторной отправки по каналам"
 
@@ -45,7 +46,6 @@ object ApiResponseMessages {
     const val MSG_400_VALIDATION = "Ошибка валидации"
     const val MSG_400_BAD_STATUS_OR_SHIFT = "Некорректный статус ККМ или есть активная смена"
     const val MSG_400_NOT_PROGRAMMING_MODE = "ККМ не в режиме программирования или ошибка валидации"
-    const val MSG_400_NOT_IDLE = "ККМ не в статусе IDLE или ошибка валидации"
     const val MSG_400_BAD_REQUEST = "Некорректный запрос"
 
     // 401 Unauthorized
@@ -59,7 +59,6 @@ object ApiResponseMessages {
     // 404 Not Found
     const val MSG_404_NOT_FOUND = "Ресурс не найден"
     const val MSG_404_KKM_NOT_FOUND = "ККМ не найдена"
-    const val MSG_404_DRAFT_NOT_FOUND = "Черновик не найден"
     const val MSG_404_USER_OR_KKM_NOT_FOUND = "Пользователь или ККМ не найдены"
     const val MSG_404_UNIT_NOT_FOUND = "Единица измерения не найдена"
     const val MSG_404_DOCUMENT_NOT_FOUND = "Документ не найден или содержимое чека недоступно"

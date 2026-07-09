@@ -1,7 +1,8 @@
 package kz.mybrain.superkassa.core.application.http
 
-import kz.mybrain.superkassa.core.presentation.model.KkmResponse
 import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
+import kz.mybrain.superkassa.core.presentation.model.KkmResponse
+import kz.mybrain.superkassa.core.presentation.model.toDto
 
 fun KkmInfo.toResponse(): KkmResponse {
     val (ofdId, ofdEnvironment) = splitOfdTag(ofdProvider)
@@ -17,7 +18,7 @@ fun KkmInfo.toResponse(): KkmResponse {
         factoryNumber = factoryNumber,
         manufactureYear = manufactureYear,
         ofdSystemId = systemId,
-        ofdServiceInfo = ofdServiceInfo,
+        ofdServiceInfo = ofdServiceInfo?.toDto(),
         tokenEncryptedBase64 = tokenEncryptedBase64,
         tokenUpdatedAt = tokenUpdatedAt,
         lastShiftNo = lastShiftNo,
@@ -28,7 +29,7 @@ fun KkmInfo.toResponse(): KkmResponse {
         lastFiscalHashBase64 = lastFiscalHashBase64,
         taxRegime = taxRegime.name,
         defaultVatGroup = defaultVatGroup.name,
-        branding = branding
+        branding = branding.toDto()
     )
 }
 

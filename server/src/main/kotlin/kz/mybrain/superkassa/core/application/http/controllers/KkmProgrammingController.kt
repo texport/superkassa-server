@@ -10,8 +10,8 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_K
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.toResponse
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.presentation.model.KkmResponse
 import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.presentation.model.KkmResponse
 import org.springframework.web.bind.annotation.*
 
 /**

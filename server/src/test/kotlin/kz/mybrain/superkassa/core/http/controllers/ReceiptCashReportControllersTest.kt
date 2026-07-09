@@ -4,9 +4,14 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import kz.mybrain.superkassa.core.application.http.controllers.CashOperationRequestDto
 import kz.mybrain.superkassa.core.application.http.controllers.CashOperationsController
 import kz.mybrain.superkassa.core.application.http.controllers.ReceiptsController
 import kz.mybrain.superkassa.core.application.http.controllers.ReportsController
+import kz.mybrain.superkassa.core.domain.model.delivery.DeliveryStatus
+import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptResult
+import kz.mybrain.superkassa.core.domain.model.report.ReportResult
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import kz.mybrain.superkassa.core.presentation.model.ParentTicketDto
 import kz.mybrain.superkassa.core.presentation.model.ReceiptBuyRequest
 import kz.mybrain.superkassa.core.presentation.model.ReceiptBuyReturnRequest
@@ -14,12 +19,6 @@ import kz.mybrain.superkassa.core.presentation.model.ReceiptItemDto
 import kz.mybrain.superkassa.core.presentation.model.ReceiptPaymentDto
 import kz.mybrain.superkassa.core.presentation.model.ReceiptSellRequest
 import kz.mybrain.superkassa.core.presentation.model.ReceiptSellReturnRequest
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.domain.model.kkm.CashOperationRequest
-import kz.mybrain.superkassa.core.domain.model.kkm.CashOperationResult
-import kz.mybrain.superkassa.core.domain.model.delivery.DeliveryStatus
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptResult
-import kz.mybrain.superkassa.core.domain.model.report.ReportResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -130,13 +129,13 @@ class ReceiptCashReportControllersTest {
     fun `cashIn forwards pin from authorization header`() {
         every {
             service.cashIn("kkm-1", "1111", any())
-        } returns CashOperationResult("cash-in-doc", DeliveryStatus.ONLINE_OK)
+        } returns kz.mybrain.superkassa.core.domain.model.kkm.CashOperationResult("cash-in-doc", DeliveryStatus.ONLINE_OK)
 
         val result =
             cashController.cashIn(
                 "kkm-1",
                 "Bearer 1111",
-                CashOperationRequest(amount = 500.0, idempotencyKey = "cash-in-1")
+                CashOperationRequestDto(amount = 500.0, idempotencyKey = "cash-in-1")
             )
 
         assertEquals("cash-in-doc", result.documentId)
@@ -156,13 +155,13 @@ class ReceiptCashReportControllersTest {
     fun `cashOut forwards pin from raw authorization header`() {
         every {
             service.cashOut("kkm-2", "2222", any())
-        } returns CashOperationResult("cash-out-doc", DeliveryStatus.ONLINE_OK)
+        } returns kz.mybrain.superkassa.core.domain.model.kkm.CashOperationResult("cash-out-doc", DeliveryStatus.ONLINE_OK)
 
         val result =
             cashController.cashOut(
                 "kkm-2",
                 "2222",
-                CashOperationRequest(amount = 300.0, idempotencyKey = "cash-out-1")
+                CashOperationRequestDto(amount = 300.0, idempotencyKey = "cash-out-1")
             )
 
         assertEquals("cash-out-doc", result.documentId)
@@ -183,7 +182,7 @@ class ReceiptCashReportControllersTest {
         ReceiptItemDto(
             name = "Bread",
             price = 100.0,
-            quantity = 1,
+            quantity = 1.0,
             vatGroup = vatGroup
         )
 

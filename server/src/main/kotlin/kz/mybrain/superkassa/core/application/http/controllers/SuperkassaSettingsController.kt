@@ -1,13 +1,16 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.jvm.settings.impl.dto.CoreSettingsDto
+import io.github.texport.superkassa.jvm.settings.impl.mapper.toDomain
+import io.github.texport.superkassa.jvm.settings.impl.mapper.toDto
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import kz.mybrain.superkassa.core.domain.exception.SettingsFrozenException
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_SETTINGS
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_SETTINGS_UPDATED
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_SETTINGS_FROZEN
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
+import kz.mybrain.superkassa.core.application.settings.UpdateSettingsUseCase
 import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
 import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
 import org.springframework.web.bind.annotation.*
@@ -17,7 +20,8 @@ import org.springframework.web.bind.annotation.*
 @Tag(name = "Настройки Superkassa", description = "Управление системными настройками Superkassa.")
 class SuperkassaSettingsController(
     private val settingsRepository: CoreSettingsRepositoryPort,
-    private val coreSettings: CoreSettings
+    private val coreSettings: CoreSettings,
+    private val updateSettingsUseCase: UpdateSettingsUseCase
 ) {
 
     /**
@@ -88,8 +92,8 @@ class SuperkassaSettingsController(
         """
     )
     @KkmApiResponses(ok = MSG_200_SETTINGS)
-    fun getSettings(): CoreSettings {
-        return settingsRepository.loadOrCreate(coreSettings)
+    fun getSettings(): CoreSettingsDto {
+        return settingsRepository.loadOrCreate(coreSettings).toDto()
     }
 
     /**
@@ -149,11 +153,9 @@ class SuperkassaSettingsController(
         """
     )
     @KkmApiResponses(ok = MSG_200_SETTINGS_UPDATED, forbidden = MSG_403_SETTINGS_FROZEN)
-    fun updateSettings(@RequestBody @Valid newSettings: CoreSettings): CoreSettings {
-        if (!coreSettings.allowChanges) {
-            throw SettingsFrozenException(MSG_403_SETTINGS_FROZEN)
-        }
-        settingsRepository.save(newSettings)
-        return newSettings
+    fun updateSettings(@RequestBody @Valid newSettingsDto: CoreSettingsDto): CoreSettingsDto {
+        val domainSettings = newSettingsDto.toDomain()
+        val updatedDomain = updateSettingsUseCase.execute(domainSettings)
+        return updatedDomain.toDto()
     }
 }

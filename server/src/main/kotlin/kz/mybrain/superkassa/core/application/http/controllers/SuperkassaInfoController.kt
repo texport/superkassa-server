@@ -7,11 +7,11 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_V
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.toResponse
 import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.domain.port.StoragePort
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import kz.mybrain.superkassa.core.presentation.model.KkmListParams
 import kz.mybrain.superkassa.core.presentation.model.KkmResponse
 import kz.mybrain.superkassa.core.presentation.model.PaginatedResponse
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.domain.port.StoragePort
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -33,15 +33,41 @@ class SuperkassaInfoController(
 ) {
 
     /**
-     * Получить список ККМ с фильтрацией и пагинацией.
+     * Получить список зарегистрированных ККМ с поддержкой фильтрации, сортировки и пагинации.
+     *
+     * @param limit максимальное количество записей в ответе (по умолчанию 50).
+     * @param offset смещение от начала списка (по умолчанию 0).
+     * @param state фильтр по состоянию ККМ (например, ACTIVE, IDLE, INACTIVE).
+     * @param search строка для текстового поиска по кассам.
+     * @param sortBy поле для сортировки (например, createdAt, factoryNumber).
+     * @param order направление сортировки (ASC или DESC).
+     * @return [PaginatedResponse] со списком ККМ [KkmResponse].
      */
     @GetMapping("kkm")
     @Operation(
         summary = "Получить список ККМ (с фильтрацией)",
         description = """
-            Возвращает список ККМ с поддержкой фильтрации, поиска, сортировки и пагинации.
-            Параметры: limit, offset, state (ACTIVE, IDLE, INACTIVE), search, sortBy (createdAt, updatedAt, factoryNumber), order (ASC, DESC).
-            Ответ: items (массив KkmResponse), total, limit, offset, hasMore.
+            Возвращает постраничный список всех зарегистрированных кассовых аппаратов (ККМ) в системе.
+            
+            Позволяет искать кассы по текстовому запросу, фильтровать по их рабочему состоянию,
+            а также настраивать сортировку и размер страницы.
+            
+            **Параметры фильтрации и пагинации:**
+            - **limit** (number, опционально, по умолчанию 50): Количество возвращаемых касс на одной странице.
+            - **offset** (number, опционально, по умолчанию 0): Смещение относительно начала списка для пагинации.
+            - **state** (string, опционально): Состояние касс для фильтрации (например: `ACTIVE`, `IDLE`, `INACTIVE`).
+            - **search** (string, опционально): Текстовый поисковый запрос по заводскому номеру или названию организации.
+            - **sortBy** (string, опционально, по умолчанию `createdAt`): Поле для сортировки результатов (`createdAt`, `updatedAt`, `factoryNumber`).
+            - **order** (string, опционально, по умолчанию `DESC`): Направление сортировки (`ASC` - по возрастанию, `DESC` - по убыванию).
+            
+            **Структура ответа:**
+            - **items** (array): Массив сведений о кассах (объекты `KkmResponse`).
+            - **total** (number): Общее количество найденных касс по заданным фильтрам.
+            - **limit** (number): Использованный лимит записей на страницу.
+            - **offset** (number): Использованное смещение выборки.
+            - **hasMore** (boolean): Флаг наличия следующих страниц с результатами.
+            
+            Метод является публичным и не требует авторизации.
         """
     )
     @KkmApiResponses(ok = MSG_200_KKM_LIST)
@@ -72,13 +98,9 @@ class SuperkassaInfoController(
     }
 
     /**
-     * Получить информацию о Superkassa.
+     * Получить информацию о версии, режиме работы, хранилище и возможностях Superkassa.
      *
-     * Возвращает:
-     * - Версию приложения
-     * - Режим работы (DESKTOP, SERVER)
-     * - Статистику системы (количество зарегистрированных ККМ)
-     * - Информацию о хранилище данных
+     * @return [Map] с подробными характеристиками текущего запущенного узла.
      */
     @GetMapping("/info")
     @Operation(

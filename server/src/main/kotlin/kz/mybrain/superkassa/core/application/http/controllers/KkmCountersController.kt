@@ -10,9 +10,9 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_K
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_SYNC_BLOCKED
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import kz.mybrain.superkassa.core.domain.model.common.CounterSnapshot
 import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import org.springframework.web.bind.annotation.*
 
 @RestController

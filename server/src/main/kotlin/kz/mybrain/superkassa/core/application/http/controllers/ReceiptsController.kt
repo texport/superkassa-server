@@ -10,9 +10,9 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_K
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_SHIFT_NOT_OPEN
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.presentation.model.*
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptResult
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.presentation.model.*
 import org.springframework.web.bind.annotation.*
 
 /**

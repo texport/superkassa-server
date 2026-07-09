@@ -23,3 +23,13 @@ local.properties
 # Agents
 .agents/
 
+AGENTS.md
+
+# Application data & scratch files
+data/
+server/data/
+scratch/
+*.hprof
+openapi.yaml
+openapi_pretty.json
+*.db

@@ -3,6 +3,7 @@ package kz.mybrain.superkassa.core.application.http.controllers
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import kotlinx.serialization.Serializable
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_CASH_IN
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_CASH_OUT
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_FORBIDDEN
@@ -10,10 +11,18 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_K
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_SHIFT_NOT_OPEN
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import kz.mybrain.superkassa.core.domain.model.kkm.CashOperationRequest
 import kz.mybrain.superkassa.core.domain.model.kkm.CashOperationResult
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import org.springframework.web.bind.annotation.*
+
+@Serializable
+data class CashOperationRequestDto(
+    val amount: Double,
+    val idempotencyKey: String
+) {
+    fun toDomain(): CashOperationRequest = CashOperationRequest(amount = amount, idempotencyKey = idempotencyKey)
+}
 
 @RestController
 @RequestMapping("/kkm")
@@ -77,10 +86,10 @@ class CashOperationsController(private val kkmService: SuperkassaApi) {
     fun cashIn(
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?,
-        @RequestBody @Valid body: CashOperationRequest
+        @RequestBody @Valid body: CashOperationRequestDto
     ): CashOperationResult {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService.cashIn(kkmId, pin, body)
+        return kkmService.cashIn(kkmId, pin, body.toDomain())
     }
 
     /**
@@ -140,9 +149,9 @@ class CashOperationsController(private val kkmService: SuperkassaApi) {
     fun cashOut(
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?,
-        @RequestBody @Valid body: CashOperationRequest
+        @RequestBody @Valid body: CashOperationRequestDto
     ): CashOperationResult {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService.cashOut(kkmId, pin, body)
+        return kkmService.cashOut(kkmId, pin, body.toDomain())
     }
 }

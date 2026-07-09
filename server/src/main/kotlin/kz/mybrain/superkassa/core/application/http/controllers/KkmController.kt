@@ -17,14 +17,16 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_S
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_SHIFT_OPEN
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.presentation.model.DeliveryRetryItemResponse
-import kz.mybrain.superkassa.core.presentation.model.DeliveryRetryResponse
-import kz.mybrain.superkassa.core.domain.model.report.PrintDocumentType
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import kz.mybrain.superkassa.core.domain.model.kkm.FiscalDocumentSnapshot
 import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptLayoutType
+import kz.mybrain.superkassa.core.domain.model.report.PrintDocumentType
 import kz.mybrain.superkassa.core.domain.model.report.ReportResult
 import kz.mybrain.superkassa.core.domain.model.shift.ShiftInfo
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.presentation.model.DeliveryRetryItemResponse
+import kz.mybrain.superkassa.core.presentation.model.DeliveryRetryResponse
+import kz.mybrain.superkassa.core.domain.port.DocumentConvertPort
+import io.github.texport.superkassa.jvm.receipt.impl.DocumentConvertAdapter
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -32,7 +34,10 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/kkm")
 @Tag(name = "Управление сменой(Z-Отчет) ККМ", description = "Операции со сменами, чеками и отчетами")
-class KkmController(private val kkmService: SuperkassaApi) {
+class KkmController(
+    private val kkmService: SuperkassaApi,
+    private val documentConvertPort: DocumentConvertPort = DocumentConvertAdapter()
+) {
 
     /** Открыть новую смену. */
     @PostMapping("/{kkmId}/shift/open")
@@ -255,7 +260,22 @@ class KkmController(private val kkmService: SuperkassaApi) {
         @RequestHeader("Authorization") authHeader: String?
     ): ResponseEntity<String> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val html = kkmService.getPrintHtml(kkmId, PrintDocumentType.DOCUMENT, documentId, null, pin, layout)
+        val shifts = try { kkmService.listShifts(kkmId, 100, 0, pin) } catch (_: Exception) { emptyList() }
+        val matchingShift = shifts.firstOrNull {
+            it.id == documentId || it.openDocumentId == documentId || it.closeDocumentId == documentId
+        }
+
+        val html = if (matchingShift != null) {
+            val type = if (matchingShift.closeDocumentId == documentId || matchingShift.id == documentId) {
+                PrintDocumentType.CLOSE_SHIFT
+            } else {
+                PrintDocumentType.OPEN_SHIFT
+            }
+            kkmService.getPrintHtml(kkmId, type, null, matchingShift.id, pin, layout)
+        } else {
+            kkmService.getPrintHtml(kkmId, PrintDocumentType.DOCUMENT, documentId, null, pin, layout)
+        }
+
         return ResponseEntity.ok()
             .contentType(MediaType.valueOf("text/html;charset=UTF-8"))
             .body(html)
@@ -283,11 +303,69 @@ class KkmController(private val kkmService: SuperkassaApi) {
         @RequestHeader("Authorization") authHeader: String?
     ): ResponseEntity<ByteArray> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val bytes = kkmService.getPrintPdf(kkmId, PrintDocumentType.DOCUMENT, documentId, null, pin, layout)
+        val shifts = try { kkmService.listShifts(kkmId, 100, 0, pin) } catch (_: Exception) { emptyList() }
+        val matchingShift = shifts.firstOrNull {
+            it.id == documentId || it.openDocumentId == documentId || it.closeDocumentId == documentId
+        }
+
+        val bytes = if (matchingShift != null) {
+            val type = if (matchingShift.closeDocumentId == documentId || matchingShift.id == documentId) {
+                PrintDocumentType.CLOSE_SHIFT
+            } else {
+                PrintDocumentType.OPEN_SHIFT
+            }
+            kkmService.getPrintPdf(kkmId, type, null, matchingShift.id, pin, layout)
+        } else {
+            kkmService.getPrintPdf(kkmId, PrintDocumentType.DOCUMENT, documentId, null, pin, layout)
+        }
+
         return ResponseEntity.ok()
             .contentType(MediaType.APPLICATION_PDF)
             .header("Content-Disposition", "attachment; filename=\"document-$documentId.pdf\"")
             .body(bytes)
+    }
+
+    /**
+     * Печатная форма PNG по конкретному документу (чек, внесение, изъятие) без указания type.
+     */
+    @GetMapping("/{kkmId}/documents/{documentId}/print.png", produces = [MediaType.IMAGE_PNG_VALUE])
+    @Operation(
+        summary = "Печатная форма документа (PNG)",
+        description = "Печать конкретного документа (чек, внесение, изъятие) в формате PNG по его идентификатору. " +
+            "Параметр type не требуется — определяется по документу."
+    )
+    @KkmApiResponses(
+        ok = "Успешное получение изображения документа",
+        forbidden = MSG_403_FORBIDDEN,
+        notFound = MSG_404_DOCUMENT_NOT_FOUND
+    )
+    fun getDocumentPrintPng(
+        @PathVariable kkmId: String,
+        @PathVariable documentId: String,
+        @RequestParam(required = false) layout: ReceiptLayoutType?,
+        @RequestHeader("Authorization") authHeader: String?
+    ): ResponseEntity<ByteArray> {
+        val pin = AuthHeaderUtils.extractPin(authHeader)
+        val shifts = try { kkmService.listShifts(kkmId, 100, 0, pin) } catch (_: Exception) { emptyList() }
+        val matchingShift = shifts.firstOrNull {
+            it.id == documentId || it.openDocumentId == documentId || it.closeDocumentId == documentId
+        }
+
+        val html = if (matchingShift != null) {
+            val type = if (matchingShift.closeDocumentId == documentId || matchingShift.id == documentId) {
+                PrintDocumentType.CLOSE_SHIFT
+            } else {
+                PrintDocumentType.OPEN_SHIFT
+            }
+            kkmService.getPrintHtml(kkmId, type, null, matchingShift.id, pin, layout)
+        } else {
+            kkmService.getPrintHtml(kkmId, PrintDocumentType.DOCUMENT, documentId, null, pin, layout)
+        }
+
+        val imageBytes = documentConvertPort.htmlToImage(html)
+        return ResponseEntity.ok()
+            .contentType(MediaType.IMAGE_PNG)
+            .body(imageBytes)
     }
 
     @PostMapping("/{kkmId}/documents/{documentId}/delivery/retry")

@@ -14,6 +14,16 @@ import java.util.UUID
  */
 @Component
 class TraceIdFilter : OncePerRequestFilter() {
+    /**
+     * Выполняет фильтрацию HTTP-запроса, извлекает или генерирует traceId
+     * и сохраняет его в контексте логирования MDC.
+     *
+     * @param request HTTP-запрос.
+     * @param response HTTP-ответ.
+     * @param filterChain цепочка фильтров Spring Security / Servlet.
+     * @throws ServletException при ошибках фильтрации.
+     * @throws IOException при ошибках ввода-вывода.
+     */
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,

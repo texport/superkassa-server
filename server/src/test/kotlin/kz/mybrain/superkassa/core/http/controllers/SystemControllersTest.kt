@@ -1,31 +1,33 @@
 package kz.mybrain.superkassa.core.http.controllers
 
+import io.github.texport.superkassa.jvm.settings.impl.mapper.toDto
+import io.github.texport.superkassa.jvm.storage.impl.application.health.StorageHealthChecker
+import io.github.texport.superkassa.jvm.storage.impl.application.health.StorageHealthStatus
+import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kz.mybrain.superkassa.core.domain.exception.SettingsFrozenException
 import kz.mybrain.superkassa.core.application.http.controllers.DiagnosticsController
 import kz.mybrain.superkassa.core.application.http.controllers.QueueController
 import kz.mybrain.superkassa.core.application.http.controllers.SuperkassaInfoController
 import kz.mybrain.superkassa.core.application.http.controllers.SuperkassaSettingsController
 import kz.mybrain.superkassa.core.application.http.controllers.UnitsOfMeasurementController
-import kz.mybrain.superkassa.core.domain.model.settings.CoreMode
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
-import kz.mybrain.superkassa.core.presentation.model.KkmListResult
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.domain.model.settings.StorageSettings
-import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
+import kz.mybrain.superkassa.core.application.settings.UpdateSettingsUseCase
+import kz.mybrain.superkassa.core.domain.exception.SettingsFrozenException
+import kz.mybrain.superkassa.core.domain.model.common.TaxRegime
+import kz.mybrain.superkassa.core.domain.model.common.VatGroup
 import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
 import kz.mybrain.superkassa.core.domain.model.kkm.KkmMode
 import kz.mybrain.superkassa.core.domain.model.kkm.KkmState
 import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
 import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandStatus
-import kz.mybrain.superkassa.core.domain.model.common.TaxRegime
-import kz.mybrain.superkassa.core.domain.model.common.VatGroup
+import kz.mybrain.superkassa.core.domain.model.settings.CoreMode
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.domain.model.settings.StorageSettings
+import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
 import kz.mybrain.superkassa.core.domain.port.StoragePort
-import kz.mybrain.superkassa.storage.application.health.StorageHealthChecker
-import kz.mybrain.superkassa.storage.application.health.StorageHealthStatus
-import kz.mybrain.superkassa.storage.domain.config.StorageConfig
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.presentation.model.KkmListResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -106,7 +108,7 @@ class SystemControllersTest {
         every { repo.loadOrCreate(initial) } returns initial
         every { repo.save(any()) } returns true
 
-        val controller = SuperkassaSettingsController(repo, initial)
+        val controller = SuperkassaSettingsController(repo, initial, UpdateSettingsUseCase(repo, initial))
         val loaded = controller.getSettings()
         val updated =
             loaded.copy(
@@ -118,7 +120,7 @@ class SystemControllersTest {
 
         assertEquals(45L, result.ofdTimeoutSeconds)
         verify(exactly = 1) { repo.loadOrCreate(initial) }
-        verify(exactly = 1) { repo.save(updated) }
+        verify(exactly = 1) { repo.save(match { it.ofdTimeoutSeconds == 45L && it.ofdReconnectIntervalSeconds == 90L }) }
     }
 
     @Test
@@ -130,10 +132,30 @@ class SystemControllersTest {
                 allowChanges = false
             )
         val repo = mockk<CoreSettingsRepositoryPort>()
-        val controller = SuperkassaSettingsController(repo, frozen)
+        val controller = SuperkassaSettingsController(repo, frozen, UpdateSettingsUseCase(repo, frozen))
 
         assertFailsWith<SettingsFrozenException> {
-            controller.updateSettings(frozen)
+            controller.updateSettings(frozen.toDto())
+        }
+    }
+
+    @Test
+    fun `superkassa settings update fails in server mode`() {
+        val serverModeSettings =
+            CoreSettings(
+                mode = CoreMode.SERVER,
+                storage = StorageSettings(engine = "POSTGRESQL", jdbcUrl = "jdbc:postgresql://localhost:5432/db"),
+                allowChanges = true
+            )
+        val repo = mockk<CoreSettingsRepositoryPort>()
+        val controller = SuperkassaSettingsController(
+            repo,
+            serverModeSettings,
+            UpdateSettingsUseCase(repo, serverModeSettings)
+        )
+
+        assertFailsWith<SettingsFrozenException> {
+            controller.updateSettings(serverModeSettings.toDto())
         }
     }
 

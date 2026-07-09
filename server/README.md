@@ -43,6 +43,21 @@ Running the executable application:
 java -jar superkassa-server-1.0.jar --spring.profiles.active=prod
 ```
 
+### Logging Configuration
+
+The application uses **SLF4J + Logback** for internal logging. You have full control over the logging level and target logging tools/destinations without modifying the codebase:
+
+*   **Configuring via Spring Boot properties**:
+    Adjust the levels and file targets directly using command line arguments or `application.yml`:
+    ```bash
+    java -jar superkassa-server-1.0.jar --logging.level.root=WARN --logging.file.name=logs/server.log
+    ```
+*   **External Custom Logging Config**:
+    To completely customize logging (e.g. forward logs to **Graylog**, **ELK**, **Syslog**, etc.), specify an external Logback configuration file at startup:
+    ```bash
+    java -Dlogging.config=/path/to/custom-logback.xml -jar superkassa-server-1.0.jar
+    ```
+
 ---
 
 ## Документация на русском языке
@@ -76,6 +91,21 @@ dependencies {
 ```bash
 java -jar superkassa-server-1.0.jar --spring.profiles.active=prod
 ```
+
+### Настройка логирования
+
+Приложение использует связку **SLF4J + Logback** для логирования. Вы можете гибко управлять уровнями логирования и инструментами отправки логов без изменения исходного кода:
+
+*   **Настройка через свойства Spring Boot**:
+    Уровни логирования и запись в локальные файлы можно задавать прямо в аргументах запуска или в файле `application.yml`:
+    ```bash
+    java -jar superkassa-server-1.0.jar --logging.level.root=WARN --logging.file.name=logs/server.log
+    ```
+*   **Использование внешней конфигурации**:
+    Для полной кастомизации (например, отправки логов в **Graylog**, **ELK**, **Syslog** и т.д.) укажите внешний файл настроек Logback при старте:
+    ```bash
+    java -Dlogging.config=/path/to/custom-logback.xml -jar superkassa-server-1.0.jar
+    ```
 
 ---
 

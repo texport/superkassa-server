@@ -1,3 +1,5 @@
+package kz.mybrain.superkassa.core.config
+
 import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.media.Content
 import io.swagger.v3.oas.models.media.MediaType

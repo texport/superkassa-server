@@ -1,14 +1,14 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.jvm.storage.impl.application.health.StorageHealthChecker
+import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_OK
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
 import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandStatus
-import kz.mybrain.superkassa.storage.application.health.StorageHealthChecker
-import kz.mybrain.superkassa.storage.domain.config.StorageConfig
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping

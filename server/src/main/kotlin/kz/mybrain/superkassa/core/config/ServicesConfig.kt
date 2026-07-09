@@ -1,19 +1,20 @@
 package kz.mybrain.superkassa.core.config
 
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
-import kz.mybrain.superkassa.core.data.adapter.SystemClock
-import kz.mybrain.superkassa.core.data.adapter.UuidGeneratorAdapter
+import kz.mybrain.superkassa.core.application.settings.UpdateSettingsUseCase
+import kz.mybrain.superkassa.core.application.time.ValidateSystemTimeOnStartupUseCase
 import kz.mybrain.superkassa.core.data.adapter.OfdQueueCommandHandlerAdapter
+import kz.mybrain.superkassa.core.data.adapter.UuidGeneratorAdapter
 import kz.mybrain.superkassa.core.domain.helper.KkmCommonHelper
+import kz.mybrain.superkassa.core.domain.helper.ofd.OfdCommandRequestFactory
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.domain.port.*
 import kz.mybrain.superkassa.core.domain.usecase.auth.AuthorizeUserUseCase
 import kz.mybrain.superkassa.core.domain.usecase.ofd.GenerateRequestNumberUseCase
-import kz.mybrain.superkassa.core.domain.helper.ofd.OfdCommandRequestFactory
 import kz.mybrain.superkassa.core.domain.usecase.ofd.SendFiscalCommandUseCase
 import kz.mybrain.superkassa.core.domain.usecase.queue.ListQueueItemsUseCase
 import kz.mybrain.superkassa.core.domain.usecase.queue.RetryFailedQueueItemsUseCase
 import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApiImpl
-import kz.mybrain.superkassa.core.domain.port.*
 import kz.mybrain.superkassa.offline_queue.application.service.QueueCommandHandler
 import kz.mybrain.superkassa.offline_queue.domain.port.QueueStoragePort
 import org.springframework.context.annotation.Bean
@@ -37,6 +38,7 @@ class ServicesConfig {
     @Bean
     fun kkmCommonHelper(
         storage: StoragePort,
+        clock: ClockPort,
         timeValidator: TimeValidatorPort,
         tokenCodec: TokenCodecPort,
         generateRequestNumberUseCase: GenerateRequestNumberUseCase,
@@ -45,7 +47,7 @@ class ServicesConfig {
     ): KkmCommonHelper =
         KkmCommonHelper(
             storage = storage,
-            clock = SystemClock,
+            clock = clock,
             timeValidator = timeValidator,
             tokenCodec = tokenCodec,
             generateRequestNumberUseCase = generateRequestNumberUseCase,
@@ -63,12 +65,13 @@ class ServicesConfig {
     @Bean
     fun queueCommandHandler(
         sendFiscalCommandUseCase: SendFiscalCommandUseCase,
-        storagePort: StoragePort
+        storagePort: StoragePort,
+        clock: ClockPort
     ): QueueCommandHandler =
         OfdQueueCommandHandlerAdapter(
             sendFiscalCommand = sendFiscalCommandUseCase,
             storage = storagePort,
-            clock = SystemClock
+            clock = clock
         )
 
     @Bean
@@ -98,7 +101,8 @@ class ServicesConfig {
         coreSettings: CoreSettings,
         receiptRenderPort: ReceiptRenderPort,
         documentConvertPort: DocumentConvertPort,
-        timeValidator: TimeValidatorPort
+        timeValidator: TimeValidatorPort,
+        clock: ClockPort
     ): SuperkassaApi {
         return SuperkassaApiImpl(
             storage = storage,
@@ -108,7 +112,7 @@ class ServicesConfig {
             delivery = delivery,
             tokenCodec = tokenCodec,
             idGenerator = UuidGeneratorAdapter,
-            clock = SystemClock,
+            clock = clock,
             pinHasher = pinHasher,
             coreSettings = coreSettings,
             receiptRenderPort = receiptRenderPort,
@@ -116,4 +120,18 @@ class ServicesConfig {
             timeValidator = timeValidator
         )
     }
+
+    @Bean
+    fun validateSystemTimeOnStartupUseCase(
+        timeValidator: TimeValidatorPort,
+        clock: ClockPort
+    ): ValidateSystemTimeOnStartupUseCase =
+        ValidateSystemTimeOnStartupUseCase(timeValidator, clock)
+
+    @Bean
+    fun updateSettingsUseCase(
+        settingsRepository: CoreSettingsRepositoryPort,
+        coreSettings: CoreSettings
+    ): UpdateSettingsUseCase =
+        UpdateSettingsUseCase(settingsRepository, coreSettings)
 }

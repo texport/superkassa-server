@@ -56,6 +56,18 @@ class OpenApiConfig {
                         )
                 components.addSecuritySchemes(schemeName, pinScheme)
             }
+
+            // Регистрируем схему ApiErrorResponse для предотвращения Resolver error в Swagger UI
+            val schemas = components.schemas ?: mutableMapOf()
+            if (!schemas.containsKey("ApiErrorResponse")) {
+                val apiErrorSchema = io.swagger.v3.oas.models.media.ObjectSchema()
+                    .name("ApiErrorResponse")
+                    .description("Common error response object")
+                    .addProperty("code", io.swagger.v3.oas.models.media.StringSchema().description("Error code identifier").example("VALIDATION_ERROR"))
+                    .addProperty("message", io.swagger.v3.oas.models.media.StringSchema().description("Human readable description of the error").example("RU: Некорректный PIN | KK: Қате PIN | EN: Invalid PIN"))
+                components.addSchemas("ApiErrorResponse", apiErrorSchema)
+            }
+
             openApi.components = components
 
             val requirement = SecurityRequirement().addList(schemeName)
@@ -158,16 +170,15 @@ class OpenApiConfig {
     @Bean
     fun kmpSchemaConverter(): io.swagger.v3.core.converter.ModelConverter {
         return io.swagger.v3.core.converter.ModelConverter { type, context, chain ->
-            var resolved = if (chain.hasNext()) chain.next().resolve(type, context, chain) else null
+            var resolved = try {
+                if (chain.hasNext()) chain.next().resolve(type, context, chain) else null
+            } catch (e: NullPointerException) {
+                null
+            }
             if (resolved == null && type.type is Class<*>) {
                 val clazz = type.type as Class<*>
-                if (type.isSkipSchemaName) {
-                    org.slf4j.LoggerFactory.getLogger(OpenApiConfig::class.java).warn(
-                        "Swagger ModelResolver returned null for subtype ${clazz.name}. Applying fallback schema to prevent NullPointerException."
-                    )
-                    resolved = io.swagger.v3.oas.models.media.Schema<Any>().apply {
-                        name = clazz.simpleName
-                    }
+                resolved = io.swagger.v3.oas.models.media.Schema<Any>().apply {
+                    name = clazz.simpleName
                 }
             }
             val anns = type.ctxAnnotations

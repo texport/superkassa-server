@@ -10,16 +10,9 @@ import kz.mybrain.superkassa.core.application.http.controllers.KkmDiagnosticsCon
 import kz.mybrain.superkassa.core.application.http.controllers.KkmManagementController
 import kz.mybrain.superkassa.core.application.http.controllers.KkmProgrammingController
 import kz.mybrain.superkassa.core.application.http.controllers.KkmUsersController
-import kz.mybrain.superkassa.core.presentation.model.AutoCloseShiftRequest
-import kz.mybrain.superkassa.core.presentation.model.FactoryNumberResponse
-import kz.mybrain.superkassa.core.presentation.model.KkmInitSimpleRequest
-import kz.mybrain.superkassa.core.presentation.model.KkmTaxSettingsUpdateRequest
-import kz.mybrain.superkassa.core.presentation.model.OfdAuthInfoResponse
-import kz.mybrain.superkassa.core.presentation.model.OfdTokenUpdateRequest
-import kz.mybrain.superkassa.core.presentation.model.UserCreateRequest
-import kz.mybrain.superkassa.core.presentation.model.UserUpdateRequest
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import kz.mybrain.superkassa.core.domain.model.common.CounterSnapshot
+import kz.mybrain.superkassa.core.domain.model.common.TaxRegime
+import kz.mybrain.superkassa.core.domain.model.common.VatGroup
 import kz.mybrain.superkassa.core.domain.model.delivery.DeliveryStatus
 import kz.mybrain.superkassa.core.domain.model.kkm.FiscalDocumentSnapshot
 import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
@@ -31,9 +24,18 @@ import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptLayoutType
 import kz.mybrain.superkassa.core.domain.model.report.ReportResult
 import kz.mybrain.superkassa.core.domain.model.shift.ShiftInfo
 import kz.mybrain.superkassa.core.domain.model.shift.ShiftStatus
-import kz.mybrain.superkassa.core.domain.model.common.TaxRegime
-import kz.mybrain.superkassa.core.domain.model.auth.UserRole
-import kz.mybrain.superkassa.core.domain.model.common.VatGroup
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.presentation.model.AutoCloseShiftRequest
+import kz.mybrain.superkassa.core.presentation.model.FactoryNumberResponse
+import kz.mybrain.superkassa.core.presentation.model.KkmInitSimpleRequest
+import kz.mybrain.superkassa.core.presentation.model.KkmTaxSettingsUpdateRequest
+import kz.mybrain.superkassa.core.presentation.model.OfdAuthInfoResponse
+import kz.mybrain.superkassa.core.presentation.model.OfdTokenUpdateRequest
+import kz.mybrain.superkassa.core.presentation.model.TaxRegimeDto
+import kz.mybrain.superkassa.core.presentation.model.UserCreateRequest
+import kz.mybrain.superkassa.core.presentation.model.UserRoleDto
+import kz.mybrain.superkassa.core.presentation.model.UserUpdateRequest
+import kz.mybrain.superkassa.core.presentation.model.VatGroupDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -200,7 +202,7 @@ class KkmApiControllersTest {
             managementController.updateKkmTaxSettings(
                 "kkm-mgmt",
                 "Bearer 6666",
-                KkmTaxSettingsUpdateRequest(TaxRegime.MIXED, VatGroup.VAT_5)
+                KkmTaxSettingsUpdateRequest(TaxRegimeDto.MIXED, VatGroupDto.VAT_5)
             )
         val tokenUpdate =
             managementController.updateOfdToken(
@@ -248,14 +250,14 @@ class KkmApiControllersTest {
             kz.mybrain.superkassa.core.presentation.model.UserResponse(
                 userId = "u-1",
                 name = "Admin",
-                role = UserRole.ADMIN,
+                role = UserRoleDto.ADMIN,
                 pin = "0000"
             )
         val cashier =
             kz.mybrain.superkassa.core.presentation.model.UserResponse(
                 userId = "u-2",
                 name = "Cashier",
-                role = UserRole.CASHIER,
+                role = UserRoleDto.CASHIER,
                 pin = "1111"
             )
 
@@ -264,7 +266,7 @@ class KkmApiControllersTest {
             service.createUser(
                 "kkm-users",
                 "8888",
-                UserCreateRequest(name = "Cashier", role = UserRole.CASHIER, userPin = "1111")
+                UserCreateRequest(name = "Cashier", role = UserRoleDto.CASHIER, userPin = "1111")
             )
         } returns cashier
         every {
@@ -282,7 +284,7 @@ class KkmApiControllersTest {
             usersController.createUser(
                 "kkm-users",
                 "Bearer 8888",
-                UserCreateRequest(name = "Cashier", role = UserRole.CASHIER, userPin = "1111")
+                UserCreateRequest(name = "Cashier", role = UserRoleDto.CASHIER, userPin = "1111")
             )
         val updated =
             usersController.updateUser(

@@ -1,10 +1,9 @@
 package kz.mybrain.superkassa.core.application.common
 
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
 import kz.mybrain.superkassa.core.domain.model.kkm.KkmState
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
 import kz.mybrain.superkassa.core.domain.port.StoragePort
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
 import org.springframework.core.env.Environment
@@ -14,11 +13,16 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+/**
+ * Лоадер консоли при успешном запуске приложения.
+ * Выводит красивую сводную статистику о состоянии сервера,
+ * активных профилях, подключенной базе данных и доступных сетевых путях API.
+ */
 @Component
 class ConsoleLoader(
     private val env: Environment,
-    @Autowired(required = false) private val storage: StoragePort? = null,
-    @Autowired(required = false) private val coreSettings: CoreSettings? = null
+    private val storage: StoragePort? = null,
+    private val coreSettings: CoreSettings? = null
 ) : ApplicationListener<ApplicationReadyEvent> {
 
     private val log = LoggerFactory.getLogger(ConsoleLoader::class.java)
@@ -36,12 +40,12 @@ class ConsoleLoader(
 
         val banner =
             """
-   _____                       __ __                          
-  / ___/__  ______  ___  _____/ //_/__  ______________ _    
-  \__ \/ / / / __ \/ _ \/ ___/ ,< / _ \/ ___/ ___/ __ `/    
- ___/ / /_/ / /_/ /  __/ /  / /| /  __(__  |__  ) /_/ /     
-/____/\__,_/ .___/\___/_/  /_/ |_\___/____/____/\__,_/      
-          /_/                                               
+                               __                        
+   _______  ______  ___  _____/ /______ _______________ _
+  / ___/ / / / __ \/ _ \/ ___/ //_/ __ `/ ___/ ___/ __ `/
+ (__  ) /_/ / /_/ /  __/ /  / ,< / /_/ (__  |__  ) /_/ / 
+/____/\__,_/ .___/\___/_/  /_/|_|\__,_/____/____/\__,_/  
+          /_/                                            
         """
 
         println(ANSI_CYAN + banner + ANSI_RESET)
@@ -59,70 +63,70 @@ class ConsoleLoader(
         val (loggingLevel, loggingImpl) = getLoggingInfo()
 
         val lines = mutableListOf<String>()
-        lines.add(" Приложение успешно запущено! ")
-        lines.add(" Статус:      " + ANSI_BOLD + "Работает" + ANSI_RESET)
-        lines.add(" ----------------------------------------")
-        lines.add(" Время запуска: $startedAt")
-        lines.add(" Java: $javaVersion | TZ: $timezone")
-        lines.add(" Профили: $profiles")
-        lines.add(" Логирование: $loggingLevel | фасад: $loggingImpl")
-        lines.add(" ----------------------------------------")
-        lines.add(" База данных: ${stats.dbStatus}")
-        lines.add(" Движок БД: $storageEngine")
-        lines.add(" ----------------------------------------")
-        lines.add(" ККМ всего: ${stats.kkmTotal}")
-        lines.add(" ККМ по статусам: ${stats.kkmByStatus}")
-        lines.add(" Открытых смен: ${stats.openShiftsStr}")
-        lines.add(" Всего чеков: ${stats.receiptsTotal}")
-        lines.add(" Z-отчётов (закрытых смен): ${stats.closedShiftsTotal}")
-        lines.add(" В автономной очереди: ${stats.offlineQueueTotal} транзакций")
-        lines.add(" ----------------------------------------")
-        lines.add(" ОФД протокол: $ofdVersion")
+        lines.add(" Application started successfully! ")
+        lines.add(" Status:          " + ANSI_BOLD + "Running" + ANSI_RESET)
+        lines.add(" --------------------------------------------------")
+        lines.add(" Started:         $startedAt")
+        lines.add(" JVM:             Java $javaVersion | TZ: $timezone")
+        lines.add(" Active Profiles: $profiles")
+        lines.add(" Logging:         $loggingLevel ($loggingImpl)")
+        lines.add(" --------------------------------------------------")
+        lines.add(" Database:        ${stats.dbStatus} ($storageEngine)")
+        lines.add(" --------------------------------------------------")
+        lines.add(" Total KKMs:      ${stats.kkmTotal} (${stats.kkmByStatus})")
+        lines.add(" Open Shifts:     ${stats.openShiftsStr}")
+        lines.add(" Total Receipts:  ${stats.receiptsTotal}")
+        lines.add(" Closed Shifts:   ${stats.closedShiftsTotal} (Z-reports)")
+        lines.add(" Offline Queue:   ${stats.offlineQueueTotal} tx")
+        lines.add(" --------------------------------------------------")
+        lines.add(" OFD Protocol:    $ofdVersion")
         lines.add(deliverySummary)
         if (coreSettings != null) {
-            lines.add(" Режим: ${coreSettings.mode.name} | узел: ${coreSettings.nodeId}")
+            lines.add(" Running Mode:    ${coreSettings.mode.name}")
+            lines.add(" Node:            ${coreSettings.nodeId}")
         }
-        lines.add(" ----------------------------------------")
         val swaggerPath = env.getProperty("springdoc.swagger-ui.path") ?: "/swagger"
         val apiDocsPath = env.getProperty("springdoc.api-docs.path") ?: "/v3/api-docs"
-
-        lines.add(" Локально:    $protocol://localhost:$serverPort$contextPath")
-        lines.add(" В сети:      $protocol://$hostAddress:$serverPort$contextPath")
-        lines.add(" Swagger UI:  $protocol://localhost:$serverPort$swaggerPath")
-        lines.add(" API Docs:    $protocol://localhost:$serverPort$apiDocsPath")
 
         val plainLengths = lines.map { visibleLength(it) }
         val innerWidth = maxOf(MIN_BOX_WIDTH, plainLengths.maxOrNull() ?: MIN_BOX_WIDTH)
 
-        fun border(left: Char, right: Char) = ANSI_GREEN + left + "═".repeat(innerWidth) + right + ANSI_RESET
+        fun border(corner: Char) = ANSI_GREEN + corner + "-".repeat(innerWidth) + corner + ANSI_RESET
         fun row(content: String, plainLen: Int) =
-            ANSI_GREEN + "║" + ANSI_RESET +
+            ANSI_GREEN + "|" + ANSI_RESET +
                 content + " ".repeat((innerWidth - plainLen).coerceAtLeast(0)) +
-                ANSI_GREEN + "║" + ANSI_RESET
+                ANSI_GREEN + "|" + ANSI_RESET
 
-        println(border('╔', '╗'))
+        println(border('+'))
         println(row(lines[0], plainLengths[0]))
-        println(border('╠', '╣'))
+        println(border('+'))
         for (i in 1 until lines.size) {
             println(row(lines[i], plainLengths[i]))
         }
-        println(border('╚', '╝'))
+        println(border('+'))
+
+        println()
+        println("  Local:        $protocol://localhost:$serverPort$contextPath")
+        println("  Network:      $protocol://$hostAddress:$serverPort$contextPath")
+        println("  Swagger UI:   $protocol://localhost:$serverPort$swaggerPath")
+        println("  API Docs:     $protocol://localhost:$serverPort$apiDocsPath")
+        println()
     }
 
     private fun formatDeliverySummary(): String {
-        val d = coreSettings?.delivery ?: return " Доставка чеков: не настроена"
+        val d = coreSettings?.delivery ?: return " Delivery:        not configured"
         val printOn = d.print?.enabled == true
         val channelCount = d.channels.count { it.enabled }
         val parts = mutableListOf<String>()
-        if (printOn) parts.add("печать")
-        if (channelCount > 0) parts.add("каналов: $channelCount")
-        return " Доставка чеков: " + if (parts.isEmpty()) "выкл" else parts.joinToString(", ")
+        if (printOn) parts.add("print")
+        if (channelCount > 0) parts.add("channels: $channelCount")
+        return " Delivery:        " + if (parts.isEmpty()) "off" else parts.joinToString(", ")
     }
 
     private fun gatherStartupStats(): StartupStats {
         if (storage == null) {
             return StartupStats(
-                dbStatus = "не проверялась (storage не подключён)",
+                dbStatus = "not checked (storage not connected)",
                 kkmTotal = "—",
                 kkmByStatus = "—",
                 openShiftsStr = "—",
@@ -134,7 +138,13 @@ class ConsoleLoader(
         return try {
             val total = storage.countKkms(state = null, search = null)
             val byStatus = KkmState.entries.joinToString(", ") { state ->
-                "${state.name}: ${storage.countKkms(state = state.name, search = null)}"
+                val shortState = when (state) {
+                    KkmState.ACTIVE -> "ACT"
+                    KkmState.PROGRAMMING -> "PROG"
+                    KkmState.BLOCKED -> "BLK"
+                    else -> state.name
+                }
+                "$shortState:${storage.countKkms(state = state.name, search = null)}"
             }
             val openShiftsCount = countOpenShifts(storage, total)
             val openShiftsStr = if (openShiftsCount >= 0) openShiftsCount.toString() else "—"
@@ -142,7 +152,7 @@ class ConsoleLoader(
             val closedShifts = storage.countClosedShifts()
             val offlineQueue = storage.countOfflineQueue()
             StartupStats(
-                dbStatus = "подключена",
+                dbStatus = "connected",
                 kkmTotal = total.toString(),
                 kkmByStatus = byStatus,
                 openShiftsStr = openShiftsStr,
@@ -153,7 +163,7 @@ class ConsoleLoader(
         } catch (e: Exception) {
             log.warn("Startup stats failed", e)
             StartupStats(
-                dbStatus = "ошибка при проверке",
+                dbStatus = "verification error",
                 kkmTotal = "—",
                 kkmByStatus = "—",
                 openShiftsStr = "—",
@@ -165,11 +175,20 @@ class ConsoleLoader(
     }
 
     private fun getLoggingInfo(): Pair<String, String> {
-        val level = env.getProperty("logging.level.root")
+        val envLevel = env.getProperty("logging.level.root")
             ?: env.getProperty("logging.level.kz.mybrain")
-            ?: "—"
+            ?: "INFO"
+
+        val level = try {
+            val context = LoggerFactory.getILoggerFactory() as ch.qos.logback.classic.LoggerContext
+            context.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)?.level?.toString()
+        } catch (_: Throwable) {
+            null
+        } ?: envLevel
+
         val impl = try {
-            LoggerFactory.getILoggerFactory().javaClass.simpleName
+            val simpleName = LoggerFactory.getILoggerFactory().javaClass.simpleName
+            if (simpleName == "LoggerContext") "Logback" else simpleName.removeSuffix("LoggerFactory")
         } catch (_: Exception) {
             "—"
         }
@@ -204,7 +223,7 @@ class ConsoleLoader(
     )
 
     companion object {
-        private const val MIN_BOX_WIDTH = 72
+        private const val MIN_BOX_WIDTH = 56
 
         const val ANSI_RESET = "\u001B[0m"
         const val ANSI_GREEN = "\u001B[32m"

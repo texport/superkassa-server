@@ -1,6 +1,5 @@
 package kz.mybrain.superkassa.core.application.health
 
-import kz.mybrain.superkassa.core.domain.port.OfdManagerPort
 import kz.mybrain.superkassa.core.domain.port.StoragePort
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -14,7 +13,6 @@ import org.springframework.stereotype.Component
  */
 @Component
 class OfdHealthIndicator(
-    private val ofd: OfdManagerPort,
     private val storage: StoragePort
 ) {
     private val logger = LoggerFactory.getLogger(OfdHealthIndicator::class.java)
@@ -80,6 +78,12 @@ class OfdHealthIndicator(
 
 /**
  * Статус здоровья ОФД.
+ *
+ * @property healthy признак работоспособности связи.
+ * @property status текстовый статус (например, OK, ERROR, SKIPPED).
+ * @property message описание состояния.
+ * @property activeKkms количество активных ККМ.
+ * @property error исключение (если возникла ошибка).
  */
 data class OfdHealthStatus(
     val healthy: Boolean,

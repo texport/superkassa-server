@@ -16,27 +16,63 @@ The server-side component of the Superkassa online cashbox system. It provides a
 - **`:server-converter`**: Receipt formatting converters (PDF, PNG, ESC/POS CP866 bytes, ZXing QR generation).
 - **`:storage-jdbc`**: Relational database storage adapter (PostgreSQL, MySQL, SQLite) with migration files.
 - **`:time-java`**: NTP-based clock synchronizer and validator.
+- **`:offline-queue`**: Pure Kotlin Multiplatform queue orchestration module.
 
 ---
 
-# Сервер Superkassa
+## Getting Started / Integration
 
-[![Build Status](https://github.com/texport/superkassa-server/actions/workflows/ci.yml/badge.svg)](https://github.com/texport/superkassa-server/actions)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](time-java/LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.0-blue.svg)]()
-[![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen.svg)]()
+### JVM / Gradle
+To use the offline queue KMP module in your JVM Gradle project, add the following dependency:
+```kotlin
+dependencies {
+    implementation("kz.mybrain.superkassa:offline-queue:1.0.3")
+}
+```
 
-*Читать на других языках: [English](README.md), [Русский](README.ru.md)*
+### iOS / Swift Package Manager
+To integrate the offline queue module into an iOS client, add the Swift package dependency:
+- **Repository URL:** `https://github.com/texport/superkassa-offline-queue.git`
+- **Target Name:** `OfflineQueue`
 
-Серверная часть системы онлайн-кассы Superkassa, предоставляющая HTTP REST API для управления кассами организации, учета смен, проведения кассовых операций, оффлайн-доставки фискальных документов в ОФД и печати/рендеринга чеков.
+---
 
-## Субмодули
-- **`:server`**: Исполняемое приложение Spring Boot, предоставляющее REST API.
-- **`:server-settings`**: Адаптеры настроек (локальный файл и реляционная СУБД).
-- **`:server-delivery`**: Адаптеры каналов отправки (SMS, WhatsApp, Email, Telegram, физическая печать JPS).
-- **`:server-converter`**: Конвертеры форматов чеков (PDF, PNG, ESC/POS байты CP866, генератор QR-кодов).
-- **`:storage-jdbc`**: Репозиторий хранения в СУБД (PostgreSQL, MySQL, SQLite) с файлами миграций.
-- **`:time-java`**: Синхронизатор и валидатор времени по NTP.
+## Quick Start / Usage
+
+Here is a quick example of initializing `QueueService` and processing pending commands:
+
+```kotlin
+import kz.mybrain.superkassa.offline_queue.application.service.QueueService
+import kz.mybrain.superkassa.offline_queue.application.service.QueueCommandHandler
+import kz.mybrain.superkassa.offline_queue.application.model.DispatchResult
+import kz.mybrain.superkassa.offline_queue.application.model.DispatchStatus
+
+// 1. Implement Command Handler
+val handler = QueueCommandHandler { command, renewLock ->
+    // Process command logic
+    DispatchResult(DispatchStatus.SENT)
+}
+
+// 2. Initialize Queue Service
+val queueService = QueueService(
+    storage = storagePort,
+    lockPort = leaseLockPort,
+    handler = handler,
+    backoffPolicy = defaultBackoffPolicy,
+    ownerId = "node-1"
+)
+
+// 3. Process next pending command
+queueService.processNext(cashboxId = "kkm-123", lane = QueueLane.OFFLINE)
+```
+
+---
+
+## Architecture Boundary
+
+The `offline-queue` module contains pure multiplatform business logic for queue management and lease lock synchronization:
+- **Core (commonMain):** Fully decoupled from Spring, JDBC, or platform-specific dependencies.
+- **Platform Adapters:** Local storage (`storage-jdbc`), networking (`ofd-network-client`), and scheduler/worker logic (`server`) are implemented in separate JVM modules and wired via composition root.
 
 ---
 

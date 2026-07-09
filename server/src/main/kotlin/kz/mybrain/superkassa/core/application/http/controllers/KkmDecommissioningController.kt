@@ -13,8 +13,8 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_D
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.toResponse
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.presentation.model.*
 import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.presentation.model.*
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -35,9 +35,38 @@ class KkmDecommissioningController(private val kkmService: SuperkassaApi) {
     @Operation(
         operationId = "03_initKkm",
         summary = "Инициализация ККМ без черновика",
-        description = "ККМ должна быть уже создана в ОФД и иметь системный ID и токен доступа. " +
-            "Все необходимые данные (регистрационный номер, заводской номер, сервисная информация) " +
-            "получаются из ОФД автоматически."
+        description = """
+            Выполняет первичную инициализацию (фискализацию) кассового аппарата в локальной базе данных Superkassa.
+            Применяется для ККМ, которые уже были зарегистрированы в ОФД и имеют действующий системный ID и токен доступа.
+            
+            **Что делает метод:**
+            1. Проверяет переданные параметры подключения к ОФД (провайдер, системный ID, токен).
+            2. Подключается к ОФД и запрашивает актуальную регистрационную карточку ККМ.
+            3. Автоматически извлекает из ОФД следующие данные:
+               - Регистрационный номер ККМ в КГД
+               - Заводской номер и год выпуска
+               - Сервисные данные (название организации налогоплательщика, БИН/ИИН, юридический адрес)
+            4. Сохраняет кассовый аппарат в базе данных со статусом `ACTIVE`.
+            5. Регистрирует первого пользователя (администратора кассы) с правами доступа.
+            
+            **Требования:**
+            - Касса с указанным системным ID должна быть зарегистрирована в ОФД.
+            - Переданный токен ОФД должен быть активным.
+            - Запрос требует авторизации по ПИН-коду (передается в заголовке Authorization).
+            
+            **Параметры:**
+            - **Authorization** (заголовок): ПИН-код первого администратора (например, `0000`).
+            - **RequestBody**: Объект `KkmInitSimpleRequest` с полями:
+              - `ofdId`: Код провайдера ОФД (например, `KAZAKHTELECOM`).
+              - `ofdEnvironment`: Окружение ОФД (`TEST` или `PROD`).
+              - `ofdSystemId`: Уникальный числовой ID кассы в системе ОФД.
+              - `ofdToken`: Токен авторизации подключения к ОФД.
+            
+            **Возвращаемые коды:**
+            - 200 OK: Касса успешно инициализирована, возвращен объект `KkmResponse`.
+            - 400 Bad Request: Ошибка валидации параметров запроса.
+            - 403 Forbidden: Неверный ПИН-код администратора.
+        """
     )
     @KkmApiResponses(
         ok = MSG_200_KKM_INIT,

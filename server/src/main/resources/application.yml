@@ -12,6 +12,9 @@ spring:
 
 app:
   version: 1.0
+  log-language: RU
+  logging:
+    pretty-print-json: true
 
 # Интервал воркера offline-очереди (мс). Обрабатывает команды и отправляет в ОФД.
 offline-queue:
@@ -20,8 +23,10 @@ offline-queue:
 
 springdoc:
   api-docs:
+    enabled: true
     path: /openapi.yaml
   swagger-ui:
+    enabled: true
     path: /swagger
     display-request-duration: true
     # Отключаем сортировку тегов на клиенте, чтобы использовать порядок из OpenApiCustomizer

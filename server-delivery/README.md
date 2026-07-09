@@ -40,7 +40,7 @@ dependencies {
 ### Usage Example
 
 ```kotlin
-import io.github.texport.superkassa.jvm.delivery.data.TelegramDeliveryAdapter
+import io.github.texport.superkassa.jvm.delivery.impl.TelegramDeliveryAdapter
 
 val telegramAdapter = TelegramDeliveryAdapter(httpClient, config)
 telegramAdapter.send(document)
@@ -77,7 +77,7 @@ dependencies {
 ### Пример использования
 
 ```kotlin
-import io.github.texport.superkassa.jvm.delivery.data.TelegramDeliveryAdapter
+import io.github.texport.superkassa.jvm.delivery.impl.TelegramDeliveryAdapter
 
 val telegramAdapter = TelegramDeliveryAdapter(httpClient, config)
 telegramAdapter.send(document)

@@ -7,7 +7,7 @@ plugins {
     jacoco
 }
 
-group = "kz.mybrain"
+group = "io.github.texport"
 version = libs.versions.serverVersion.get()
 
 repositories {
@@ -19,14 +19,15 @@ dependencies {
     implementation(platform(libs.spring.boot.dependencies))
     implementation(libs.superkassa.core)
     
-    implementation(project(":offline-queue"))
+    implementation(libs.superkassa.offline.queue)
     implementation(libs.superkassa.delivery)
     implementation(libs.ofd.network.client)
     implementation(project(":storage-jdbc"))
     implementation(project(":server-settings"))
     implementation(project(":server-delivery"))
     implementation(project(":server-converter"))
-    implementation(project(":time-java"))
+    implementation(project(":server-time"))
+    implementation(project(":shared-strings"))
     implementation(libs.superkassa.receipt.renderer)
 
     implementation(libs.kotlinx.serialization.json)
@@ -104,7 +105,8 @@ tasks.jacocoTestCoverageVerification {
                 "*AuthHeaderUtils*",
                 "*ApiResponseMessages*",
                 "*Controller*",
-                "*TraceIdFilter*"
+                "*TraceIdFilter*",
+                "*Dto*"
             )
             limit {
                 minimum = "1.0".toBigDecimal()

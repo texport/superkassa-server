@@ -16,11 +16,10 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_S
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.toResponse
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.domain.model.settings.*
-import kz.mybrain.superkassa.core.presentation.model.*
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
 import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptBranding
+import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.presentation.model.*
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -152,8 +151,10 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
             .updateTaxSettings(
                 kkmId = kkmId,
                 pin = pin,
-                taxRegime = request.taxRegime,
-                defaultVatGroup = request.defaultVatGroup
+                taxRegime = kz.mybrain.superkassa.core.domain.model.common.TaxRegime.valueOf(request.taxRegime.name),
+                defaultVatGroup = kz.mybrain.superkassa.core.domain.model.common.VatGroup.valueOf(
+                    request.defaultVatGroup.name
+                )
             )
             .toResponse()
     }

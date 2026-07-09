@@ -1,10 +1,10 @@
 package kz.mybrain.superkassa.core.receipt
 
 import kz.mybrain.superkassa.core.domain.exception.ValidationException
-import kz.mybrain.superkassa.core.presentation.model.ReceiptItemDto
-import kz.mybrain.superkassa.core.presentation.mapper.ReceiptMapper
-import kz.mybrain.superkassa.core.presentation.model.ReceiptPaymentDto
 import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptOperationType
+import kz.mybrain.superkassa.core.presentation.mapper.ReceiptMapper
+import kz.mybrain.superkassa.core.presentation.model.ReceiptItemDto
+import kz.mybrain.superkassa.core.presentation.model.ReceiptPaymentDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -16,7 +16,7 @@ class ReceiptMapperTest {
         val item = ReceiptItemDto(
             name = "Milk 1L",
             price = 500.0,
-            quantity = 1,
+            quantity = 1.0,
             discountSum = 50.0
         )
         val payment = ReceiptPaymentDto(type = "CASH", sum = 450.0)
@@ -34,7 +34,6 @@ class ReceiptMapperTest {
                 markupSum = null,
                 payments = listOf(payment),
                 taken = null,
-                change = null,
                 parentTicket = null,
                 defaultVatGroup = null
             )

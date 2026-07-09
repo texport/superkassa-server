@@ -37,7 +37,7 @@ dependencies {
 ### Usage Example
 
 ```kotlin
-import io.github.texport.superkassa.jvm.receipt.data.DocumentConvertAdapter
+import io.github.texport.superkassa.jvm.receipt.impl.DocumentConvertAdapter
 
 val convertAdapter = DocumentConvertAdapter()
 val resultBytes = convertAdapter.convert(document)
@@ -71,7 +71,7 @@ dependencies {
 ### Пример использования
 
 ```kotlin
-import io.github.texport.superkassa.jvm.receipt.data.DocumentConvertAdapter
+import io.github.texport.superkassa.jvm.receipt.impl.DocumentConvertAdapter
 
 val convertAdapter = DocumentConvertAdapter()
 val resultBytes = convertAdapter.convert(document)

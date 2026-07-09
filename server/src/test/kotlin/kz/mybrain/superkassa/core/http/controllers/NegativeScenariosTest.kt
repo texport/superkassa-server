@@ -1,17 +1,29 @@
 package kz.mybrain.superkassa.core.http.controllers
 
+import io.github.texport.superkassa.jvm.storage.impl.application.health.StorageHealthChecker
+import io.github.texport.superkassa.jvm.storage.impl.application.health.StorageHealthStatus
+import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 import io.mockk.every
 import io.mockk.mockk
+import kz.mybrain.superkassa.core.application.http.controllers.CashOperationRequestDto
+import kz.mybrain.superkassa.core.application.http.controllers.CashOperationsController
 import kz.mybrain.superkassa.core.application.http.controllers.DiagnosticsController
 import kz.mybrain.superkassa.core.application.http.controllers.KkmController
+import kz.mybrain.superkassa.core.application.http.controllers.KkmDiagnosticsController
+import kz.mybrain.superkassa.core.application.http.controllers.KkmManagementController
+import kz.mybrain.superkassa.core.application.http.controllers.KkmProgrammingController
+import kz.mybrain.superkassa.core.application.http.controllers.KkmUsersController
 import kz.mybrain.superkassa.core.application.http.controllers.QueueController
+import kz.mybrain.superkassa.core.application.http.controllers.ReportsController
 import kz.mybrain.superkassa.core.application.http.controllers.UnitsOfMeasurementController
 import kz.mybrain.superkassa.core.domain.exception.ForbiddenException
 import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
+import kz.mybrain.superkassa.core.presentation.model.AutoCloseShiftRequest
 import kz.mybrain.superkassa.core.presentation.model.KkmListResult
-import kz.mybrain.superkassa.storage.application.health.StorageHealthChecker
-import kz.mybrain.superkassa.storage.application.health.StorageHealthStatus
-import kz.mybrain.superkassa.storage.domain.config.StorageConfig
+import kz.mybrain.superkassa.core.presentation.model.KkmTaxSettingsUpdateRequest
+import kz.mybrain.superkassa.core.presentation.model.OfdTokenUpdateRequest
+import kz.mybrain.superkassa.core.presentation.model.UserCreateRequest
+import kz.mybrain.superkassa.core.presentation.model.UserUpdateRequest
 import org.springframework.http.HttpStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -213,6 +225,61 @@ class NegativeScenariosTest {
         assertFailsWith<ForbiddenException> {
             controller.retryFailed("kkm-1", null)
         }
+    }
+
+    @Test
+    fun `users controller throws ForbiddenException before service calls when auth is missing`() {
+        val controller = KkmUsersController(service)
+
+        assertFailsWith<ForbiddenException> { controller.listUsers("kkm-1", null) }
+        assertFailsWith<ForbiddenException> { controller.createUser("kkm-1", null, mockk<UserCreateRequest>()) }
+        assertFailsWith<ForbiddenException> {
+            controller.updateUser("kkm-1", "user-1", null, mockk<UserUpdateRequest>())
+        }
+        assertFailsWith<ForbiddenException> { controller.deleteUser("kkm-1", "user-1", null) }
+    }
+
+    @Test
+    fun `report and cash controllers throw ForbiddenException when auth is malformed`() {
+        val reports = ReportsController(service)
+        val cash = CashOperationsController(service)
+
+        assertFailsWith<ForbiddenException> { reports.createXReport("kkm-1", "Bearer   ") }
+        assertFailsWith<ForbiddenException> { cash.cashIn("kkm-1", "Bearer", mockk<CashOperationRequestDto>()) }
+        assertFailsWith<ForbiddenException> { cash.cashOut("kkm-1", "", mockk<CashOperationRequestDto>()) }
+    }
+
+    @Test
+    fun `programming and management controllers reject missing authorization`() {
+        val programming = KkmProgrammingController(service)
+        val management = KkmManagementController(service)
+
+        assertFailsWith<ForbiddenException> { programming.enterProgramming("kkm-1", null) }
+        assertFailsWith<ForbiddenException> { programming.exitProgramming("kkm-1", "   ") }
+        assertFailsWith<ForbiddenException> {
+            management.updateKkmSettings("kkm-1", null, mockk<AutoCloseShiftRequest>())
+        }
+        assertFailsWith<ForbiddenException> {
+            management.updateKkmTaxSettings("kkm-1", null, mockk<KkmTaxSettingsUpdateRequest>())
+        }
+        assertFailsWith<ForbiddenException> {
+            management.updateBrandingSettings(
+                "kkm-1",
+                null,
+                mockk<kz.mybrain.superkassa.core.domain.model.receipt.ReceiptBranding>()
+            )
+        }
+        assertFailsWith<ForbiddenException> {
+            management.updateOfdToken("kkm-1", null, mockk<OfdTokenUpdateRequest>())
+        }
+        assertFailsWith<ForbiddenException> { management.syncOfdServiceInfo("kkm-1", null) }
+    }
+
+    @Test
+    fun `ofd diagnostics auth info rejects missing authorization while public diagnostics stay service delegated`() {
+        val controller = KkmDiagnosticsController(service)
+
+        assertFailsWith<ForbiddenException> { controller.getOfdAuthInfo("kkm-1", null) }
     }
 
     // --- 19-21. UnitsOfMeasurementController Boundary and Negative Tests ---
