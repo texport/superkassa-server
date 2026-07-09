@@ -26,7 +26,7 @@ local.properties
 AGENTS.md
 
 # Application data & scratch files
-data/
+/data/
 server/data/
 scratch/
 *.hprof
