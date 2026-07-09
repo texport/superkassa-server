@@ -1,5 +1,6 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.jvm.receipt.impl.DocumentConvertAdapter
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_DELIVERY_RETRY
@@ -22,11 +23,10 @@ import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptLayoutType
 import kz.mybrain.superkassa.core.domain.model.report.PrintDocumentType
 import kz.mybrain.superkassa.core.domain.model.report.ReportResult
 import kz.mybrain.superkassa.core.domain.model.shift.ShiftInfo
+import kz.mybrain.superkassa.core.domain.port.DocumentConvertPort
 import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import kz.mybrain.superkassa.core.presentation.model.DeliveryRetryItemResponse
 import kz.mybrain.superkassa.core.presentation.model.DeliveryRetryResponse
-import kz.mybrain.superkassa.core.domain.port.DocumentConvertPort
-import io.github.texport.superkassa.jvm.receipt.impl.DocumentConvertAdapter
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -245,8 +245,7 @@ class KkmController(
     @GetMapping("/{kkmId}/documents/{documentId}/print.html", produces = [MediaType.TEXT_HTML_VALUE])
     @Operation(
         summary = "Печатная форма документа (HTML)",
-        description = "Печать конкретного документа (чек, внесение, изъятие) по его идентификатору. " +
-            "Параметр type не требуется — определяется по документу."
+        description = "Печать конкретного документа (чек, внесение, изъятие) по его идентификатору. Параметр type не требуется — определяется по документу."
     )
     @KkmApiResponses(
         ok = MSG_200_PRINT_HTML,
@@ -260,7 +259,11 @@ class KkmController(
         @RequestHeader("Authorization") authHeader: String?
     ): ResponseEntity<String> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val shifts = try { kkmService.listShifts(kkmId, 100, 0, pin) } catch (_: Exception) { emptyList() }
+        val shifts = try {
+            kkmService.listShifts(kkmId, 100, 0, pin)
+        } catch (_: Exception) {
+            emptyList()
+        }
         val matchingShift = shifts.firstOrNull {
             it.id == documentId || it.openDocumentId == documentId || it.closeDocumentId == documentId
         }
@@ -303,7 +306,11 @@ class KkmController(
         @RequestHeader("Authorization") authHeader: String?
     ): ResponseEntity<ByteArray> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val shifts = try { kkmService.listShifts(kkmId, 100, 0, pin) } catch (_: Exception) { emptyList() }
+        val shifts = try {
+            kkmService.listShifts(kkmId, 100, 0, pin)
+        } catch (_: Exception) {
+            emptyList()
+        }
         val matchingShift = shifts.firstOrNull {
             it.id == documentId || it.openDocumentId == documentId || it.closeDocumentId == documentId
         }
@@ -346,7 +353,11 @@ class KkmController(
         @RequestHeader("Authorization") authHeader: String?
     ): ResponseEntity<ByteArray> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val shifts = try { kkmService.listShifts(kkmId, 100, 0, pin) } catch (_: Exception) { emptyList() }
+        val shifts = try {
+            kkmService.listShifts(kkmId, 100, 0, pin)
+        } catch (_: Exception) {
+            emptyList()
+        }
         val matchingShift = shifts.firstOrNull {
             it.id == documentId || it.openDocumentId == documentId || it.closeDocumentId == documentId
         }

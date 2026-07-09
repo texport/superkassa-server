@@ -21,6 +21,7 @@ import io.github.texport.superkassa.jvm.storage.impl.data.jdbc.DefaultStorageCon
 import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 import io.github.texport.superkassa.jvm.time.impl.SystemClock
 import io.github.texport.superkassa.jvm.time.impl.SystemTimeGuard
+import jakarta.annotation.PostConstruct
 import kz.mybrain.network.OfdTcpNetworkClient
 import kz.mybrain.superkassa.core.data.adapter.DeliveryServiceAdapter
 import kz.mybrain.superkassa.core.data.adapter.OfdConfigAdapter
@@ -34,18 +35,28 @@ import kz.mybrain.superkassa.core.data.ofd.OfdConfig
 import kz.mybrain.superkassa.core.data.ofd.OfdProtocolCodec
 import kz.mybrain.superkassa.core.data.ofd.builder.strategy.CloseShiftRequestBuilderStrategy
 import kz.mybrain.superkassa.core.data.ofd.builder.strategy.MoneyPlacementRequestBuilderStrategy
+import kz.mybrain.superkassa.core.data.ofd.builder.strategy.NomenclatureRequestBuilderStrategy
 import kz.mybrain.superkassa.core.data.ofd.builder.strategy.ReportRequestBuilderStrategy
 import kz.mybrain.superkassa.core.data.ofd.builder.strategy.ServiceRequestBuilderStrategy
 import kz.mybrain.superkassa.core.data.ofd.builder.strategy.TicketRequestBuilderStrategy
-import kz.mybrain.superkassa.core.data.ofd.builder.strategy.NomenclatureRequestBuilderStrategy
-import kz.mybrain.superkassa.core.domain.model.settings.CoreMode
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
-import kz.mybrain.superkassa.core.domain.model.settings.StorageSettings
-import kz.mybrain.superkassa.core.domain.port.*
 import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandRequest
 import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
 import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandStatus
+import kz.mybrain.superkassa.core.domain.model.settings.CoreMode
+import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
+import kz.mybrain.superkassa.core.domain.model.settings.StorageSettings
+import kz.mybrain.superkassa.core.domain.port.ClockPort
 import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
+import kz.mybrain.superkassa.core.domain.port.DeliveryPort
+import kz.mybrain.superkassa.core.domain.port.DocumentConvertPort
+import kz.mybrain.superkassa.core.domain.port.OfdConfigPort
+import kz.mybrain.superkassa.core.domain.port.OfdManagerPort
+import kz.mybrain.superkassa.core.domain.port.OfflineQueuePort
+import kz.mybrain.superkassa.core.domain.port.PinHasherPort
+import kz.mybrain.superkassa.core.domain.port.ReceiptRenderPort
+import kz.mybrain.superkassa.core.domain.port.StoragePort
+import kz.mybrain.superkassa.core.domain.port.TimeValidatorPort
+import kz.mybrain.superkassa.core.domain.port.TokenCodecPort
 import kz.mybrain.superkassa.core.domain.usecase.shift.RecalculateShiftCountersUseCase
 import kz.mybrain.superkassa.offline_queue.application.service.QueueCommandHandler
 import kz.mybrain.superkassa.offline_queue.domain.port.LeaseLockPort
@@ -54,7 +65,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import jakarta.annotation.PostConstruct
 import java.nio.file.Paths
 
 @Configuration
@@ -305,46 +315,45 @@ class InterceptorsOfdManager(
 ) : OfdManagerPort {
     override fun send(command: OfdCommandRequest): OfdCommandResult {
         val result = delegate.send(command)
-        if (result.status == OfdCommandStatus.OK) {
-            val responseJson = result.responseJson
-            if (responseJson != null) {
-                val payload = responseJson["payload"] as? kotlinx.serialization.json.JsonObject
-                val ticket = payload?.get("ticket") as? kotlinx.serialization.json.JsonObject
-                
-                // Extract ticketNumber (fiscalSign) if it was null
-                var finalFiscalSign = result.fiscalSign
-                if (finalFiscalSign == null && ticket != null) {
-                    finalFiscalSign = ticket["ticketNumber"]?.let {
-                        if (it is kotlinx.serialization.json.JsonPrimitive) it.content else null
-                    }
-                }
-                
-                // Extract receiptUrl
-                var finalReceiptUrl = result.receiptUrl
-                if (finalReceiptUrl == null && ticket != null) {
-                    val qrCodeBase64 = ticket["qrCodeBase64"]?.let {
-                        if (it is kotlinx.serialization.json.JsonPrimitive) it.content else null
-                    }
-                    if (qrCodeBase64 != null) {
-                        finalReceiptUrl = try {
-                            String(java.util.Base64.getDecoder().decode(qrCodeBase64), Charsets.UTF_8)
-                        } catch (_: Exception) {
-                            null
-                        }
-                    }
-                }
-                
-                if (finalReceiptUrl != null) {
-                    StorageAdapter.receiptUrlMap[command.payloadRef] = finalReceiptUrl
-                }
-                
-                if (finalFiscalSign != result.fiscalSign || finalReceiptUrl != result.receiptUrl) {
-                    return result.copy(
-                        fiscalSign = finalFiscalSign,
-                        receiptUrl = finalReceiptUrl
-                    )
+        if (result.status != OfdCommandStatus.OK) {
+            return result
+        }
+        val responseJson = result.responseJson ?: return result
+        val payload = responseJson["payload"] as? kotlinx.serialization.json.JsonObject ?: return result
+        val ticket = payload["ticket"] as? kotlinx.serialization.json.JsonObject ?: return result
+
+        // Extract ticketNumber (fiscalSign) if it was null
+        var finalFiscalSign = result.fiscalSign
+        if (finalFiscalSign == null) {
+            finalFiscalSign = ticket["ticketNumber"]?.let {
+                if (it is kotlinx.serialization.json.JsonPrimitive) it.content else null
+            }
+        }
+
+        // Extract receiptUrl
+        var finalReceiptUrl = result.receiptUrl
+        if (finalReceiptUrl == null) {
+            val qrCodeBase64 = ticket["qrCodeBase64"]?.let {
+                if (it is kotlinx.serialization.json.JsonPrimitive) it.content else null
+            }
+            if (qrCodeBase64 != null) {
+                finalReceiptUrl = try {
+                    String(java.util.Base64.getDecoder().decode(qrCodeBase64), Charsets.UTF_8)
+                } catch (_: Exception) {
+                    null
                 }
             }
+        }
+
+        if (finalReceiptUrl != null) {
+            StorageAdapter.receiptUrlMap[command.payloadRef] = finalReceiptUrl
+        }
+
+        if (finalFiscalSign != result.fiscalSign || finalReceiptUrl != result.receiptUrl) {
+            return result.copy(
+                fiscalSign = finalFiscalSign,
+                receiptUrl = finalReceiptUrl
+            )
         }
         return result
     }

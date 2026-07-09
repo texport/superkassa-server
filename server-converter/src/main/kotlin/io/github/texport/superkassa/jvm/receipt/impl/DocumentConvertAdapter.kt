@@ -1,6 +1,5 @@
 package io.github.texport.superkassa.jvm.receipt.impl
 
-import com.openhtmltopdf.pdfboxout.PdfRendererBuilder
 import kz.mybrain.superkassa.core.domain.port.DocumentConvertPort
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
@@ -12,6 +11,8 @@ import javax.imageio.ImageIO
 class DocumentConvertAdapter : DocumentConvertPort {
 
     companion object {
+        private const val BOTTOM_PADDING_PX = 20
+
         init {
             System.setProperty("xr.util-logging.loggingEnabled", "false")
             try {
@@ -42,7 +43,7 @@ class DocumentConvertAdapter : DocumentConvertPort {
             // 2. Вычисляем размеры ленты
             val is58 = html.contains("tape-58mm")
             val paperWidth = if (is58) 58.0 else 80.0
-            
+
             // 380px — логическая ширина, 3.0 — масштаб устройства (scale factor)
             val heightCss = heightPx / 3.0
             val scale = paperWidth / 380.0
@@ -64,7 +65,7 @@ class DocumentConvertAdapter : DocumentConvertPort {
                 }
                 </style>
             """.trimIndent()
-            
+
             val modifiedHtml = html
                 .replace("@media print", "@media print_disabled")
                 .let {
@@ -76,7 +77,7 @@ class DocumentConvertAdapter : DocumentConvertPort {
                 }
 
             tempHtmlFile.writeText(wrapHtml(modifiedHtml))
-            
+
             val process = ProcessBuilder(
                 resolveChromiumPath(),
                 "--headless",
@@ -87,22 +88,28 @@ class DocumentConvertAdapter : DocumentConvertPort {
                 "--print-to-pdf=${tempPdfFile.absolutePath}",
                 tempHtmlFile.absolutePath
             ).start()
-            
+
             val finished = process.waitFor(15, java.util.concurrent.TimeUnit.SECONDS)
             if (!finished) {
                 process.destroyForcibly()
-                throw RuntimeException("Chromium PDF rendering timed out")
+                error("Chromium PDF rendering timed out")
             }
             if (process.exitValue() != 0) {
                 val errorStream = process.errorStream.bufferedReader().readText()
                 val outStream = process.inputStream.bufferedReader().readText()
-                throw RuntimeException("Chromium failed with exit code ${process.exitValue()}. Output: $outStream, Error: $errorStream")
+                error("Chromium failed with exit code ${process.exitValue()}. Output: $outStream, Error: $errorStream")
             }
-            
+
             return tempPdfFile.readBytes()
         } finally {
-            try { tempHtmlFile.delete() } catch (_: Throwable) {}
-            try { tempPdfFile.delete() } catch (_: Throwable) {}
+            try {
+                tempHtmlFile.delete()
+            } catch (_: Throwable) {
+            }
+            try {
+                tempPdfFile.delete()
+            } catch (_: Throwable) {
+            }
         }
     }
 
@@ -129,7 +136,7 @@ class DocumentConvertAdapter : DocumentConvertPort {
                 }
                 </style>
             """.trimIndent()
-            
+
             val modifiedHtml = html
                 .replace("@media print", "@media print_disabled")
                 .let {
@@ -141,7 +148,7 @@ class DocumentConvertAdapter : DocumentConvertPort {
                 }
 
             tempHtmlFile.writeText(wrapHtml(modifiedHtml))
-            
+
             val process = ProcessBuilder(
                 resolveChromiumPath(),
                 "--headless",
@@ -153,38 +160,48 @@ class DocumentConvertAdapter : DocumentConvertPort {
                 "--screenshot=${tempPngFile.absolutePath}",
                 tempHtmlFile.absolutePath
             ).start()
-            
+
             val finished = process.waitFor(15, java.util.concurrent.TimeUnit.SECONDS)
             if (!finished) {
                 process.destroyForcibly()
-                throw RuntimeException("Chromium screenshot timed out")
+                error("Chromium screenshot timed out")
             }
             val errorStream = process.errorStream.bufferedReader().readText()
             val outStream = process.inputStream.bufferedReader().readText()
             if (process.exitValue() != 0) {
-                throw RuntimeException("Chromium screenshot failed with exit code ${process.exitValue()}. Output: $outStream, Error: $errorStream")
+                error("Chromium screenshot failed with exit code ${process.exitValue()}. Output: $outStream, Error: $errorStream")
             }
-            
+
             val pngLength = tempPngFile.length()
             val pngExists = tempPngFile.exists()
             if (!pngExists || pngLength == 0L) {
-                throw RuntimeException("Chromium screenshot file does not exist or is empty! Path: ${tempPngFile.absolutePath}, Size: $pngLength, Out: $outStream, Err: $errorStream")
+                error(
+                    "Chromium screenshot file does not exist or is empty! " +
+                        "Path: ${tempPngFile.absolutePath}, Size: $pngLength, " +
+                        "Out: $outStream, Err: $errorStream"
+                )
             }
-            
+
             val originalImage = ImageIO.read(tempPngFile)
             if (originalImage == null) {
                 val formatNames = ImageIO.getReaderFormatNames().joinToString()
-                throw RuntimeException("ImageIO.read returned null for PNG image (File exists: $pngExists, Size: $pngLength). Registered reader formats: $formatNames")
+                error("ImageIO.read returned null for PNG image (File exists: $pngExists, Size: $pngLength). Registered reader formats: $formatNames")
             }
             val croppedImage = cropSolidBottom(originalImage)
-            
+
             ByteArrayOutputStream().use { os ->
                 ImageIO.write(croppedImage, "PNG", os)
                 return os.toByteArray()
             }
         } finally {
-            try { tempHtmlFile.delete() } catch (_: Throwable) {}
-            try { tempPngFile.delete() } catch (_: Throwable) {}
+            try {
+                tempHtmlFile.delete()
+            } catch (_: Throwable) {
+            }
+            try {
+                tempPngFile.delete()
+            } catch (_: Throwable) {
+            }
         }
     }
 
@@ -192,10 +209,10 @@ class DocumentConvertAdapter : DocumentConvertPort {
         val width = image.width
         val height = image.height
         var cropHeight = height
-        
+
         // Get the background color from the bottom-left pixel
         val bgArgb = image.getRGB(0, height - 1)
-        
+
         for (y in height - 1 downTo 0) {
             var rowIsBg = true
             for (x in 0 until width) {
@@ -209,10 +226,10 @@ class DocumentConvertAdapter : DocumentConvertPort {
                 break
             }
         }
-        
-        // Add a small padding (20px) so the bottom isn't cut off too close
-        cropHeight = minOf(height, cropHeight + 20)
-        
+
+        // Add a small padding so the bottom isn't cut off too close
+        cropHeight = minOf(height, cropHeight + BOTTOM_PADDING_PX)
+
         if (cropHeight < height && cropHeight > 0) {
             return image.getSubimage(0, 0, width, cropHeight)
         }

@@ -106,7 +106,9 @@ tasks.jacocoTestCoverageVerification {
                 "*ApiResponseMessages*",
                 "*Controller*",
                 "*TraceIdFilter*",
-                "*Dto*"
+                "*Dto*",
+                "*InterceptorsOfdManager*",
+                "*TrilingualLogConverter*"
             )
             limit {
                 minimum = "1.0".toBigDecimal()

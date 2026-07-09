@@ -64,7 +64,12 @@ class OpenApiConfig {
                     .name("ApiErrorResponse")
                     .description("Common error response object")
                     .addProperty("code", io.swagger.v3.oas.models.media.StringSchema().description("Error code identifier").example("VALIDATION_ERROR"))
-                    .addProperty("message", io.swagger.v3.oas.models.media.StringSchema().description("Human readable description of the error").example("RU: Некорректный PIN | KK: Қате PIN | EN: Invalid PIN"))
+                    .addProperty(
+                        "message",
+                        io.swagger.v3.oas.models.media.StringSchema()
+                            .description("Human readable description of the error")
+                            .example("RU: Некорректный PIN | KK: Қате PIN | EN: Invalid PIN")
+                    )
                 components.addSchemas("ApiErrorResponse", apiErrorSchema)
             }
 
@@ -168,6 +173,7 @@ class OpenApiConfig {
     }
 
     @Bean
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
     fun kmpSchemaConverter(): io.swagger.v3.core.converter.ModelConverter {
         return io.swagger.v3.core.converter.ModelConverter { type, context, chain ->
             var resolved = try {

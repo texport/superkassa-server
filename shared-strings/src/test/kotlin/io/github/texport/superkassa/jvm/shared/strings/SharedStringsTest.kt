@@ -8,6 +8,7 @@ import io.github.texport.superkassa.jvm.shared.strings.api.key.SettingsErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.api.key.StorageErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.api.key.TimeDebugKey
 import io.github.texport.superkassa.jvm.shared.strings.api.key.TimeErrorKey
+import io.github.texport.superkassa.jvm.shared.strings.api.key.WebErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver
 import kotlin.test.*
 
@@ -105,6 +106,17 @@ class SharedStringsTest {
             val resolved = resolver.resolve(key)
             assertNotEquals("Unknown error", resolved.en)
             assertEquals(key, DeliveryTemplateKey.valueOf(key.name))
+            assertTrue(key.code.isNotEmpty())
+        }
+    }
+
+    @Test
+    fun testWebErrorKeyEnum() {
+        assertNotNull(WebErrorKey.values())
+        for (key in WebErrorKey.entries) {
+            val resolved = resolver.resolve(key)
+            assertNotEquals("Unknown error", resolved.en)
+            assertEquals(key, WebErrorKey.valueOf(key.name))
             assertTrue(key.code.isNotEmpty())
         }
     }
