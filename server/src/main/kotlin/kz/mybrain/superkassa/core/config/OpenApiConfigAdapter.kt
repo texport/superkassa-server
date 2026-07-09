@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-class OpenApiConfig {
+class OpenApiConfigAdapter {
 
     @Bean
     fun customOpenAPI(): OpenAPI {
@@ -173,7 +173,6 @@ class OpenApiConfig {
     }
 
     @Bean
-    @Suppress("TooGenericExceptionCaught", "SwallowedException")
     fun kmpSchemaConverter(): io.swagger.v3.core.converter.ModelConverter {
         return io.swagger.v3.core.converter.ModelConverter { type, context, chain ->
             var resolved = try {

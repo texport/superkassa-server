@@ -9,13 +9,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class OpenApiConfigTest {
+class OpenApiConfigAdapterTest {
 
     private class DummySubtype
 
     @Test
     fun testKmpSchemaConverterFallbackForSubtypes() {
-        val config = OpenApiConfig()
+        val config = OpenApiConfigAdapter()
         val converter = config.kmpSchemaConverter()
 
         val type = AnnotatedType(DummySubtype::class.java).skipSchemaName(true)
