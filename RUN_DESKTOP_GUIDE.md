@@ -65,14 +65,14 @@
 Мы уже собрали готовый файл программы.
 
 1. Откройте страницу релизов проекта в браузере: [Релизы Superkassa Server на GitHub](https://github.com/texport/superkassa-server/releases).
-2. Найдите последний релиз (например, `v1.0.1`).
-3. В разделе **Assets** кликните мышкой на файл **`server-1.0.1.jar`** и сохраните его на компьютер в созданную рабочую папку (например, `C:\superkassa` на Windows или `~/superkassa` на Mac).
+2. Найдите последний релиз (например, `v1.0.4`).
+3. В разделе **Assets** кликните мышкой на файл **`server-1.0.4.jar`** и сохраните его на компьютер в созданную рабочую папку (например, `C:\superkassa` на Windows или `~/superkassa` на Mac).
 
 ---
 
 ## ШАГ 3. Варианты запуска (Выберите наиболее удобный)
 
-Скачанный файл `server-1.0.1.jar` можно запустить двумя способами. В обоих случаях сервер будет работать в режиме DESKTOP.
+Скачанный файл `server-1.0.4.jar` можно запустить двумя способами. В обоих случаях сервер будет работать в режиме DESKTOP.
 
 ### Вариант 3.1. Запуск напрямую в операционной системе (через Java)
 Этот способ запускает сервер прямо на вашем компьютере. База данных SQLite автоматически создастся в той же папке, куда вы скачали JAR-файл.
@@ -82,18 +82,18 @@
    * **На macOS / Linux**: `cd ~/superkassa`
 2. Запустите сервер следующей командой (порт сервера `8080`):
    ```bash
-   java -jar -Dserver.port=8080 server-1.0.1.jar
+   java -jar -Dserver.port=8080 server-1.0.4.jar
    ```
 
 #### Настройка пути к файлу базы данных SQLite (Опционально):
 По умолчанию файл базы данных автоматически создается в подпапке `data/core.db` относительно места запуска. Если вы хотите сохранить базу данных в другое место (например, на диск D:\ или в конкретную папку документов), переопределите параметр `spring.datasource.url`:
 * **Для Windows**:
   ```cmd
-  java -jar -Dspring.datasource.url=jdbc:sqlite:D:\custom_folder\my_kassa.db server-1.0.1.jar
+  java -jar -Dspring.datasource.url=jdbc:sqlite:D:\custom_folder\my_kassa.db server-1.0.4.jar
   ```
 * **Для macOS / Linux**:
   ```bash
-  java -jar -Dspring.datasource.url=jdbc:sqlite:/Users/username/Documents/my_kassa.db server-1.0.1.jar
+  java -jar -Dspring.datasource.url=jdbc:sqlite:/Users/username/Documents/my_kassa.db server-1.0.4.jar
   ```
 
 3. Когда появится строчка `Started ServerApplicationKt in ... seconds`, сервер готов к работе.
@@ -104,15 +104,15 @@
 ### Вариант 3.2. Запуск в изолированном контейнере (через Docker — Опционально)
 Этот способ упаковывает тот же самый JAR-файл в Docker-контейнер. База данных SQLite сохраняется на вашем диске в томе `superkassa-data`.
 
-1. Скопируйте скачанный файл `server-1.0.1.jar` в папку `server/build/libs/` внутри вашего проекта:
+1. Скопируйте скачанный файл `server-1.0.4.jar` в папку `server/build/libs/` внутри вашего проекта:
    * **На Windows (в PowerShell)**:
      ```powershell
      New-Item -ItemType Directory -Force -Path .\server\build\libs
-     Copy-Item .\server-1.0.1.jar .\server\build\libs\server-1.0.1.jar
+     Copy-Item .\server-1.0.4.jar .\server\build\libs\server-1.0.4.jar
      ```
    * **На macOS / Linux**:
      ```bash
-     mkdir -p server/build/libs && cp server-1.0.1.jar server/build/libs/
+     mkdir -p server/build/libs && cp server-1.0.4.jar server/build/libs/
      ```
 2. Соберите Docker-образ кассы в корне репозитория (он возьмет JAR-файл из созданной папки):
    ```bash
