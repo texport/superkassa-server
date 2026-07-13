@@ -17,20 +17,6 @@ The server-side component of the Superkassa online cashbox system. It provides a
 
 ---
 
-## Integration with superkassa-core
-
-This server integrates with `superkassa-core` Kotlin Multiplatform library to execute core fiscal operations:
-
-### JVM / Gradle
-To use `superkassa-core` in your JVM Gradle project, add the dependency from Maven Local or your repository:
-```kotlin
-dependencies {
-    implementation("io.github.texport.superkassa:core-presentation:1.1.4")
-}
-```
-
----
-
 ## Architecture Boundary
 
 The server project acts as the JVM host and integration layer:

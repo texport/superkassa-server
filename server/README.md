@@ -25,13 +25,7 @@ Executable Spring Boot REST API application for the **Superkassa** fiscalization
 
 ### Installation
 
-Add the dependency or use the executable jar in your deployment:
-
-```kotlin
-dependencies {
-    implementation("io.github.texport:superkassa-server:1.0.5")
-}
-```
+Use the executable jar in your deployment:
 
 ---
 
@@ -74,13 +68,7 @@ The application uses **SLF4J + Logback** for internal logging. You have full con
 
 ### Установка
 
-Добавьте зависимость или используйте исполняемый JAR в вашей сборке:
-
-```kotlin
-dependencies {
-    implementation("io.github.texport:superkassa-server:1.0.5")
-}
-```
+Используйте исполняемый JAR в вашей сборке:
 
 ---
 
