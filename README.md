@@ -27,7 +27,7 @@ The server-side component of the Superkassa online cashbox system. It provides a
 
 The server project acts as the JVM host and integration layer:
 - **Core Business Logic:** Handled strictly by the `superkassa-core` library.
-- **Platform Adapters:** Local storage (`storage-jdbc`), networking (`ofd-network-client`), and API entry point (`server`) are implemented as separate JVM modules and wired via composition root in `ServicesConfig.kt`.
+- **Platform Adapters:** Local storage (`storage-jdbc`), settings (`server-settings`), delivery channels (`server-delivery`), document conversion (`server-converter`), and the API entry point (`server`) are implemented as separate JVM modules and wired via composition root in `ServicesConfig.kt`.
 
 ---
 
@@ -48,7 +48,7 @@ The server project acts as the JVM host and integration layer:
 
 Серверный проект выступает в качестве JVM-хоста и слоя интеграции:
 - **Ядро бизнес-логики:** Реализовано исключительно в рамках подключаемой библиотеки `superkassa-core`.
-- **Адаптеры платформы:** Локальное хранилище (`storage-jdbc`), сеть (`ofd-network-client`) и точка входа API (`server`) выделены в отдельные JVM-модули и связываются через композиционный корень в `ServicesConfig.kt`.
+- **Адаптеры платформы:** Локальное хранилище (`storage-jdbc`), настройки (`server-settings`), каналы доставки (`server-delivery`), конвертация документов (`server-converter`) и точка входа API (`server`) выделены в отдельные JVM-модули и связываются через композиционный корень в `ServicesConfig.kt`.
 
 ---
 
