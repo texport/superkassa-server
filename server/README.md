@@ -1,7 +1,7 @@
 # superkassa-server
 
 [![CI Build](https://img.shields.io/github/actions/workflow/status/texport/superkassa-server/ci.yml?branch=main&label=CI%20Build)](https://github.com/texport/superkassa-server/actions)
-[![Version](https://img.shields.io/badge/Version-1.0.4-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.0.5-blue.svg)]()
 [![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../LICENSE)
 
@@ -29,7 +29,7 @@ Add the dependency or use the executable jar in your deployment:
 
 ```kotlin
 dependencies {
-    implementation("io.github.texport:superkassa-server:1.0.4")
+    implementation("io.github.texport:superkassa-server:1.0.5")
 }
 ```
 
@@ -40,7 +40,7 @@ dependencies {
 Running the executable application:
 
 ```bash
-java -jar superkassa-server-1.0.4.jar --spring.profiles.active=prod
+java -jar superkassa-server-1.0.5.jar --spring.profiles.active=prod
 ```
 
 ### Logging Configuration
@@ -50,12 +50,12 @@ The application uses **SLF4J + Logback** for internal logging. You have full con
 *   **Configuring via Spring Boot properties**:
     Adjust the levels and file targets directly using command line arguments or `application.yml`:
     ```bash
-    java -jar superkassa-server-1.0.4.jar --logging.level.root=WARN --logging.file.name=logs/server.log
+    java -jar superkassa-server-1.0.5.jar --logging.level.root=WARN --logging.file.name=logs/server.log
     ```
 *   **External Custom Logging Config**:
     To completely customize logging (e.g. forward logs to **Graylog**, **ELK**, **Syslog**, etc.), specify an external Logback configuration file at startup:
     ```bash
-    java -Dlogging.config=/path/to/custom-logback.xml -jar superkassa-server-1.0.4.jar
+    java -Dlogging.config=/path/to/custom-logback.xml -jar superkassa-server-1.0.5.jar
     ```
 
 ---
@@ -78,7 +78,7 @@ The application uses **SLF4J + Logback** for internal logging. You have full con
 
 ```kotlin
 dependencies {
-    implementation("io.github.texport:superkassa-server:1.0.4")
+    implementation("io.github.texport:superkassa-server:1.0.5")
 }
 ```
 
@@ -89,7 +89,7 @@ dependencies {
 Запуск исполняемого приложения:
 
 ```bash
-java -jar superkassa-server-1.0.4.jar --spring.profiles.active=prod
+java -jar superkassa-server-1.0.5.jar --spring.profiles.active=prod
 ```
 
 ### Настройка логирования
@@ -99,12 +99,12 @@ java -jar superkassa-server-1.0.4.jar --spring.profiles.active=prod
 *   **Настройка через свойства Spring Boot**:
     Уровни логирования и запись в локальные файлы можно задавать прямо в аргументах запуска или в файле `application.yml`:
     ```bash
-    java -jar superkassa-server-1.0.4.jar --logging.level.root=WARN --logging.file.name=logs/server.log
+    java -jar superkassa-server-1.0.5.jar --logging.level.root=WARN --logging.file.name=logs/server.log
     ```
 *   **Использование внешней конфигурации**:
     Для полной кастомизации (например, отправки логов в **Graylog**, **ELK**, **Syslog** и т.д.) укажите внешний файл настроек Logback при старте:
     ```bash
-    java -Dlogging.config=/path/to/custom-logback.xml -jar superkassa-server-1.0.4.jar
+    java -Dlogging.config=/path/to/custom-logback.xml -jar superkassa-server-1.0.5.jar
     ```
 
 ---

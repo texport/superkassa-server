@@ -1,7 +1,7 @@
 # superkassa-storage-jdbc
 
 [![CI Build](https://github.com/texport/superkassa-server/actions/workflows/ci.yml/badge.svg)](https://github.com/texport/superkassa-server/actions)
-[![Version](https://img.shields.io/badge/Version-1.0.4-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.0.5-blue.svg)]()
 [![Coverage](https://img.shields.io/badge/Coverage-85%25--100%25-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../LICENSE)
 
@@ -29,7 +29,7 @@ Add the dependency to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.texport:storage-jdbc:1.0.4")
+    implementation("io.github.texport:storage-jdbc:1.0.5")
 }
 ```
 
@@ -65,7 +65,7 @@ storageBootstrap.bootstrap()
 
 ```kotlin
 dependencies {
-    implementation("io.github.texport:storage-jdbc:1.0.4")
+    implementation("io.github.texport:storage-jdbc:1.0.5")
 }
 ```
 

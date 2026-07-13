@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/texport/superkassa-server/actions/workflows/ci.yml/badge.svg)](https://github.com/texport/superkassa-server/actions)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.0.4-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.0.5-blue.svg)]()
 
 The server-side component of the Superkassa online cashbox system. It provides a RESTful HTTP API to manage organization cashboxes, record shifts, process cash operations, queue tax notifications, and render/print receipts.
 

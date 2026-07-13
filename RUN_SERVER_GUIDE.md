@@ -36,7 +36,7 @@
 
 ## ШАГ 3. Варианты запуска (Выберите наиболее удобный)
 
-Скачанный файл `server-1.0.4.jar` можно запустить напрямую в операционной системе, упаковать в Docker-образ, запустить в связке с БД через Docker Compose или развернуть в Kubernetes.
+Скачанный файл `server-1.0.5.jar` можно запустить напрямую в операционной системе, упаковать в Docker-образ, запустить в связке с БД через Docker Compose или развернуть в Kubernetes.
 
 ---
 
@@ -53,7 +53,7 @@
        -Dspring.datasource.username=superkassa_user \
        -Dspring.datasource.password=secure_password \
        -Dsuperkassa.node-id=node-1 \
-       server-1.0.4.jar
+       server-1.0.5.jar
      ```
    * **Для MySQL**:
      ```bash
@@ -63,7 +63,7 @@
        -Dspring.datasource.username=superkassa_user \
        -Dspring.datasource.password=secure_password \
        -Dsuperkassa.node-id=node-1 \
-       server-1.0.4.jar
+       server-1.0.5.jar
      ```
 
 ---
