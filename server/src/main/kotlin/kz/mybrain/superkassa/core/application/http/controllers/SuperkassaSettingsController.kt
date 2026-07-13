@@ -1,8 +1,7 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.jvm.settings.impl.SettingsApplicationService
 import io.github.texport.superkassa.jvm.settings.impl.dto.CoreSettingsDto
-import io.github.texport.superkassa.jvm.settings.impl.mapper.toDomain
-import io.github.texport.superkassa.jvm.settings.impl.mapper.toDto
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -10,18 +9,13 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_S
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_SETTINGS_UPDATED
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_SETTINGS_FROZEN
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
-import kz.mybrain.superkassa.core.application.settings.UpdateSettingsUseCase
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
-import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/")
 @Tag(name = "Настройки Superkassa", description = "Управление системными настройками Superkassa.")
 class SuperkassaSettingsController(
-    private val settingsRepository: CoreSettingsRepositoryPort,
-    private val coreSettings: CoreSettings,
-    private val updateSettingsUseCase: UpdateSettingsUseCase
+    private val settingsService: SettingsApplicationService
 ) {
 
     /**
@@ -60,8 +54,8 @@ class SuperkassaSettingsController(
             - jdbcUrl: JDBC URL для подключения к БД. Для SQLite: "jdbc:sqlite:<путь к файлу>".
               Для PostgreSQL: "jdbc:postgresql://<host>:<port>/<database>".
               Для MySQL: "jdbc:mysql://<host>:<port>/<database>".
-            - user: Имя пользователя БД (опционально для SQLite, обязательно для PostgreSQL/MySQL).
-            - password: Пароль БД (опционально для SQLite, обязательно для PostgreSQL/MySQL).
+              - user: Имя пользователя БД (опционально для SQLite, обязательно для PostgreSQL/MySQL).
+              - password: Пароль БД (опционально для SQLite, обязательно для PostgreSQL/MySQL).
             
             **allowChanges** - Разрешены ли изменения настроек через API:
             - true: Настройки можно изменять через PUT /settings
@@ -93,7 +87,7 @@ class SuperkassaSettingsController(
     )
     @KkmApiResponses(ok = MSG_200_SETTINGS)
     fun getSettings(): CoreSettingsDto {
-        return settingsRepository.loadOrCreate(coreSettings).toDto()
+        return settingsService.getSettings()
     }
 
     /**
@@ -131,7 +125,7 @@ class SuperkassaSettingsController(
             - DESKTOP: Используйте для локального использования. Обязательно укажите storage.engine="SQLITE"
               и корректный путь к файлу SQLite в storage.jdbcUrl.
             - SERVER: Используйте для кластера. Обязательно настройте PostgreSQL или MySQL:
-              * storage.engine: "POSTGRESQL" или "MYSQL"
+              * storage.engine: "POSTGRESQL" or "MYSQL"
               * storage.jdbcUrl: полный JDBC URL с хостом, портом и именем БД
               * storage.user и storage.password: учетные данные для подключения
               * nodeId: уникальный идентификатор для каждого узла в кластере
@@ -154,8 +148,6 @@ class SuperkassaSettingsController(
     )
     @KkmApiResponses(ok = MSG_200_SETTINGS_UPDATED, forbidden = MSG_403_SETTINGS_FROZEN)
     fun updateSettings(@RequestBody @Valid newSettingsDto: CoreSettingsDto): CoreSettingsDto {
-        val domainSettings = newSettingsDto.toDomain()
-        val updatedDomain = updateSettingsUseCase.execute(domainSettings)
-        return updatedDomain.toDto()
+        return settingsService.updateSettings(newSettingsDto)
     }
 }

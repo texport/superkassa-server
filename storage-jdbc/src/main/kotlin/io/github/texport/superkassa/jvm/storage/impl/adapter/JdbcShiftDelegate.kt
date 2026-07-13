@@ -1,11 +1,11 @@
 package io.github.texport.superkassa.jvm.storage.impl.adapter
 
+import io.github.texport.superkassa.core.domain.api.model.common.CounterSnapshot
+import io.github.texport.superkassa.core.domain.api.model.shift.ShiftInfo
+import io.github.texport.superkassa.core.domain.api.model.shift.ShiftStatus
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.CounterRecord
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.ShiftRecord
-import kz.mybrain.superkassa.core.domain.model.common.CounterSnapshot
-import kz.mybrain.superkassa.core.domain.model.shift.ShiftInfo
-import kz.mybrain.superkassa.core.domain.model.shift.ShiftStatus
 
 class JdbcShiftDelegate(private val sessionProvider: () -> StorageSession) {
 

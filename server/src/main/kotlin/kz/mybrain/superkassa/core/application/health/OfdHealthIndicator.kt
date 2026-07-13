@@ -1,6 +1,6 @@
 package kz.mybrain.superkassa.core.application.health
 
-import kz.mybrain.superkassa.core.domain.port.StoragePort
+import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 

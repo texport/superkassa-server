@@ -1,5 +1,7 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.queue.QueueItemResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_OK
@@ -8,8 +10,6 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_F
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_KKM_NOT_FOUND
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.domain.usecase.queue.ListQueueItemsUseCase
-import kz.mybrain.superkassa.core.domain.usecase.queue.RetryFailedQueueItemsUseCase
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -30,8 +30,7 @@ import org.springframework.web.bind.annotation.RestController
     description = "Диагностика и управление очередью команд ОФД (только в режиме программирования, ADMIN)"
 )
 class QueueController(
-    private val listQueueItemsUseCase: ListQueueItemsUseCase,
-    private val retryFailedQueueItemsUseCase: RetryFailedQueueItemsUseCase
+    private val kkmService: SuperkassaApi
 ) {
 
     /**
@@ -67,9 +66,9 @@ class QueueController(
     fun listQueue(
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?
-    ): List<ListQueueItemsUseCase.QueueItemView> {
+    ): List<QueueItemResponse> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return listQueueItemsUseCase.execute(kkmId, pin)
+        return kkmService.queue.listQueue(kkmId, pin)
     }
 
     /**
@@ -106,7 +105,7 @@ class QueueController(
         @RequestHeader("Authorization") authHeader: String?
     ): Map<String, Int> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val updated = retryFailedQueueItemsUseCase.execute(kkmId, pin)
+        val updated = kkmService.queue.retryFailed(kkmId, pin)
         return mapOf("updated" to updated)
     }
 }

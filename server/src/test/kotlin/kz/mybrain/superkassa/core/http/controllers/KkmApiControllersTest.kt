@@ -1,5 +1,31 @@
 package kz.mybrain.superkassa.core.http.controllers
 
+import io.github.texport.superkassa.core.presentation.api.DeliveryApi
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmInitSimpleRequest
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmResponse
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmTaxSettingsUpdateRequest
+import io.github.texport.superkassa.core.presentation.api.model.kkm.CounterSnapshotResponse
+import io.github.texport.superkassa.core.presentation.api.model.kkm.FiscalDocumentResponse
+import io.github.texport.superkassa.core.presentation.api.model.kkm.TaxRegime
+import io.github.texport.superkassa.core.presentation.api.model.kkm.VatGroup
+import io.github.texport.superkassa.core.presentation.api.model.common.FactoryNumberResponse
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdAuthInfoRequest
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdAuthInfoResponse
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdCommandResponse
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdCommandStatus
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdTokenUpdateRequest
+import io.github.texport.superkassa.core.presentation.api.model.ofd.DeliveryStatus
+import io.github.texport.superkassa.core.presentation.api.model.shift.ReportResponse
+import io.github.texport.superkassa.core.presentation.api.model.shift.AutoCloseShiftRequest
+import io.github.texport.superkassa.core.presentation.api.model.shift.ShiftResponse
+import io.github.texport.superkassa.core.presentation.api.model.shift.ShiftStatus
+import io.github.texport.superkassa.core.presentation.api.model.user.UserCreateRequest
+import io.github.texport.superkassa.core.presentation.api.model.user.UserResponse
+import io.github.texport.superkassa.core.presentation.api.model.user.UserRole
+import io.github.texport.superkassa.core.presentation.api.model.user.UserUpdateRequest
+import io.github.texport.superkassa.core.presentation.api.model.receipt.PrintDocumentType
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptLayoutType
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -10,32 +36,6 @@ import kz.mybrain.superkassa.core.application.http.controllers.KkmDiagnosticsCon
 import kz.mybrain.superkassa.core.application.http.controllers.KkmManagementController
 import kz.mybrain.superkassa.core.application.http.controllers.KkmProgrammingController
 import kz.mybrain.superkassa.core.application.http.controllers.KkmUsersController
-import kz.mybrain.superkassa.core.domain.model.common.CounterSnapshot
-import kz.mybrain.superkassa.core.domain.model.common.TaxRegime
-import kz.mybrain.superkassa.core.domain.model.common.VatGroup
-import kz.mybrain.superkassa.core.domain.model.delivery.DeliveryStatus
-import kz.mybrain.superkassa.core.domain.model.kkm.FiscalDocumentSnapshot
-import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
-import kz.mybrain.superkassa.core.domain.model.kkm.KkmMode
-import kz.mybrain.superkassa.core.domain.model.kkm.KkmState
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandStatus
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptLayoutType
-import kz.mybrain.superkassa.core.domain.model.report.ReportResult
-import kz.mybrain.superkassa.core.domain.model.shift.ShiftInfo
-import kz.mybrain.superkassa.core.domain.model.shift.ShiftStatus
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.presentation.model.AutoCloseShiftRequest
-import kz.mybrain.superkassa.core.presentation.model.FactoryNumberResponse
-import kz.mybrain.superkassa.core.presentation.model.KkmInitSimpleRequest
-import kz.mybrain.superkassa.core.presentation.model.KkmTaxSettingsUpdateRequest
-import kz.mybrain.superkassa.core.presentation.model.OfdAuthInfoResponse
-import kz.mybrain.superkassa.core.presentation.model.OfdTokenUpdateRequest
-import kz.mybrain.superkassa.core.presentation.model.TaxRegimeDto
-import kz.mybrain.superkassa.core.presentation.model.UserCreateRequest
-import kz.mybrain.superkassa.core.presentation.model.UserRoleDto
-import kz.mybrain.superkassa.core.presentation.model.UserUpdateRequest
-import kz.mybrain.superkassa.core.presentation.model.VatGroupDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -43,8 +43,9 @@ import kotlin.test.assertTrue
 class KkmApiControllersTest {
 
     private val service = mockk<SuperkassaApi>()
+    private val deliveryApi = mockk<DeliveryApi>(relaxed = true)
 
-    private val kkmController = KkmController(service)
+    private val kkmController = KkmController(service, deliveryApi)
     private val countersController = KkmCountersController(service)
     private val decommissioningController = KkmDecommissioningController(service)
     private val diagnosticsController = KkmDiagnosticsController(service)
@@ -54,10 +55,10 @@ class KkmApiControllersTest {
 
     @Test
     fun `kkm shift and document endpoints delegate to service with parsed pin`() {
-        val shift = ShiftInfo("shift-1", "kkm-1", 10, ShiftStatus.OPEN, 1000)
-        val report = ReportResult("z-1", DeliveryStatus.ONLINE_OK)
+        val shift = ShiftResponse("shift-1", "kkm-1", 10, ShiftStatus.OPEN, 1000)
+        val report = ReportResponse("z-1", DeliveryStatus.ONLINE_OK)
         val doc =
-            FiscalDocumentSnapshot(
+            FiscalDocumentResponse(
                 id = "doc-1",
                 cashboxId = "kkm-1",
                 shiftId = "shift-1",
@@ -95,10 +96,10 @@ class KkmApiControllersTest {
     @Test
     fun `kkm print endpoints build proper response entities`() {
         every {
-            service.getPrintHtml("kkm-2", kz.mybrain.superkassa.core.domain.model.report.PrintDocumentType.DOCUMENT, "doc-2", null, "2222", ReceiptLayoutType.TAPE_58MM)
+            service.getPrintHtml("kkm-2", PrintDocumentType.DOCUMENT, "doc-2", null, "2222", ReceiptLayoutType.TAPE_58MM)
         } returns "<html>ok 58mm</html>"
         every {
-            service.getPrintPdf("kkm-2", kz.mybrain.superkassa.core.domain.model.report.PrintDocumentType.DOCUMENT, "doc-2", null, "2222", ReceiptLayoutType.FULLSCREEN)
+            service.getPrintPdf("kkm-2", PrintDocumentType.DOCUMENT, "doc-2", null, "2222", ReceiptLayoutType.FULLSCREEN)
         } returns byteArrayOf(1, 2, 3, 4)
 
         val htmlResponse = kkmController.getDocumentPrintHtml(
@@ -123,7 +124,7 @@ class KkmApiControllersTest {
 
     @Test
     fun `retry delivery maps channel results`() {
-        every { service.retryReceiptDelivery("kkm-3", "doc-3", "3333") } returns listOf("PRINT" to true, "EMAIL" to false)
+        every { deliveryApi.retryReceiptDelivery("kkm-3", "doc-3", "3333") } returns listOf("PRINT" to true, "EMAIL" to false)
 
         val response = kkmController.retryReceiptDelivery("kkm-3", "doc-3", "Bearer 3333")
 
@@ -136,9 +137,9 @@ class KkmApiControllersTest {
 
     @Test
     fun `counters endpoints delegate with parsed pin`() {
-        val counter = CounterSnapshot(scope = "GLOBAL", key = "k", value = 10, updatedAt = 100)
+        val counter = CounterSnapshotResponse(scope = "GLOBAL", key = "k", value = 10, updatedAt = 100)
         every { service.listCounters("kkm-4", "4444") } returns listOf(counter)
-        every { service.syncOfdCounters("kkm-4", "4444") } returns OfdCommandResult(status = OfdCommandStatus.OK)
+        every { service.syncOfdCounters("kkm-4", "4444") } returns OfdCommandResponse(status = OfdCommandStatus.OK)
 
         val counters = countersController.listCounters("kkm-4", "Bearer 4444")
         val sync = countersController.syncOfdCounters("kkm-4", "Bearer 4444")
@@ -164,10 +165,10 @@ class KkmApiControllersTest {
 
     @Test
     fun `diagnostics endpoints delegate to service`() {
-        val ofdOk = OfdCommandResult(status = OfdCommandStatus.OK)
+        val ofdOk = OfdCommandResponse(status = OfdCommandStatus.OK)
         every { service.getOfdInfo("kkm-5") } returns ofdOk
         every { service.checkOfdConnection("kkm-5") } returns ofdOk
-        every { service.getOfdAuthInfo("kkm-5", "5555") } returns OfdAuthInfoResponse(token = "t", nextReqNum = 42)
+        every { service.getOfdAuthInfo("5555", OfdAuthInfoRequest("kkm-5")) } returns OfdAuthInfoResponse(token = "t", nextReqNum = 42)
 
         assertEquals(OfdCommandStatus.OK, diagnosticsController.getOfdInfo("kkm-5").status)
         assertEquals(OfdCommandStatus.OK, diagnosticsController.checkOfdConnection("kkm-5").status)
@@ -177,7 +178,7 @@ class KkmApiControllersTest {
     @Test
     fun `management endpoints delegate and map response`() {
         val kkm = sampleKkm("kkm-mgmt")
-        val ofd = OfdCommandResult(status = OfdCommandStatus.OK)
+        val ofd = OfdCommandResponse(status = OfdCommandStatus.OK)
         every { service.getKkm("kkm-mgmt") } returns kkm
         every { service.updateKkmSettings("kkm-mgmt", "6666", true) } returns kkm
         every {
@@ -202,7 +203,7 @@ class KkmApiControllersTest {
             managementController.updateKkmTaxSettings(
                 "kkm-mgmt",
                 "Bearer 6666",
-                KkmTaxSettingsUpdateRequest(TaxRegimeDto.MIXED, VatGroupDto.VAT_5)
+                KkmTaxSettingsUpdateRequest(TaxRegime.MIXED, VatGroup.VAT_5)
             )
         val tokenUpdate =
             managementController.updateOfdToken(
@@ -247,17 +248,17 @@ class KkmApiControllersTest {
     @Test
     fun `users endpoints delegate and map responses`() {
         val admin =
-            kz.mybrain.superkassa.core.presentation.model.UserResponse(
+            UserResponse(
                 userId = "u-1",
                 name = "Admin",
-                role = UserRoleDto.ADMIN,
+                role = UserRole.ADMIN,
                 pin = "0000"
             )
         val cashier =
-            kz.mybrain.superkassa.core.presentation.model.UserResponse(
+            UserResponse(
                 userId = "u-2",
                 name = "Cashier",
-                role = UserRoleDto.CASHIER,
+                role = UserRole.CASHIER,
                 pin = "1111"
             )
 
@@ -266,7 +267,7 @@ class KkmApiControllersTest {
             service.createUser(
                 "kkm-users",
                 "8888",
-                UserCreateRequest(name = "Cashier", role = UserRoleDto.CASHIER, userPin = "1111")
+                UserCreateRequest(name = "Cashier", role = UserRole.CASHIER, userPin = "1111")
             )
         } returns cashier
         every {
@@ -284,7 +285,7 @@ class KkmApiControllersTest {
             usersController.createUser(
                 "kkm-users",
                 "Bearer 8888",
-                UserCreateRequest(name = "Cashier", role = UserRoleDto.CASHIER, userPin = "1111")
+                UserCreateRequest(name = "Cashier", role = UserRole.CASHIER, userPin = "1111")
             )
         val updated =
             usersController.updateUser(
@@ -302,18 +303,19 @@ class KkmApiControllersTest {
     }
 
     private fun sampleKkm(id: String) =
-        KkmInfo(
-            id = id,
+        KkmResponse(
+            kkmId = id,
             createdAt = 1,
             updatedAt = 2,
-            mode = KkmMode.REGISTRATION.name,
-            state = KkmState.ACTIVE.name,
-            ofdProvider = "KAZAKHTELECOM:TEST",
-            registrationNumber = "RN-1",
+            mode = "REGISTRATION",
+            state = "ACTIVE",
+            ofdId = "KAZAKHTELECOM",
+            ofdEnvironment = "TEST",
+            kkmKgdId = "RN-1",
             factoryNumber = "FN-1",
             manufactureYear = 2026,
-            systemId = "100",
-            taxRegime = TaxRegime.NO_VAT,
-            defaultVatGroup = VatGroup.NO_VAT
+            ofdSystemId = "100",
+            taxRegime = "NO_VAT",
+            defaultVatGroup = "NO_VAT"
         )
 }

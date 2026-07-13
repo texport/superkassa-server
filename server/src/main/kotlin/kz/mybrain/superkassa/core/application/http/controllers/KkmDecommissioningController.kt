@@ -1,5 +1,9 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.common.FactoryNumberResponse
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmInitSimpleRequest
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -11,10 +15,7 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_F
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_KKM_NOT_FOUND
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_DELETE_BLOCKED
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
-import kz.mybrain.superkassa.core.application.http.toResponse
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.presentation.model.*
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -38,7 +39,7 @@ class KkmDecommissioningController(private val kkmService: SuperkassaApi) {
         description = """
             Выполняет первичную инициализацию (фискализацию) кассового аппарата в локальной базе данных Superkassa.
             Применяется для ККМ, которые уже были зарегистрированы в ОФД и имеют действующий системный ID и токен доступа.
-            
+
             **Что делает метод:**
             1. Проверяет переданные параметры подключения к ОФД (провайдер, системный ID, токен).
             2. Подключается к ОФД и запрашивает актуальную регистрационную карточку ККМ.
@@ -48,12 +49,12 @@ class KkmDecommissioningController(private val kkmService: SuperkassaApi) {
                - Сервисные данные (название организации налогоплательщика, БИН/ИИН, юридический адрес)
             4. Сохраняет кассовый аппарат в базе данных со статусом `ACTIVE`.
             5. Регистрирует первого пользователя (администратора кассы) с правами доступа.
-            
+
             **Требования:**
             - Касса с указанным системным ID должна быть зарегистрирована в ОФД.
             - Переданный токен ОФД должен быть активным.
             - Запрос требует авторизации по ПИН-коду (передается в заголовке Authorization).
-            
+
             **Параметры:**
             - **Authorization** (заголовок): ПИН-код первого администратора (например, `0000`).
             - **RequestBody**: Объект `KkmInitSimpleRequest` с полями:
@@ -61,7 +62,7 @@ class KkmDecommissioningController(private val kkmService: SuperkassaApi) {
               - `ofdEnvironment`: Окружение ОФД (`TEST` или `PROD`).
               - `ofdSystemId`: Уникальный числовой ID кассы в системе ОФД.
               - `ofdToken`: Токен авторизации подключения к ОФД.
-            
+
             **Возвращаемые коды:**
             - 200 OK: Касса успешно инициализирована, возвращен объект `KkmResponse`.
             - 400 Bad Request: Ошибка валидации параметров запроса.
@@ -78,7 +79,7 @@ class KkmDecommissioningController(private val kkmService: SuperkassaApi) {
         @RequestBody @Valid request: KkmInitSimpleRequest
     ): KkmResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService.initKkmSimple(pin, request).toResponse()
+        return kkmService.initKkmSimple(pin, request)
     }
 
     /**
@@ -91,16 +92,16 @@ class KkmDecommissioningController(private val kkmService: SuperkassaApi) {
         summary = "Сгенерировать заводской номер и год выпуска",
         description = """
             Генерирует и возвращает уникальный заводской номер ККМ и год выпуска.
-            
+
             Этот эндпоинт необходим на этапе подготовки к регистрации кассового аппарата в ОФД и налоговых органах:
             - Заводской номер генерируется по специальному алгоритму производителя, проходящему валидацию в ОФД.
             - Год выпуска возвращается в соответствии с текущим календарным годом.
-            
+
             Важно:
             - Метод носит вспомогательный характер.
             - Вызов этого метода не создаёт ККМ в базе данных Superkassa.
             - Полученный заводской номер нужно использовать в последующем запросе инициализации ККМ.
-            
+
             Метод является публичным и не требует авторизации.
         """
     )
@@ -123,14 +124,14 @@ class KkmDecommissioningController(private val kkmService: SuperkassaApi) {
         summary = "Удалить ККМ",
         description = """
             Удаляет ККМ из системы полностью.
-            
+
             Требования:
             - ККМ должна быть в режиме программирования (POST /kkm/{kkmId}/programming/enter)
             - Смена должна быть закрыта (нет открытой смены)
             - Очередь команд должна быть пуста
             - Требуются права администратора
-            
-            Операция необратима. После удаления все данные ККМ (настройки, пользователи, счетчики) 
+
+            Операция необратима. После удаления все данные ККМ (настройки, пользователи, счетчики)
             будут удалены из системы.
         """
     )

@@ -1,10 +1,23 @@
 package io.github.texport.superkassa.jvm.storage.impl.core
 
-import io.github.texport.superkassa.delivery.application.service.DeliveryService
-import io.github.texport.superkassa.delivery.domain.model.DeliveryChannel
-import io.github.texport.superkassa.delivery.domain.model.DeliveryRequest
-import io.github.texport.superkassa.delivery.domain.model.DeliveryResult
-import io.github.texport.superkassa.delivery.domain.port.DeliveryAdapter
+import io.github.texport.superkassa.core.data.api.SuperkassaCoreEngine
+import io.github.texport.superkassa.core.domain.api.model.ofd.OfdCommandRequest
+import io.github.texport.superkassa.core.domain.api.model.ofd.OfdCommandResult
+import io.github.texport.superkassa.core.domain.api.model.ofd.OfdCommandStatus
+import io.github.texport.superkassa.core.domain.api.model.ofd.OfdCommandType
+import io.github.texport.superkassa.core.domain.api.port.internal.OfdManagerPort
+import io.github.texport.superkassa.core.domain.api.port.integration.CoreSettingsRepositoryPort
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreMode
+import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettings
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmInitDirectRequest
+import io.github.texport.superkassa.core.presentation.api.model.kkm.OfdServiceInfoResponse
+import io.github.texport.superkassa.core.presentation.api.model.user.UserRole
+import io.github.texport.superkassa.core.presentation.api.model.user.UserUpdateRequest
+import io.github.texport.superkassa.core.presentation.api.model.receipt.CreateReceiptCommand
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptItemRequest
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptPaymentRequest
+import io.github.texport.superkassa.core.presentation.impl.SuperkassaApiImpl
 import io.github.texport.superkassa.jvm.storage.impl.adapter.StorageAdapter
 import io.github.texport.superkassa.jvm.storage.impl.data.bootstrap.DefaultStorageBootstrap
 import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
@@ -13,57 +26,26 @@ import io.github.texport.superkassa.jvm.time.impl.SystemTimeGuard
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import kz.mybrain.superkassa.core.data.adapter.DeliveryServiceAdapter
-import kz.mybrain.superkassa.core.data.adapter.OfflineQueueAdapter
-import kz.mybrain.superkassa.core.data.adapter.StorageBackedLeaseLockAdapter
-import kz.mybrain.superkassa.core.data.adapter.StorageBackedQueueStorageAdapter
-import kz.mybrain.superkassa.core.data.adapter.UuidGeneratorAdapter
-import kz.mybrain.superkassa.core.domain.model.common.Money
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandRequest
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandStatus
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandType
-import kz.mybrain.superkassa.core.domain.model.receipt.PaymentType
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptItem
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptOperationType
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptPayment
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptRequest
-import kz.mybrain.superkassa.core.domain.port.OfdManagerPort
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApiImpl
-import kz.mybrain.superkassa.core.presentation.model.KkmInitDirectRequest
-import kz.mybrain.superkassa.core.presentation.model.OfdServiceInfoDto
-import kz.mybrain.superkassa.core.presentation.model.UserRoleDto
-import kz.mybrain.superkassa.core.presentation.model.UserUpdateRequest
-import kz.mybrain.superkassa.offline_queue.application.model.DispatchResult
-import kz.mybrain.superkassa.offline_queue.application.service.QueueCommandHandler
-import kz.mybrain.superkassa.offline_queue.domain.model.QueueStatus
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 
 class CoreIntegrationTest {
+
     @Test
-    fun shouldRunFullFlowWithCodec() {
-        val dbFile = Files.createTempFile("core-integration", ".db").toFile()
+    fun testCoreIntegrationWorkflow() {
+        val tempDir = Files.createTempDirectory("core-integration-test")
+        val dbFile = tempDir.resolve("test-core.db").toFile()
+
         val storageConfig = StorageConfig(jdbcUrl = "jdbc:sqlite:${dbFile.absolutePath}")
         val storageBootstrap = DefaultStorageBootstrap()
         storageBootstrap.migrate(storageConfig)
 
         val storage = StorageAdapter(storageBootstrap, storageConfig)
-        val queueStorage = StorageBackedQueueStorageAdapter(storage)
-        val queueLocks = StorageBackedLeaseLockAdapter(storage)
-        val queueHandler = QueueCommandHandler { _, _ -> DispatchResult(QueueStatus.SENT) }
-        val queuePort = OfflineQueueAdapter(queueStorage, queueLocks, queueHandler, ownerId = "node-1")
 
-        val deliveryService = DeliveryService(
-            listOf(
-                object : DeliveryAdapter {
-                    override val channel: DeliveryChannel = DeliveryChannel.PRINT
-                    override fun send(request: DeliveryRequest): DeliveryResult = DeliveryResult(true)
-                }
-            )
-        )
-        val deliveryPort = DeliveryServiceAdapter(deliveryService)
+        val deliveryPort = object : io.github.texport.superkassa.core.domain.api.port.integration.DeliveryPort {
+            override fun deliver(request: io.github.texport.superkassa.core.domain.api.model.delivery.DeliveryRequest): Boolean = true
+        }
 
         val ofdManager = object : OfdManagerPort {
             override fun send(command: OfdCommandRequest): OfdCommandResult {
@@ -127,41 +109,53 @@ class CoreIntegrationTest {
             }
         }
 
-        val ofdConfigPort = kz.mybrain.superkassa.core.data.adapter.OfdConfigAdapter()
-        val pinHasher = kz.mybrain.superkassa.core.data.adapter.Sha256PinHasherAdapter()
-        val tokenCodec = kz.mybrain.superkassa.core.data.adapter.Base64TokenCodecAdapter()
-        val coreSettings = kz.mybrain.superkassa.core.domain.model.settings.CoreSettings(
-            mode = kz.mybrain.superkassa.core.domain.model.settings.CoreMode.DESKTOP,
-            storage = kz.mybrain.superkassa.core.domain.model.settings.StorageSettings(
+        val coreSettings = CoreSettings(
+            mode = CoreMode.DESKTOP,
+            storage = StorageSettings(
                 engine = "SQLITE",
-                jdbcUrl = "jdbc:sqlite:build/test-core.db"
+                jdbcUrl = "jdbc:sqlite:${dbFile.absolutePath}"
             ),
             allowChanges = true
         )
-        val mockQrCodeGenerator = object : kz.mybrain.superkassa.core.domain.port.QrCodeGeneratorPort {
+
+        val mockSettingsRepo = object : CoreSettingsRepositoryPort {
+            override fun load(): CoreSettings? = coreSettings
+            override fun save(settings: CoreSettings): Boolean = true
+            override fun loadOrCreate(defaults: CoreSettings): CoreSettings = coreSettings
+        }
+
+        val mockQrCodeGenerator = object : io.github.texport.superkassa.core.domain.api.port.integration.QrCodeGeneratorPort {
             override fun generatePngDataUri(text: String, sizePx: Int): String? = null
         }
-        val receiptRenderPort = kz.mybrain.superkassa.core.data.receipt.ReceiptHtmlRenderer(mockQrCodeGenerator)
-        val documentConvertPort = object : kz.mybrain.superkassa.core.domain.port.DocumentConvertPort {
+        val documentConvertPort = object : io.github.texport.superkassa.core.domain.api.port.integration.DocumentConvertPort {
             override fun htmlToPdf(html: String): ByteArray = byteArrayOf(1, 2, 3)
             override fun htmlToImage(html: String): ByteArray = byteArrayOf(1, 2, 3)
             override fun htmlToEscPos(html: String, paperWidthMm: Int): ByteArray = byteArrayOf(1, 2, 3)
         }
-        val service = SuperkassaApiImpl(
+
+        val engine = SuperkassaCoreEngine(
             storage = storage,
-            queue = queuePort,
-            ofd = ofdManager,
-            ofdConfig = ofdConfigPort,
+            settings = mockSettingsRepo,
             delivery = deliveryPort,
-            tokenCodec = tokenCodec,
-            idGenerator = UuidGeneratorAdapter,
             clock = SystemClock,
-            pinHasher = pinHasher,
-            coreSettings = coreSettings,
-            receiptRenderPort = receiptRenderPort,
-            documentConvertPort = documentConvertPort,
-            timeValidator = SystemTimeGuard
+            timeValidator = SystemTimeGuard,
+            qrCode = mockQrCodeGenerator,
+            pdfConverter = documentConvertPort
         )
+        val service = engine.buildApi(ownerId = "node-1")
+
+        // Внедряем заглушку ofdManager через рефлексию
+        val apiImpl = service as SuperkassaApiImpl
+        val ofdField = apiImpl.javaClass.getDeclaredField("ofd")
+        ofdField.isAccessible = true
+        ofdField.set(apiImpl, ofdManager)
+
+        val kkmCommonHelperField = apiImpl.javaClass.getDeclaredField("kkmCommonHelper")
+        kkmCommonHelperField.isAccessible = true
+        val kkmCommonHelper = kkmCommonHelperField.get(apiImpl)
+        val helperOfdField = kkmCommonHelper.javaClass.getDeclaredField("ofd")
+        helperOfdField.isAccessible = true
+        helperOfdField.set(kkmCommonHelper, ofdManager)
 
         val init = service.initKkm(
             "0000",
@@ -173,7 +167,7 @@ class CoreIntegrationTest {
                 kkmKgdId = "RN-1",
                 factoryNumber = "FN-1",
                 manufactureYear = 2024,
-                serviceInfo = OfdServiceInfoDto(
+                serviceInfo = OfdServiceInfoResponse(
                     orgTitle = "Test Org",
                     orgAddress = "Test Address",
                     orgAddressKz = "Test Address KZ",
@@ -185,12 +179,12 @@ class CoreIntegrationTest {
                 )
             )
         )
-        val kkmId = init.id
+        val kkmId = init.kkmId
 
         // List and change PINs to secure ones
         val users = service.listUsers(kkmId, "0000")
-        val admin = users.first { it.role == UserRoleDto.ADMIN }
-        val cashier = users.first { it.role == UserRoleDto.CASHIER }
+        val admin = users.first { it.role == UserRole.ADMIN }
+        val cashier = users.first { it.role == UserRole.CASHIER }
 
         service.updateUser(
             kkmId = kkmId,
@@ -212,16 +206,44 @@ class CoreIntegrationTest {
         val shift = service.openShift(kkmId, "4321")
         assertNotNull(shift)
 
-        val receipt = ReceiptRequest(
+        val command = CreateReceiptCommand(
             kkmId = kkmId,
             pin = "5432",
-            operation = ReceiptOperationType.SELL,
-            items = listOf(ReceiptItem("Item", "1", 1, Money(1000, 0), Money(1000, 0))),
-            payments = listOf(ReceiptPayment(PaymentType.CASH, Money(1000, 0))),
-            total = Money(1000, 0),
-            idempotencyKey = "idem-1"
+            operation = "SELL",
+            idempotencyKey = "idem-1",
+            items = listOf(
+                ReceiptItemRequest(
+                    name = "Item",
+                    price = 10.0,
+                    quantity = 1.0,
+                    barcode = null,
+                    vatGroup = "VAT_16",
+                    discountPercent = null,
+                    discountSum = null,
+                    markupPercent = null,
+                    markupSum = null,
+                    measureUnitCode = "796",
+                    listExciseStamp = null,
+                    ntin = null,
+                    isStorno = false
+                )
+            ),
+            discountPercent = null,
+            discountSum = null,
+            markupPercent = null,
+            markupSum = null,
+            payments = listOf(
+                ReceiptPaymentRequest(
+                    type = "CASH",
+                    sum = 10.0
+                )
+            ),
+            taken = 10.0,
+            parentTicket = null,
+            defaultVatGroup = null,
+            customerBin = null
         )
-        val result = service.createReceipt(receipt)
+        val result = service.createReceipt(command)
         assertNotNull(result.documentId)
 
         val report = service.closeShift(kkmId, "5432")

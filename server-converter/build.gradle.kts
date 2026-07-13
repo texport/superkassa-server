@@ -19,7 +19,6 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(libs.mockk)
-    testImplementation(libs.superkassa.receipt.renderer)
     detektPlugins(libs.detekt.formatting)
 }
 

@@ -1,6 +1,9 @@
-# time-java
+# superkassa-server-time
 
-JVM adapter module for Superkassa system time access and validation.
+[![CI Build](https://github.com/texport/superkassa-server/actions/workflows/ci.yml/badge.svg)](https://github.com/texport/superkassa-server/actions)
+[![Version](https://img.shields.io/badge/Version-1.0.4-blue.svg)]()
+[![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen.svg)]()
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../LICENSE)
 
 ---
 
@@ -10,7 +13,7 @@ JVM adapter module for Superkassa system time access and validation.
 
 ## Documentation in English
 
-`time-java` is an infrastructure adapter module inside `superkassa-server`. It implements time-related ports from `superkassa-core-jvm` and is wired by the executable `server` module.
+`server-time` is an infrastructure adapter module inside `superkassa-server`. It implements time-related ports from `superkassa-core-jvm` and is wired by the executable `server` module.
 
 ### Responsibilities
 
@@ -31,7 +34,7 @@ If external reference time cannot be fetched or parsed, local validation can sti
 
 ### Current Integration
 
-`server/src/main/kotlin/kz/mybrain/superkassa/core/config/AdaptersConfig.kt` exposes:
+`server/src/main/kotlin/kz/mybrain/superkassa/core/config/ServicesConfig.kt` exposes:
 
 ```kotlin
 @Bean
@@ -51,8 +54,8 @@ On startup, invalid time causes `SystemTimeStartupValidationException` and the a
 ### Usage Example
 
 ```kotlin
-import kz.mybrain.superkassa.core.data.adapter.SystemClock
-import kz.mybrain.superkassa.core.data.adapter.SystemTimeGuard
+import io.github.texport.superkassa.jvm.time.impl.SystemClock
+import io.github.texport.superkassa.jvm.time.impl.SystemTimeGuard
 
 val result = SystemTimeGuard.validate(SystemClock)
 if (!result.ok) {
@@ -65,7 +68,7 @@ if (!result.ok) {
 Required checks for this module:
 
 ```shell
-./gradlew :time-java:test :time-java:detekt :time-java:check
+./gradlew :server-time:test :server-time:detekt :server-time:check
 ```
 
 The repository-level gate is:
@@ -78,7 +81,7 @@ The repository-level gate is:
 
 ## Документация на русском языке
 
-`time-java` — JVM infrastructure adapter модуль внутри `superkassa-server`. Он реализует порты времени из `superkassa-core-jvm` и подключается исполняемым модулем `server`.
+`server-time` — JVM infrastructure adapter модуль внутри `superkassa-server`. Он реализует порты времени из `superkassa-core-jvm` и подключается исполняемым модулем `server`.
 
 ### Ответственность
 
@@ -99,7 +102,7 @@ The repository-level gate is:
 
 ### Текущая интеграция
 
-`server/src/main/kotlin/kz/mybrain/superkassa/core/config/AdaptersConfig.kt` публикует:
+`server/src/main/kotlin/kz/mybrain/superkassa/core/config/ServicesConfig.kt` публикует:
 
 ```kotlin
 @Bean
@@ -119,8 +122,8 @@ fun clockPort(): ClockPort = SystemClock
 ### Пример использования
 
 ```kotlin
-import kz.mybrain.superkassa.core.data.adapter.SystemClock
-import kz.mybrain.superkassa.core.data.adapter.SystemTimeGuard
+import io.github.texport.superkassa.jvm.time.impl.SystemClock
+import io.github.texport.superkassa.jvm.time.impl.SystemTimeGuard
 
 val result = SystemTimeGuard.validate(SystemClock)
 if (!result.ok) {
@@ -133,7 +136,7 @@ if (!result.ok) {
 Обязательные проверки для модуля:
 
 ```shell
-./gradlew :time-java:test :time-java:detekt :time-java:check
+./gradlew :server-time:test :server-time:detekt :server-time:check
 ```
 
 Общая проверка репозитория:
@@ -141,3 +144,11 @@ if (!result.ok) {
 ```shell
 ./gradlew check
 ```
+
+---
+
+## License / Лицензия
+
+This project is licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.
+
+Этот проект распространяется под лицензией Apache License 2.0. Подробности см. в файле [LICENSE](../LICENSE).

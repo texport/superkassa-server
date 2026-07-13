@@ -6,9 +6,9 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
-import kz.mybrain.superkassa.core.domain.model.settings.CoreMode
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
-import kz.mybrain.superkassa.core.domain.model.settings.StorageSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreMode
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettings
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -172,11 +172,11 @@ class FileCoreSettingsRepositoryTest {
     @Test
     fun `validateSettings with valid email channel`() {
         val settings = validSettings.copy(
-            delivery = kz.mybrain.superkassa.core.domain.model.settings.DeliverySettings(
+            delivery = io.github.texport.superkassa.core.domain.api.model.settings.DeliverySettings(
                 channels = listOf(
-                    kz.mybrain.superkassa.core.domain.model.settings.DeliveryChannelSettings(channel = "EMAIL", enabled = true, payloadType = "JSON", documentFormat = "RAW", destination = "test@test.com")
+                    io.github.texport.superkassa.core.domain.api.model.settings.DeliveryChannelSettings(channel = "EMAIL", enabled = true, payloadType = "JSON", documentFormat = "RAW", destination = "test@test.com")
                 ),
-                email = kz.mybrain.superkassa.core.domain.model.settings.EmailProviderSettings(host = "host", port = 25, from = "test@test.com", user = "u", password = "p")
+                email = io.github.texport.superkassa.core.domain.api.model.settings.EmailProviderSettings(host = "host", port = 25, from = "test@test.com", user = "u", password = "p")
             )
         )
         DefaultCoreSettingsValidator().validateSettings(settings)

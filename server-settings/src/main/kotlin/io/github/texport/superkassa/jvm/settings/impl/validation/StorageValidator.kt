@@ -1,10 +1,10 @@
 package io.github.texport.superkassa.jvm.settings.impl.validation
 
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
 import io.github.texport.superkassa.jvm.settings.api.CoreSettingsValidator
 import io.github.texport.superkassa.jvm.settings.api.IllegalServerConfigurationException
 import io.github.texport.superkassa.jvm.shared.strings.api.key.SettingsErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
 
 internal object StorageValidator {
 

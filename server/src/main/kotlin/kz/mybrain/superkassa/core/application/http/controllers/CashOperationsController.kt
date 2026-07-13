@@ -1,9 +1,11 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.kkm.CashOperationRequest
+import io.github.texport.superkassa.core.presentation.api.model.kkm.CashOperationResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import kotlinx.serialization.Serializable
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_CASH_IN
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_CASH_OUT
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_FORBIDDEN
@@ -11,18 +13,7 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_K
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_SHIFT_NOT_OPEN
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.domain.model.kkm.CashOperationRequest
-import kz.mybrain.superkassa.core.domain.model.kkm.CashOperationResult
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import org.springframework.web.bind.annotation.*
-
-@Serializable
-data class CashOperationRequestDto(
-    val amount: Double,
-    val idempotencyKey: String
-) {
-    fun toDomain(): CashOperationRequest = CashOperationRequest(amount = amount, idempotencyKey = idempotencyKey)
-}
 
 @RestController
 @RequestMapping("/kkm")
@@ -40,12 +31,12 @@ class CashOperationsController(private val kkmService: SuperkassaApi) {
         summary = "Внесение наличных",
         description = """
             Вносит наличные деньги в кассовый аппарат.
-            
+
             Требования:
             - ККМ должна быть зарегистрирована и находиться в состоянии ACTIVE
             - Должна быть открыта смена (shift)
             - Сумма должна быть положительным числом
-            
+
             Параметры запроса:
             - **pin** (обязательно): ПИН-код пользователя для авторизации операции.
               Должен соответствовать пользователю с правами CASHIER или ADMIN.
@@ -60,7 +51,7 @@ class CashOperationsController(private val kkmService: SuperkassaApi) {
               Пример: "550e8400-e29b-41d4-a716-446655440000"
               Если операция с таким ключом уже была выполнена, возвращается результат
               предыдущей операции без повторного выполнения.
-            
+
             Процесс выполнения:
             1. Проверяется существование ККМ и её состояние
             2. Проверяется наличие открытой смены
@@ -69,7 +60,7 @@ class CashOperationsController(private val kkmService: SuperkassaApi) {
             5. Отправляется команда COMMAND_MONEY_PLACEMENT в ОФД
             6. Ожидается ответ от ОФД и обновляется статус документа
             7. Возвращается результат с идентификатором документа
-            
+
             Возвращаемые коды:
             - 200 OK: Операция успешно выполнена
             - 404 Not Found: ККМ не найдена
@@ -86,10 +77,10 @@ class CashOperationsController(private val kkmService: SuperkassaApi) {
     fun cashIn(
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?,
-        @RequestBody @Valid body: CashOperationRequestDto
-    ): CashOperationResult {
+        @RequestBody @Valid body: CashOperationRequest
+    ): CashOperationResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService.cashIn(kkmId, pin, body.toDomain())
+        return kkmService.cashIn(kkmId, pin, body)
     }
 
     /**
@@ -103,12 +94,12 @@ class CashOperationsController(private val kkmService: SuperkassaApi) {
         summary = "Изъятие наличных",
         description = """
             Изымает наличные деньги из кассового аппарата.
-            
+
             Требования:
             - ККМ должна быть зарегистрирована и находиться в состоянии ACTIVE
             - Должна быть открыта смена (shift)
             - Сумма должна быть положительным числом
-            
+
             Параметры запроса:
             - **pin** (обязательно): ПИН-код пользователя для авторизации операции.
               Должен соответствовать пользователю с правами CASHIER или ADMIN.
@@ -123,7 +114,7 @@ class CashOperationsController(private val kkmService: SuperkassaApi) {
               Пример: "550e8400-e29b-41d4-a716-446655440000"
               Если операция с таким ключом уже была выполнена, возвращается результат
               предыдущей операции без повторного выполнения.
-            
+
             Процесс выполнения:
             1. Проверяется существование ККМ и её состояние
             2. Проверяется наличие открытой смены
@@ -132,7 +123,7 @@ class CashOperationsController(private val kkmService: SuperkassaApi) {
             5. Отправляется команда COMMAND_MONEY_PLACEMENT в ОФД
             6. Ожидается ответ от ОФД и обновляется статус документа
             7. Возвращается результат с идентификатором документа
-            
+
             Возвращаемые коды:
             - 200 OK: Операция успешно выполнена
             - 404 Not Found: ККМ не найдена
@@ -149,9 +140,9 @@ class CashOperationsController(private val kkmService: SuperkassaApi) {
     fun cashOut(
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?,
-        @RequestBody @Valid body: CashOperationRequestDto
-    ): CashOperationResult {
+        @RequestBody @Valid body: CashOperationRequest
+    ): CashOperationResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService.cashOut(kkmId, pin, body.toDomain())
+        return kkmService.cashOut(kkmId, pin, body)
     }
 }

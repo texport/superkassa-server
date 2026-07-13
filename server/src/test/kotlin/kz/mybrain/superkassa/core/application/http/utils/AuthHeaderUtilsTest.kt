@@ -1,6 +1,6 @@
 package kz.mybrain.superkassa.core.application.http.utils
 
-import kz.mybrain.superkassa.core.domain.exception.ForbiddenException
+import io.github.texport.superkassa.core.domain.api.exception.ForbiddenException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

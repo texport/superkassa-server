@@ -1,5 +1,7 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_PROGRAMMING_ENTER
@@ -8,10 +10,7 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_400_V
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_FORBIDDEN
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_KKM_NOT_FOUND
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
-import kz.mybrain.superkassa.core.application.http.toResponse
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.presentation.model.KkmResponse
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -48,13 +47,13 @@ class KkmProgrammingController(private val kkmService: SuperkassaApi) {
         summary = "Войти в режим программирования",
         description = """
             Переводит ККМ в режим программирования - специальный режим обслуживания и настройки.
-            
+
             Режим программирования необходим для:
             - Обновления настроек ККМ (PUT /kkm/{kkmId}/settings)
             - Удаления ККМ из системы (DELETE /kkm/{kkmId})
-            
+
             В режиме программирования все фискальные операции блокируются для обеспечения безопасности.
-            После завершения операций настройки необходимо выйти из режима программирования 
+            После завершения операций настройки необходимо выйти из режима программирования
             (POST /kkm/{kkmId}/programming/exit) для возобновления работы ККМ.
         """
     )
@@ -69,7 +68,7 @@ class KkmProgrammingController(private val kkmService: SuperkassaApi) {
         @RequestHeader("Authorization") authHeader: String?
     ): KkmResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService.enterProgramming(kkmId, pin).toResponse()
+        return kkmService.enterProgramming(kkmId, pin)
     }
 
     /**
@@ -84,11 +83,11 @@ class KkmProgrammingController(private val kkmService: SuperkassaApi) {
         summary = "Выйти из режима программирования",
         description = """
             Выводит ККМ из режима программирования и возвращает её в нормальный режим работы.
-            
+
             После выхода из режима программирования:
             - Становятся доступны все фискальные операции (создание чеков, работа со сменами, отчеты)
             - Операции настройки и удаления ККМ становятся недоступны
-            
+
             Используйте этот метод после завершения операций настройки или удаления ККМ.
         """
     )
@@ -103,6 +102,6 @@ class KkmProgrammingController(private val kkmService: SuperkassaApi) {
         @RequestHeader("Authorization") authHeader: String?
     ): KkmResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService.exitProgramming(kkmId, pin).toResponse()
+        return kkmService.exitProgramming(kkmId, pin)
     }
 }

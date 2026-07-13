@@ -1,5 +1,7 @@
 package io.github.texport.superkassa.jvm.storage.impl.adapter
 
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
+import io.github.texport.superkassa.core.domain.api.port.integration.CoreSettingsRepositoryPort
 import io.github.texport.superkassa.jvm.settings.api.CoreSettingsValidator
 import io.github.texport.superkassa.jvm.settings.api.IllegalServerConfigurationException
 import io.github.texport.superkassa.jvm.settings.impl.DefaultCoreSettingsValidator
@@ -7,8 +9,6 @@ import io.github.texport.superkassa.jvm.settings.impl.dto.CoreSettingsDto
 import io.github.texport.superkassa.jvm.settings.impl.mapper.toDomain
 import io.github.texport.superkassa.jvm.settings.impl.mapper.toDto
 import kotlinx.serialization.json.Json
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
-import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
 import org.slf4j.LoggerFactory
 import java.sql.Connection
 import java.sql.DriverManager

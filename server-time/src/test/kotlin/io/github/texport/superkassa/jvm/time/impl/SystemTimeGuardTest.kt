@@ -1,8 +1,8 @@
 package io.github.texport.superkassa.jvm.time.impl
 
-import kz.mybrain.superkassa.core.domain.exception.TrilingualMessage
-import kz.mybrain.superkassa.core.domain.model.common.TimeValidationResult
-import kz.mybrain.superkassa.core.domain.port.ClockPort
+import io.github.texport.superkassa.core.domain.api.model.common.TimeValidationResult
+import io.github.texport.superkassa.core.domain.api.port.integration.ClockPort
+import io.github.texport.superkassa.core.string.api.TrilingualMessage
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals

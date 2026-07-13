@@ -1,6 +1,6 @@
 package io.github.texport.superkassa.jvm.time.impl
 
-import kz.mybrain.superkassa.core.domain.port.ClockPort
+import io.github.texport.superkassa.core.domain.api.port.integration.ClockPort
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.util.concurrent.Executors

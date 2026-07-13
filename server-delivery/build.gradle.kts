@@ -13,7 +13,6 @@ repositories {
 dependencies {
     implementation(project(":shared-strings"))
     implementation(libs.superkassa.core)
-    implementation(libs.superkassa.delivery)
     implementation(libs.slf4j.api)
     implementation(libs.jakarta.mail)
 

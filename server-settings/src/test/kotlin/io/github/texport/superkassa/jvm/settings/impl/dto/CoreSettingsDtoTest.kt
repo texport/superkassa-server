@@ -2,7 +2,17 @@ package io.github.texport.superkassa.jvm.settings.impl.dto
 
 import io.github.texport.superkassa.jvm.settings.impl.mapper.*
 import kotlinx.serialization.json.Json
-import kz.mybrain.superkassa.core.domain.model.settings.*
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreMode
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.DeliveryChannelSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.DeliverySettings
+import io.github.texport.superkassa.core.domain.api.model.settings.EmailProviderSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.PrintConnectionSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.PrintDeliverySettings
+import io.github.texport.superkassa.core.domain.api.model.settings.SmsProviderSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.TelegramProviderSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.WhatsAppProviderSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals

@@ -189,8 +189,8 @@ class OpenApiConfigAdapter {
             val anns = type.ctxAnnotations
             if (anns != null && resolved != null) {
                 val kmpSchema = anns.firstOrNull {
-                    it is kz.mybrain.superkassa.core.presentation.annotations.Schema
-                } as? kz.mybrain.superkassa.core.presentation.annotations.Schema
+                    it is io.github.texport.superkassa.core.presentation.api.annotations.Schema
+                } as? io.github.texport.superkassa.core.presentation.api.annotations.Schema
                 if (kmpSchema != null) {
                     if (kmpSchema.description.isNotEmpty()) {
                         resolved.description = kmpSchema.description
@@ -231,8 +231,8 @@ class OpenApiConfigAdapter {
             val anns = type.ctxAnnotations
             if (anns != null) {
                 val kmpSchema = anns.firstOrNull {
-                    it is kz.mybrain.superkassa.core.presentation.annotations.Schema
-                } as? kz.mybrain.superkassa.core.presentation.annotations.Schema
+                    it is io.github.texport.superkassa.core.presentation.api.annotations.Schema
+                } as? io.github.texport.superkassa.core.presentation.api.annotations.Schema
                 if (kmpSchema != null && kmpSchema.hidden) {
                     return@PropertyCustomizer null
                 }

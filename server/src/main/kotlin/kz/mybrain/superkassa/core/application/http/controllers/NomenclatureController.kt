@@ -1,5 +1,8 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.ofd.NomenclatureLookupRequest
+import io.github.texport.superkassa.core.presentation.api.model.ofd.NomenclatureLookupResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_400_BAD_REQUEST
@@ -7,10 +10,7 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_F
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_KKM_NOT_FOUND
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.domain.exception.ErrorMessages
-import kz.mybrain.superkassa.core.domain.exception.NotFoundException
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.presentation.model.NomenclatureLookupResponse
+import kz.mybrain.superkassa.core.application.http.utils.NomenclatureHelper
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -29,17 +29,17 @@ class NomenclatureController(private val kkmService: SuperkassaApi) {
         summary = "Поиск по штрихкоду в НКТ",
         description = """
             Выполняет запрос информации о товаре из Национального каталога товаров (НКТ) через ОФД по его штрихкоду.
-            
+
             Требования:
             - ККМ должна быть зарегистрирована и находиться в состоянии ACTIVE
             - ПИН-код должен быть передан в заголовке Authorization (Bearer <pin> или просто <pin>)
             - ПИН-код должен соответствовать пользователю с правами CASHIER или ADMIN
-            
+
             Параметры:
             - kkmId (в пути): Идентификатор ККМ
             - barcode (в запросе): Штрихкод товара (например, 5449000176431)
             - Authorization (в заголовке): ПИН-код пользователя в формате "Bearer <pin>" или просто "<pin>"
-            
+
             Что возвращается:
             - Сведения о найденной номенклатурной позиции (ID, штрихкод, наименование на русском и казахском, NTIN, цена, группа НДС).
             - В случае отсутствия товара в НКТ возвращается статус 404 Not Found.
@@ -57,10 +57,7 @@ class NomenclatureController(private val kkmService: SuperkassaApi) {
         @RequestParam barcode: String
     ): NomenclatureLookupResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val response = kkmService.lookupNomenclature(kkmId, pin, barcode)
-        if (!response.found) {
-            throw NotFoundException(ErrorMessages.nomenclatureNotFound(barcode))
-        }
-        return response
+        val request = NomenclatureLookupRequest(kkmId, barcode)
+        return NomenclatureHelper.lookupNomenclature(kkmService, pin, request)
     }
 }

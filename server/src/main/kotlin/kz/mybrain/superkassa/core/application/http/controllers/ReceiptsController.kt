@@ -1,5 +1,11 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptBuyRequest
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptBuyReturnRequest
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptResponse
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptSellRequest
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptSellReturnRequest
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -10,9 +16,6 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_K
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_SHIFT_NOT_OPEN
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptResult
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.presentation.model.*
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -32,18 +35,18 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
         summary = "Продажа",
         description = """
             Создает чек продажи (приходный чек).
-            
+
             Что делает метод:
             - Создает чек продажи с указанными позициями и способами оплаты
             - Отправляет данные в ОФД
             - Возвращает результат создания чека с фискальными данными
-            
+
             Требования:
             - ККМ должна быть зарегистрирована и находиться в состоянии ACTIVE
             - Смена должна быть открыта
             - ПИН-код должен быть передан в заголовке Authorization (Bearer <pin> или просто <pin>)
             - ПИН-код должен соответствовать пользователю с правами CASHIER или ADMIN
-            
+
             Что передавать:
             - kkmId (в пути): Идентификатор ККМ
             - Authorization (в заголовке): ПИН-код пользователя в формате "Bearer <pin>" или просто "<pin>"
@@ -57,7 +60,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
               * discountPercent / discountSum (опционально, взаимоисключающие) — скидка на позицию в процентах или суммой;
               * markupPercent / markupSum (опционально, взаимоисключающие) — наценка на позицию в процентах или суммой;
               * vatGroup (опционально) — группа НДС: NO_VAT, VAT_0, VAT_16.
-            - discountPercent / discountSum (опционально, взаимоисключающие): скидка на весь чек в процентах либо суммой.
+            - discountPercent / discountSum (опционально, взаимоисключающие): скидка на весь чек in процентах либо суммой.
             - markupPercent / markupSum (опционально, взаимоисключающие): наценка на весь чек в процентах либо суммой.
             - payments: Список способов оплаты; для каждой оплаты:
               * type — тип оплаты: CASH, CARD, ELECTRONIC;
@@ -65,7 +68,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
             - taken (опционально): Получено от покупателя в тенге (Double)
             - change (опционально): Сдача в тенге (Double)
             - total: Общая сумма чека в тенге (Double)
-            
+
             Что возвращается:
             - ReceiptResult с полями:
               * documentId: Уникальный идентификатор фискального документа чека в БД.
@@ -74,7 +77,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
               * deliveryStatus: Текущий статус отправки чека в ОФД/клиенту (ONLINE_OK, ONLINE_ERROR, OFFLINE_QUEUED, NOT_SENT).
               * deliveryError: Текст возникшей ошибки при попытке отправки/печати чека (опционально).
               * deliveryPayload: Сгенерированная печатная форма чека (опционально).
-            
+
             Важно:
             - Все суммы передаются в тенге как Double (например, 1234.56)
             - Система автоматически преобразует суммы в формат Money (bills/coins)
@@ -92,7 +95,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?,
         @RequestBody @Valid request: ReceiptSellRequest
-    ): ReceiptResult {
+    ): ReceiptResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
         return kkmService.createSellReceipt(kkmId, pin, request)
     }
@@ -105,18 +108,18 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
         summary = "Возврат продажи",
         description = """
             Создает чек возврата продажи (возврат приходного чека).
-            
+
             Что делает метод:
             - Создает чек возврата продажи с указанными позициями и способами оплаты
             - Отправляет данные в ОФД
             - Возвращает результат создания чека с фискальными данными
-            
+
             Требования:
             - ККМ должна быть зарегистрирована и находиться в состоянии ACTIVE
             - Смена должна быть открыта
             - ПИН-код должен быть передан в заголовке Authorization (Bearer <pin> или просто <pin>)
             - ПИН-код должен соответствовать пользователю с правами CASHIER или ADMIN
-            
+
             Что передавать:
             - kkmId (в пути): Идентификатор ККМ
             - Authorization (в заголовке): ПИН-код пользователя в формате "Bearer <pin>" или просто "<pin>"
@@ -129,7 +132,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
             - change (опционально): Сдача в тенге (Double)
             - total: Общая сумма чека в тенге (Double)
             - parentTicket (опционально): данные исходного чека для возврата (номер, дата/время, РНМ ККМ, сумма, признак офлайн).
-            
+
             Что возвращается:
             - ReceiptResult с полями:
               * documentId: Уникальный идентификатор фискального документа чека в БД.
@@ -138,7 +141,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
               * deliveryStatus: Текущий статус отправки чека в ОФД/клиенту (ONLINE_OK, ONLINE_ERROR, OFFLINE_QUEUED, NOT_SENT).
               * deliveryError: Текст возникшей ошибки при попытке отправки/печати чека (опционально).
               * deliveryPayload: Сгенерированная печатная форма чека (опционально).
-            
+
             Важно:
             - Все суммы передаются в тенге как Double (например, 1234.56)
             - Система автоматически преобразует суммы в формат Money (bills/coins)
@@ -156,7 +159,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?,
         @RequestBody @Valid request: ReceiptSellReturnRequest
-    ): ReceiptResult {
+    ): ReceiptResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
         return kkmService.createSellReturnReceipt(kkmId, pin, request)
     }
@@ -169,18 +172,18 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
         summary = "Покупка",
         description = """
             Создает чек покупки (расходный чек).
-            
+
             Что делает метод:
             - Создает чек покупки с указанными позициями и способами оплаты
             - Отправляет данные в ОФД
             - Возвращает результат создания чека с фискальными данными
-            
+
             Требования:
             - ККМ должна быть зарегистрирована и находиться в состоянии ACTIVE
             - Смена должна быть открыта
             - ПИН-код должен быть передан в заголовке Authorization (Bearer <pin> или просто <pin>)
             - ПИН-код должен соответствовать пользователю с правами CASHIER или ADMIN
-            
+
             Что передавать:
             - kkmId (в пути): Идентификатор ККМ
             - Authorization (в заголовке): ПИН-код пользователя в формате "Bearer <pin>" или просто "<pin>"
@@ -192,7 +195,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
             - taken (опционально): Получено от покупателя в тенге (Double)
             - change (опционально): Сдача в тенге (Double)
             - total: Общая сумма чека в тенге (Double)
-            
+
             Что возвращается:
             - ReceiptResult с полями:
               * documentId: Уникальный идентификатор фискального документа чека в БД.
@@ -201,7 +204,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
               * deliveryStatus: Текущий статус отправки чека в ОФД/клиенту (ONLINE_OK, ONLINE_ERROR, OFFLINE_QUEUED, NOT_SENT).
               * deliveryError: Текст возникшей ошибки при попытке отправки/печати чека (опционально).
               * deliveryPayload: Сгенерированная печатная форма чека (опционально).
-            
+
             Важно:
             - Все суммы передаются в тенге как Double (например, 1234.56)
             - Система автоматически преобразует суммы в формат Money (bills/coins)
@@ -219,7 +222,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?,
         @RequestBody @Valid request: ReceiptBuyRequest
-    ): ReceiptResult {
+    ): ReceiptResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
         return kkmService.createBuyReceipt(kkmId, pin, request)
     }
@@ -232,18 +235,18 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
         summary = "Возврат покупки",
         description = """
             Создает чек возврата покупки (возврат расходного чека).
-            
+
             Что делает метод:
             - Создает чек возврата покупки с указанными позициями и способами оплаты
             - Отправляет данные в ОФД
             - Возвращает результат создания чека с фискальными данными
-            
+
             Требования:
             - ККМ должна быть зарегистрирована и находиться в состоянии ACTIVE
             - Смена должна быть открыта
             - ПИН-код должен быть передан в заголовке Authorization (Bearer <pin> или просто <pin>)
             - ПИН-код должен соответствовать пользователю с правами CASHIER или ADMIN
-            
+
             Что передавать:
             - kkmId (в пути): Идентификатор ККМ
             - Authorization (в заголовке): ПИН-код пользователя в формате "Bearer <pin>" или просто "<pin>"
@@ -255,7 +258,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
             - taken (опционально): Получено от покупателя в тенге (Double)
             - change (опционально): Сдача в тенге (Double)
             - total: Общая сумма чека в тенге (Double)
-            
+
             Что возвращается:
             - ReceiptResult с полями:
               * documentId: Уникальный идентификатор фискального документа чека в БД.
@@ -264,7 +267,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
               * deliveryStatus: Текущий статус отправки чека в ОФД/клиенту (ONLINE_OK, ONLINE_ERROR, OFFLINE_QUEUED, NOT_SENT).
               * deliveryError: Текст возникшей ошибки при попытке отправки/печати чека (опционально).
               * deliveryPayload: Сгенерированная печатная форма чека (опционально).
-            
+
             Важно:
             - Все суммы передаются в тенге как Double (например, 1234.56)
             - Система автоматически преобразует суммы в формат Money (bills/coins)
@@ -282,7 +285,7 @@ class ReceiptsController(private val kkmService: SuperkassaApi) {
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?,
         @RequestBody @Valid request: ReceiptBuyReturnRequest
-    ): ReceiptResult {
+    ): ReceiptResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
         return kkmService.createBuyReturnReceipt(kkmId, pin, request)
     }

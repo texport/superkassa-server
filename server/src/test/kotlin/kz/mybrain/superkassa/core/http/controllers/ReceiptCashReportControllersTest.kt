@@ -1,24 +1,25 @@
 package kz.mybrain.superkassa.core.http.controllers
 
+import io.github.texport.superkassa.core.presentation.api.model.ofd.DeliveryStatus
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.kkm.CashOperationRequest
+import io.github.texport.superkassa.core.presentation.api.model.kkm.CashOperationResponse
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ParentTicketRequest
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptBuyRequest
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptBuyReturnRequest
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptItemRequest
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptPaymentRequest
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptResponse
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptSellRequest
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptSellReturnRequest
+import io.github.texport.superkassa.core.presentation.api.model.shift.ReportResponse
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
-import kz.mybrain.superkassa.core.application.http.controllers.CashOperationRequestDto
 import kz.mybrain.superkassa.core.application.http.controllers.CashOperationsController
 import kz.mybrain.superkassa.core.application.http.controllers.ReceiptsController
 import kz.mybrain.superkassa.core.application.http.controllers.ReportsController
-import kz.mybrain.superkassa.core.domain.model.delivery.DeliveryStatus
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptResult
-import kz.mybrain.superkassa.core.domain.model.report.ReportResult
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.presentation.model.ParentTicketDto
-import kz.mybrain.superkassa.core.presentation.model.ReceiptBuyRequest
-import kz.mybrain.superkassa.core.presentation.model.ReceiptBuyReturnRequest
-import kz.mybrain.superkassa.core.presentation.model.ReceiptItemDto
-import kz.mybrain.superkassa.core.presentation.model.ReceiptPaymentDto
-import kz.mybrain.superkassa.core.presentation.model.ReceiptSellRequest
-import kz.mybrain.superkassa.core.presentation.model.ReceiptSellReturnRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -37,7 +38,7 @@ class ReceiptCashReportControllersTest {
         val capturedRequest = slot<ReceiptSellRequest>()
         every {
             service.createSellReceipt(capture(capturedKkmId), capture(capturedPin), capture(capturedRequest))
-        } returns ReceiptResult("doc-sell")
+        } returns ReceiptResponse(documentId = "doc-sell", deliveryStatus = DeliveryStatus.ONLINE_OK)
 
         val response =
             receiptsController.createSellReceipt(
@@ -60,14 +61,14 @@ class ReceiptCashReportControllersTest {
         val capturedRequest = slot<ReceiptSellReturnRequest>()
         every {
             service.createSellReturnReceipt(capture(capturedKkmId), capture(capturedPin), capture(capturedRequest))
-        } returns ReceiptResult("doc-sell-return")
+        } returns ReceiptResponse(documentId = "doc-sell-return", deliveryStatus = DeliveryStatus.ONLINE_OK)
         val request =
             ReceiptSellReturnRequest(
                 idempotencyKey = "idem-sell-return",
                 items = listOf(itemDto()),
                 payments = listOf(paymentDto()),
                 parentTicket =
-                ParentTicketDto(
+                ParentTicketRequest(
                     parentTicketNumber = 11,
                     parentTicketDateTime = "2026-03-19T10:00:00Z",
                     kgdKkmId = "RN-1",
@@ -92,7 +93,7 @@ class ReceiptCashReportControllersTest {
         val capturedRequest = slot<ReceiptBuyRequest>()
         every {
             service.createBuyReceipt(capture(capturedKkmId), capture(capturedPin), capture(capturedRequest))
-        } returns ReceiptResult("doc-buy")
+        } returns ReceiptResponse(documentId = "doc-buy", deliveryStatus = DeliveryStatus.ONLINE_OK)
 
         receiptsController.createBuyReceipt("kkm-3", "Bearer 3333", buyRequest("idem-buy"))
 
@@ -109,7 +110,7 @@ class ReceiptCashReportControllersTest {
         val capturedRequest = slot<ReceiptBuyReturnRequest>()
         every {
             service.createBuyReturnReceipt(capture(capturedKkmId), capture(capturedPin), capture(capturedRequest))
-        } returns ReceiptResult("doc-buy-return")
+        } returns ReceiptResponse(documentId = "doc-buy-return", deliveryStatus = DeliveryStatus.ONLINE_OK)
         val request =
             ReceiptBuyReturnRequest(
                 idempotencyKey = "idem-buy-return",
@@ -129,13 +130,13 @@ class ReceiptCashReportControllersTest {
     fun `cashIn forwards pin from authorization header`() {
         every {
             service.cashIn("kkm-1", "1111", any())
-        } returns kz.mybrain.superkassa.core.domain.model.kkm.CashOperationResult("cash-in-doc", DeliveryStatus.ONLINE_OK)
+        } returns CashOperationResponse(documentId = "cash-in-doc", deliveryStatus = DeliveryStatus.ONLINE_OK)
 
         val result =
             cashController.cashIn(
                 "kkm-1",
                 "Bearer 1111",
-                CashOperationRequestDto(amount = 500.0, idempotencyKey = "cash-in-1")
+                CashOperationRequest(amount = 500.0, idempotencyKey = "cash-in-1")
             )
 
         assertEquals("cash-in-doc", result.documentId)
@@ -155,13 +156,13 @@ class ReceiptCashReportControllersTest {
     fun `cashOut forwards pin from raw authorization header`() {
         every {
             service.cashOut("kkm-2", "2222", any())
-        } returns kz.mybrain.superkassa.core.domain.model.kkm.CashOperationResult("cash-out-doc", DeliveryStatus.ONLINE_OK)
+        } returns CashOperationResponse(documentId = "cash-out-doc", deliveryStatus = DeliveryStatus.ONLINE_OK)
 
         val result =
             cashController.cashOut(
                 "kkm-2",
                 "2222",
-                CashOperationRequestDto(amount = 300.0, idempotencyKey = "cash-out-1")
+                CashOperationRequest(amount = 300.0, idempotencyKey = "cash-out-1")
             )
 
         assertEquals("cash-out-doc", result.documentId)
@@ -170,7 +171,7 @@ class ReceiptCashReportControllersTest {
 
     @Test
     fun `createXReport forwards pin from authorization header`() {
-        every { service.createReport("kkm-r", "5555") } returns ReportResult("x-report-doc")
+        every { service.createReport("kkm-r", "5555") } returns ReportResponse(documentId = "x-report-doc", deliveryStatus = DeliveryStatus.ONLINE_OK)
 
         val result = reportsController.createXReport("kkm-r", "Bearer 5555")
 
@@ -179,7 +180,7 @@ class ReceiptCashReportControllersTest {
     }
 
     private fun itemDto(vatGroup: String = "VAT_16") =
-        ReceiptItemDto(
+        ReceiptItemRequest(
             name = "Bread",
             price = 100.0,
             quantity = 1.0,
@@ -187,7 +188,7 @@ class ReceiptCashReportControllersTest {
         )
 
     private fun paymentDto(type: String = "CASH") =
-        ReceiptPaymentDto(type = type, sum = 100.0)
+        ReceiptPaymentRequest(type = type, sum = 100.0)
 
     private fun sellRequest(idem: String) =
         ReceiptSellRequest(

@@ -12,22 +12,25 @@ import kz.mybrain.superkassa.core.application.http.controllers.QueueController
 import kz.mybrain.superkassa.core.application.http.controllers.SuperkassaInfoController
 import kz.mybrain.superkassa.core.application.http.controllers.SuperkassaSettingsController
 import kz.mybrain.superkassa.core.application.http.controllers.UnitsOfMeasurementController
-import kz.mybrain.superkassa.core.application.settings.UpdateSettingsUseCase
-import kz.mybrain.superkassa.core.domain.exception.SettingsFrozenException
-import kz.mybrain.superkassa.core.domain.model.common.TaxRegime
-import kz.mybrain.superkassa.core.domain.model.common.VatGroup
-import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
-import kz.mybrain.superkassa.core.domain.model.kkm.KkmMode
-import kz.mybrain.superkassa.core.domain.model.kkm.KkmState
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandStatus
-import kz.mybrain.superkassa.core.domain.model.settings.CoreMode
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
-import kz.mybrain.superkassa.core.domain.model.settings.StorageSettings
-import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
-import kz.mybrain.superkassa.core.domain.port.StoragePort
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.presentation.model.KkmListResult
+import io.github.texport.superkassa.jvm.settings.impl.UpdateSettingsUseCase
+import io.github.texport.superkassa.jvm.settings.impl.SettingsApplicationService
+import io.github.texport.superkassa.core.domain.api.exception.SettingsFrozenException
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreMode
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettings
+import io.github.texport.superkassa.core.domain.api.port.integration.CoreSettingsRepositoryPort
+import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmListResponse
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmResponse
+import io.github.texport.superkassa.core.presentation.api.model.common.PaginatedResponse
+import io.github.texport.superkassa.core.presentation.api.model.common.UnitOfMeasurementResponse
+import io.github.texport.superkassa.core.presentation.api.model.queue.QueueItemResponse
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdCommandResponse
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdCommandStatus as PresentationOfdCommandStatus
+import io.github.texport.superkassa.core.presentation.api.OfflineQueueApi
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import kz.mybrain.superkassa.core.application.info.SystemInfoApplicationService
+import kz.mybrain.superkassa.core.application.measurement.UnitsApplicationService
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -37,31 +40,33 @@ class SystemControllersTest {
 
     @Test
     fun `queue controller delegates list and retry with parsed pin`() {
-        val listQueueItemsUseCase =
-            mockk<kz.mybrain.superkassa.core.domain.usecase.queue.ListQueueItemsUseCase>()
-        val retryFailedQueueItemsUseCase =
-            mockk<kz.mybrain.superkassa.core.domain.usecase.queue.RetryFailedQueueItemsUseCase>()
-        val controller = QueueController(listQueueItemsUseCase, retryFailedQueueItemsUseCase)
-        val queueItem =
-            kz.mybrain.superkassa.core.domain.usecase.queue.ListQueueItemsUseCase.QueueItemView(
-                id = "q-1",
-                lane = "OFFLINE",
-                type = "TICKET",
-                status = "FAILED",
-                attempt = 2,
-                nextAttemptAt = null,
-                lastError = "err"
-            )
-        every { listQueueItemsUseCase.execute("kkm-q", "1234") } returns listOf(queueItem)
-        every { retryFailedQueueItemsUseCase.execute("kkm-q", "1234") } returns 3
+        val kkmService = mockk<SuperkassaApi>()
+        val queueApi = mockk<OfflineQueueApi>()
+        every { kkmService.queue } returns queueApi
+
+        val controller = QueueController(kkmService)
+        val queueItem = QueueItemResponse(
+            id = "q-1",
+            lane = "OFFLINE",
+            type = "TICKET",
+            status = "FAILED",
+            attempt = 2,
+            nextAttemptAt = null,
+            lastError = "err",
+            errorRu = null,
+            errorKk = null,
+            errorEn = null
+        )
+        every { queueApi.listQueue("kkm-q", "1234") } returns listOf(queueItem)
+        every { queueApi.retryFailed("kkm-q", "1234") } returns 3
 
         val list = controller.listQueue("kkm-q", "Bearer 1234")
         val retry = controller.retryFailed("kkm-q", "Bearer 1234")
 
         assertEquals(1, list.size)
         assertEquals(3, retry["updated"])
-        verify(exactly = 1) { listQueueItemsUseCase.execute("kkm-q", "1234") }
-        verify(exactly = 1) { retryFailedQueueItemsUseCase.execute("kkm-q", "1234") }
+        verify(exactly = 1) { queueApi.listQueue("kkm-q", "1234") }
+        verify(exactly = 1) { queueApi.retryFailed("kkm-q", "1234") }
     }
 
     @Test
@@ -74,9 +79,21 @@ class SystemControllersTest {
             )
         val storage = mockk<StoragePort>()
         val kkmService = mockk<SuperkassaApi>()
-        val controller = SuperkassaInfoController(settings, storage, kkmService, "9.9.9")
-        val kkm = sampleKkm("kkm-1")
-        every { kkmService.listKkms(any()) } returns KkmListResult(items = listOf(kkm), total = 1)
+        val systemInfoService = SystemInfoApplicationService(settings.toDto(), storage)
+        val controller = SuperkassaInfoController(systemInfoService, kkmService, "9.9.9")
+        val kkm = KkmResponse(
+            kkmId = "kkm-1",
+            createdAt = 1L,
+            updatedAt = 2L,
+            mode = "REGISTRATION",
+            state = "ACTIVE",
+            ofdId = "KAZAKHTELECOM",
+            ofdEnvironment = "TEST",
+            kkmKgdId = "RN-1",
+            factoryNumber = "FN-1",
+            manufactureYear = 2026
+        )
+        every { kkmService.listKkms(any()) } returns KkmListResponse(items = listOf(kkm), total = 1)
         every { storage.countKkms(null, null) } returns 1
 
         val list = controller.listKkms(
@@ -97,6 +114,25 @@ class SystemControllersTest {
     }
 
     @Test
+    fun `superkassa info controller handles storage failure gracefully`() {
+        val settings =
+            CoreSettings(
+                mode = CoreMode.DESKTOP,
+                storage = StorageSettings(engine = "SQLITE", jdbcUrl = "jdbc:sqlite:build/core.db"),
+                allowChanges = true
+            )
+        val storage = mockk<StoragePort>()
+        val kkmService = mockk<SuperkassaApi>()
+        val systemInfoService = SystemInfoApplicationService(settings.toDto(), storage)
+        val controller = SuperkassaInfoController(systemInfoService, kkmService, "9.9.9")
+
+        every { storage.countKkms(null, null) } throws RuntimeException("DB offline")
+
+        val info = controller.info()
+        assertEquals(0, (info["statistics"] as Map<*, *>)["registeredKkms"])
+    }
+
+    @Test
     fun `superkassa settings controller gets and updates settings when allowed`() {
         val initial =
             CoreSettings(
@@ -108,7 +144,8 @@ class SystemControllersTest {
         every { repo.loadOrCreate(initial) } returns initial
         every { repo.save(any()) } returns true
 
-        val controller = SuperkassaSettingsController(repo, initial, UpdateSettingsUseCase(repo, initial))
+        val settingsService = SettingsApplicationService(repo, initial, UpdateSettingsUseCase(repo, initial))
+        val controller = SuperkassaSettingsController(settingsService)
         val loaded = controller.getSettings()
         val updated =
             loaded.copy(
@@ -132,7 +169,8 @@ class SystemControllersTest {
                 allowChanges = false
             )
         val repo = mockk<CoreSettingsRepositoryPort>()
-        val controller = SuperkassaSettingsController(repo, frozen, UpdateSettingsUseCase(repo, frozen))
+        val settingsService = SettingsApplicationService(repo, frozen, UpdateSettingsUseCase(repo, frozen))
+        val controller = SuperkassaSettingsController(settingsService)
 
         assertFailsWith<SettingsFrozenException> {
             controller.updateSettings(frozen.toDto())
@@ -148,11 +186,9 @@ class SystemControllersTest {
                 allowChanges = true
             )
         val repo = mockk<CoreSettingsRepositoryPort>()
-        val controller = SuperkassaSettingsController(
-            repo,
-            serverModeSettings,
-            UpdateSettingsUseCase(repo, serverModeSettings)
-        )
+        val settingsService =
+            SettingsApplicationService(repo, serverModeSettings, UpdateSettingsUseCase(repo, serverModeSettings))
+        val controller = SuperkassaSettingsController(settingsService)
 
         assertFailsWith<SettingsFrozenException> {
             controller.updateSettings(serverModeSettings.toDto())
@@ -180,10 +216,22 @@ class SystemControllersTest {
         val kkmService = mockk<SuperkassaApi>()
         val controller = DiagnosticsController(checker, config, kkmService)
         every { checker.check(config, 3) } returns StorageHealthStatus(ok = true, message = "Connection OK")
-        every { kkmService.listKkms(any()) } returns KkmListResult(items = listOf(sampleKkm("kkm-2")), total = 1)
+        val kkm = KkmResponse(
+            kkmId = "kkm-2",
+            createdAt = 1L,
+            updatedAt = 2L,
+            mode = "REGISTRATION",
+            state = "ACTIVE",
+            ofdId = "KAZAKHTELECOM",
+            ofdEnvironment = "TEST",
+            kkmKgdId = "RN-2",
+            factoryNumber = "FN-2",
+            manufactureYear = 2026
+        )
+        every { kkmService.listKkms(any()) } returns KkmListResponse(items = listOf(kkm), total = 1)
         every {
             kkmService.checkOfdConnection("kkm-2")
-        } returns OfdCommandResult(status = OfdCommandStatus.FAILED, errorMessage = "down")
+        } returns OfdCommandResponse(status = PresentationOfdCommandStatus.FAILED, errorMessage = "down")
 
         val response = controller.health(checkOfd = true)
 
@@ -199,7 +247,25 @@ class SystemControllersTest {
 
     @Test
     fun `units controller supports list search and get by code`() {
-        val controller = UnitsOfMeasurementController()
+        val unitsService = mockk<UnitsApplicationService>()
+        val controller = UnitsOfMeasurementController(unitsService)
+
+        val uom = UnitOfMeasurementResponse(code = "796", nameShort = "шт", nameFull = "Штука")
+        every { unitsService.list(10, 0, null) } returns PaginatedResponse(
+            items = listOf(uom),
+            total = 1,
+            limit = 10,
+            offset = 0,
+            hasMore = false
+        )
+        every { unitsService.list(10, 0, "шт") } returns PaginatedResponse(
+            items = listOf(uom),
+            total = 1,
+            limit = 10,
+            offset = 0,
+            hasMore = false
+        )
+        every { unitsService.getByCode("796") } returns uom
 
         val all = controller.list(limit = 10, offset = 0, search = null)
         val filtered = controller.list(limit = 10, offset = 0, search = "шт")
@@ -209,20 +275,4 @@ class SystemControllersTest {
         assertTrue(filtered.total > 0)
         assertEquals("796", piece.code)
     }
-
-    private fun sampleKkm(id: String) =
-        KkmInfo(
-            id = id,
-            createdAt = 1,
-            updatedAt = 2,
-            mode = KkmMode.REGISTRATION.name,
-            state = KkmState.ACTIVE.name,
-            ofdProvider = "KAZAKHTELECOM:TEST",
-            registrationNumber = "RN-1",
-            factoryNumber = "FN-1",
-            manufactureYear = 2026,
-            systemId = "100",
-            taxRegime = TaxRegime.NO_VAT,
-            defaultVatGroup = VatGroup.NO_VAT
-        )
 }

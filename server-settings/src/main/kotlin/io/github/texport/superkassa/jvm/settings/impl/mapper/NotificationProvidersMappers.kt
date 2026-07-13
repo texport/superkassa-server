@@ -1,10 +1,10 @@
 package io.github.texport.superkassa.jvm.settings.impl.mapper
 
+import io.github.texport.superkassa.core.domain.api.model.settings.EmailProviderSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.SmsProviderSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.TelegramProviderSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.WhatsAppProviderSettings
 import io.github.texport.superkassa.jvm.settings.impl.dto.*
-import kz.mybrain.superkassa.core.domain.model.settings.EmailProviderSettings
-import kz.mybrain.superkassa.core.domain.model.settings.SmsProviderSettings
-import kz.mybrain.superkassa.core.domain.model.settings.TelegramProviderSettings
-import kz.mybrain.superkassa.core.domain.model.settings.WhatsAppProviderSettings
 
 fun EmailProviderSettings.toDto() = EmailProviderSettingsDto(
     host = host,

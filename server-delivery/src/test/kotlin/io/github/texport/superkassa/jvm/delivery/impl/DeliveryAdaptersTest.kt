@@ -1,7 +1,7 @@
 package io.github.texport.superkassa.jvm.delivery.impl
 
-import io.github.texport.superkassa.delivery.domain.model.DeliveryChannel
-import io.github.texport.superkassa.delivery.domain.model.DeliveryRequest
+import io.github.texport.superkassa.delivery.api.model.DeliveryChannel
+import io.github.texport.superkassa.delivery.api.model.DeliveryRequest
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.net.URI

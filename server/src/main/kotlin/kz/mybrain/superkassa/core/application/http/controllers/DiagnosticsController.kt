@@ -1,14 +1,15 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmListParams
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmResponse
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdCommandStatus
 import io.github.texport.superkassa.jvm.storage.impl.application.health.StorageHealthChecker
 import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_OK
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
-import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandStatus
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -45,60 +46,22 @@ class DiagnosticsController(
         summary = "Проверка здоровья сервиса",
         description = """
             Проверяет работоспособность компонентов системы Superkassa Core.
-            
+
             Обязательные проверки:
             - Доступность базы данных (storage) - проверяется всегда
-            
+
             Опциональные проверки (если указан параметр checkOfd=true):
             - Доступность ОФД - проверяется для всех уникальных комбинаций ОФД провайдер + окружение
-            
-            Механизм проверки ОФД:
-            При включенной проверке (checkOfd=true) система выполняет следующие шаги:
-            1. Получает список всех зарегистрированных ККМ
-            2. Группирует ККМ по уникальным комбинациям (ОФД провайдер : окружение)
                Например: "KAZAKHTELECOM:TEST", "KAZAKHTELECOM:PROD", "OTHER_OFD:PROD"
-            3. Для каждой уникальной комбинации выбирает одну активную ККМ (если есть)
-            4. Отправляет команду COMMAND_SYSTEM в соответствующий ОФД через метод checkOfdConnection()
-            5. Команда отправляется через HTTP-запрос к эндпоинту ОФД с использованием настроек
+            - Для каждой уникальной комбинации выбирает одну активную ККМ (если есть)
+            - Отправляет команду COMMAND_SYSTEM в соответствующий ОФД через метод checkOfdConnection()
+            - Команда отправляется через HTTP-запрос к эндпоинту ОФД с использованием настроек
                кассы (ofdId, ofdToken, ofdSystemId) и протокола версии ofdProtocolVersion
-            6. Результаты проверки группируются по комбинациям ОФД+окружение:
+            - Результаты проверки группируются по комбинациям ОФД+окружение:
                - "OK" - если ОФД успешно ответил (статус OfdCommandStatus.OK)
                - "DEGRADED: <описание ошибки>" - если ОФД недоступен или вернул ошибку
                - "SKIPPED: no active KKM" - если нет активных ККМ для данной комбинации
                - "ERROR: <сообщение>" - если произошла исключительная ситуация
-            
-            Параметры:
-            - checkOfd (опционально, по умолчанию false) - включить проверку связи с ОФД
-            - ofdEnvironment (опционально) - фильтр по окружению ОФД (TEST/PROD/DEV).
-              Если указан, проверяются только ККМ с данным окружением.
-              Если не указан, проверяются все окружения.
-            - ofdProvider (опционально) - фильтр по провайдеру ОФД (например, "KAZAKHTELECOM").
-              Если указан, проверяются только ККМ данного провайдера.
-              Если не указан, проверяются все провайдеры.
-            
-            Примеры использования:
-            - GET /health?checkOfd=true - проверить все ОФД и окружения
-            - GET /health?checkOfd=true&ofdEnvironment=PROD - проверить только production окружения
-            - GET /health?checkOfd=true&ofdProvider=KAZAKHTELECOM - проверить только указанный провайдер
-            - GET /health?checkOfd=true&ofdProvider=KAZAKHTELECOM&ofdEnvironment=PROD - проверить конкретную комбинацию
-            
-            Возвращаемые статусы:
-            - "OK" - все проверки прошли успешно (HTTP 200)
-            - "DEGRADED" - хотя бы одна проверка не прошла (HTTP 503)
-            
-            Структура ответа при checkOfd=true:
-            {
-              "status": "OK" | "DEGRADED",
-              "storage": "OK" | "ERROR: ...",
-              "ofd": {
-                "KAZAKHTELECOM:TEST": "OK" | "DEGRADED: ..." | "SKIPPED: ...",
-                "KAZAKHTELECOM:PROD": "OK" | "DEGRADED: ..." | "SKIPPED: ...",
-                ...
-              }
-            }
-            
-            Используется системами мониторинга и оркестрации (Kubernetes, Docker Healthcheck и т.д.)
-            для определения состояния сервиса.
         """
     )
     @KkmApiResponses(ok = MSG_200_OK)
@@ -136,7 +99,7 @@ class DiagnosticsController(
     ): Boolean {
         val kkms = try {
             kkmService.listKkms(
-                kz.mybrain.superkassa.core.presentation.model.KkmListParams(
+                KkmListParams(
                     limit = 1000,
                     offset = 0
                 )
@@ -171,13 +134,13 @@ class DiagnosticsController(
     }
 
     private fun getOfdGroupsToCheck(
-        items: List<KkmInfo>,
+        items: List<KkmResponse>,
         ofdProvider: String?,
         ofdEnvironment: String?
-    ): List<Pair<String, KkmInfo>> {
+    ): List<Pair<String, KkmResponse>> {
         return items
-            .filter { it.ofdProvider != null }
-            .groupBy { it.ofdProvider!! }
+            .filter { it.ofdId != null }
+            .groupBy { "${it.ofdId}:${it.ofdEnvironment ?: ""}" }
             .mapNotNull { (providerTag, kkmList) ->
                 val (ofdId, ofdEnv) = splitOfdTag(providerTag)
                 val matchesProvider = ofdProvider == null ||
@@ -196,11 +159,11 @@ class DiagnosticsController(
     private fun checkSingleGroupOfdConnection(
         kkmService: SuperkassaApi,
         providerTag: String,
-        kkm: KkmInfo,
+        kkm: KkmResponse,
         ofdResults: MutableMap<String, String>
     ): Boolean {
         return try {
-            val ofdResult = kkmService.checkOfdConnection(kkm.id)
+            val ofdResult = kkmService.checkOfdConnection(kkm.kkmId)
             val isOk = ofdResult.status == OfdCommandStatus.OK
             ofdResults[providerTag] = if (isOk) {
                 "OK"

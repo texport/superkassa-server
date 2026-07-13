@@ -4,7 +4,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
-import kz.mybrain.superkassa.core.domain.port.QrCodeGeneratorPort
+import io.github.texport.superkassa.core.domain.api.port.integration.QrCodeGeneratorPort
 import java.io.ByteArrayOutputStream
 import java.util.Base64
 import javax.imageio.ImageIO

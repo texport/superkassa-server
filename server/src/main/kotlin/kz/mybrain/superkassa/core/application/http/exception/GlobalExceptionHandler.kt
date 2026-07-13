@@ -1,10 +1,10 @@
 package kz.mybrain.superkassa.core.application.http.exception
 
+import io.github.texport.superkassa.core.domain.api.exception.SuperkassaException
+import io.github.texport.superkassa.core.presentation.api.model.common.ApiErrorResponse
 import io.github.texport.superkassa.jvm.shared.strings.api.ErrorResolver
 import io.github.texport.superkassa.jvm.shared.strings.api.key.WebErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver
-import kz.mybrain.superkassa.core.domain.exception.SuperkassaException
-import kz.mybrain.superkassa.core.presentation.model.ApiErrorResponse
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

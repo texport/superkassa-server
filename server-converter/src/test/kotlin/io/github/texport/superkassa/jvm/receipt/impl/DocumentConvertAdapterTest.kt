@@ -1,13 +1,13 @@
 package io.github.texport.superkassa.jvm.receipt.impl
 
-import kz.mybrain.superkassa.core.data.receipt.ReceiptHtmlRenderer
-import kz.mybrain.superkassa.core.domain.model.common.Money
-import kz.mybrain.superkassa.core.domain.model.kkm.FiscalDocumentSnapshot
-import kz.mybrain.superkassa.core.domain.model.receipt.PaymentType
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptItem
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptOperationType
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptPayment
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptRequest
+import io.github.texport.superkassa.receiptrenderer.api.createReceiptRendererApi
+import io.github.texport.superkassa.core.domain.api.model.common.Money
+import io.github.texport.superkassa.core.domain.api.model.kkm.FiscalDocumentSnapshot
+import io.github.texport.superkassa.core.domain.api.model.receipt.PaymentType
+import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptItem
+import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptOperationType
+import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptPayment
+import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptRequest
 import java.nio.charset.Charset
 import javax.imageio.ImageIO
 import kotlin.test.Test
@@ -117,7 +117,7 @@ class DocumentConvertAdapterTest {
             factoryNumber = "1365345245"
         )
 
-        val kkm = kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo(
+        val kkm = io.github.texport.superkassa.core.domain.api.model.kkm.KkmInfo(
             id = doc.cashboxId,
             createdAt = doc.createdAt,
             updatedAt = doc.createdAt,
@@ -125,8 +125,8 @@ class DocumentConvertAdapterTest {
             state = "READY",
             registrationNumber = doc.registrationNumber ?: "",
             factoryNumber = doc.factoryNumber ?: "",
-            branding = kz.mybrain.superkassa.core.domain.model.receipt.ReceiptBranding(),
-            ofdServiceInfo = kz.mybrain.superkassa.core.domain.model.ofd.OfdServiceInfo(
+            branding = io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptBranding(),
+            ofdServiceInfo = io.github.texport.superkassa.core.domain.api.model.ofd.OfdServiceInfo(
                 orgTitle = doc.taxpayerName ?: "ИП МИЧКА ПАВЕЛ АНДРЕЕВИЧ",
                 orgAddress = doc.taxpayerAddress ?: "обл. Павлодарская, Республика 1, 2",
                 orgAddressKz = "обл. Павлодарская, Республика 1, 2",
@@ -138,7 +138,7 @@ class DocumentConvertAdapterTest {
             )
         )
 
-        val html = ReceiptHtmlRenderer(
+        val html = createReceiptRendererApi(
             QrCodeDataUriGenerator
         ).renderHtml(receipt, doc, kkm)
 

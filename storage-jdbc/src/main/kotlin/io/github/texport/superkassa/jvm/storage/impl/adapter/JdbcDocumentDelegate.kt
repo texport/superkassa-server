@@ -1,13 +1,13 @@
 package io.github.texport.superkassa.jvm.storage.impl.adapter
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.github.texport.superkassa.core.domain.api.model.common.Money
+import io.github.texport.superkassa.core.domain.api.model.kkm.FiscalDocumentSnapshot
+import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptRequest
+import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptStoredPayload
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.FiscalDocumentRecord
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.IdempotencyRecord
-import kz.mybrain.superkassa.core.domain.model.common.Money
-import kz.mybrain.superkassa.core.domain.model.kkm.FiscalDocumentSnapshot
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptRequest
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptStoredPayload
 
 /**
  * Делегат для работы с фискальными документами в JDBC хранилище.

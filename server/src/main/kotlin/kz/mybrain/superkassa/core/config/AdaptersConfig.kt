@@ -1,10 +1,20 @@
 package kz.mybrain.superkassa.core.config
 
-import io.github.texport.superkassa.delivery.application.service.DeliveryService
-import io.github.texport.superkassa.delivery.domain.model.DeliveryChannel
-import io.github.texport.superkassa.delivery.domain.model.DeliveryRequest
-import io.github.texport.superkassa.delivery.domain.model.DeliveryResult
-import io.github.texport.superkassa.delivery.domain.port.DeliveryAdapter
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreMode
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettings
+import io.github.texport.superkassa.core.domain.api.port.integration.ClockPort
+import io.github.texport.superkassa.core.domain.api.port.integration.CoreSettingsRepositoryPort
+import io.github.texport.superkassa.core.domain.api.port.integration.DeliveryPort
+import io.github.texport.superkassa.core.domain.api.port.integration.DocumentConvertPort
+import io.github.texport.superkassa.core.domain.api.port.integration.QrCodeGeneratorPort
+import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
+import io.github.texport.superkassa.core.domain.api.port.integration.TimeValidatorPort
+import io.github.texport.superkassa.delivery.api.DeliveryServiceApi
+import io.github.texport.superkassa.delivery.api.createDeliveryServiceApi
+import io.github.texport.superkassa.delivery.api.model.DeliveryChannel
+import io.github.texport.superkassa.delivery.api.model.DeliveryRequest
+import io.github.texport.superkassa.delivery.api.model.DeliveryResult
 import io.github.texport.superkassa.jvm.delivery.impl.EmailDeliveryAdapter
 import io.github.texport.superkassa.jvm.delivery.impl.PrintDeliveryAdapter
 import io.github.texport.superkassa.jvm.delivery.impl.SmsDeliveryAdapter
@@ -13,6 +23,8 @@ import io.github.texport.superkassa.jvm.delivery.impl.WhatsAppDeliveryAdapter
 import io.github.texport.superkassa.jvm.receipt.impl.DocumentConvertAdapter
 import io.github.texport.superkassa.jvm.receipt.impl.QrCodeDataUriGenerator
 import io.github.texport.superkassa.jvm.settings.impl.FileCoreSettingsRepository
+import io.github.texport.superkassa.jvm.settings.impl.dto.CoreSettingsDto
+import io.github.texport.superkassa.jvm.settings.impl.mapper.toDto
 import io.github.texport.superkassa.jvm.storage.impl.adapter.DatabaseCoreSettingsRepository
 import io.github.texport.superkassa.jvm.storage.impl.adapter.StorageAdapter
 import io.github.texport.superkassa.jvm.storage.impl.application.health.StorageHealthChecker
@@ -22,50 +34,12 @@ import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 import io.github.texport.superkassa.jvm.time.impl.SystemClock
 import io.github.texport.superkassa.jvm.time.impl.SystemTimeGuard
 import jakarta.annotation.PostConstruct
-import kz.mybrain.network.OfdTcpNetworkClient
-import kz.mybrain.superkassa.core.data.adapter.DeliveryServiceAdapter
-import kz.mybrain.superkassa.core.data.adapter.OfdConfigAdapter
-import kz.mybrain.superkassa.core.data.adapter.OfdManagerAdapter
-import kz.mybrain.superkassa.core.data.adapter.OfflineQueueAdapter
-import kz.mybrain.superkassa.core.data.adapter.ResilienceOfdManagerAdapter
-import kz.mybrain.superkassa.core.data.adapter.Sha256PinHasherAdapter
-import kz.mybrain.superkassa.core.data.adapter.StorageBackedLeaseLockAdapter
-import kz.mybrain.superkassa.core.data.adapter.StorageBackedQueueStorageAdapter
-import kz.mybrain.superkassa.core.data.ofd.OfdConfig
-import kz.mybrain.superkassa.core.data.ofd.OfdProtocolCodec
-import kz.mybrain.superkassa.core.data.ofd.builder.strategy.CloseShiftRequestBuilderStrategy
-import kz.mybrain.superkassa.core.data.ofd.builder.strategy.MoneyPlacementRequestBuilderStrategy
-import kz.mybrain.superkassa.core.data.ofd.builder.strategy.NomenclatureRequestBuilderStrategy
-import kz.mybrain.superkassa.core.data.ofd.builder.strategy.ReportRequestBuilderStrategy
-import kz.mybrain.superkassa.core.data.ofd.builder.strategy.ServiceRequestBuilderStrategy
-import kz.mybrain.superkassa.core.data.ofd.builder.strategy.TicketRequestBuilderStrategy
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandRequest
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandStatus
-import kz.mybrain.superkassa.core.domain.model.settings.CoreMode
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
-import kz.mybrain.superkassa.core.domain.model.settings.StorageSettings
-import kz.mybrain.superkassa.core.domain.port.ClockPort
-import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
-import kz.mybrain.superkassa.core.domain.port.DeliveryPort
-import kz.mybrain.superkassa.core.domain.port.DocumentConvertPort
-import kz.mybrain.superkassa.core.domain.port.OfdConfigPort
-import kz.mybrain.superkassa.core.domain.port.OfdManagerPort
-import kz.mybrain.superkassa.core.domain.port.OfflineQueuePort
-import kz.mybrain.superkassa.core.domain.port.PinHasherPort
-import kz.mybrain.superkassa.core.domain.port.ReceiptRenderPort
-import kz.mybrain.superkassa.core.domain.port.StoragePort
-import kz.mybrain.superkassa.core.domain.port.TimeValidatorPort
-import kz.mybrain.superkassa.core.domain.port.TokenCodecPort
-import kz.mybrain.superkassa.core.domain.usecase.shift.RecalculateShiftCountersUseCase
-import kz.mybrain.superkassa.offline_queue.application.service.QueueCommandHandler
-import kz.mybrain.superkassa.offline_queue.domain.port.LeaseLockPort
-import kz.mybrain.superkassa.offline_queue.domain.port.QueueStoragePort
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.nio.file.Paths
+import io.github.texport.superkassa.delivery.api.port.DeliveryPort as KmpDeliveryPort
 
 @Configuration
 class AdaptersConfig {
@@ -75,9 +49,6 @@ class AdaptersConfig {
     @Value("\${app.log-language:ALL}")
     private lateinit var logLanguage: String
 
-    @Value("\${app.logging.pretty-print-json:true}")
-    private var prettyPrintJson: Boolean = true
-
     @PostConstruct
     fun init() {
         System.setProperty("superkassa.log.language", logLanguage)
@@ -86,9 +57,9 @@ class AdaptersConfig {
 
     @Bean
     fun settingsRepository(
-        @Value($$"${spring.datasource.url:}") dbUrl: String,
-        @Value($$"${spring.datasource.username:}") dbUser: String?,
-        @Value($$"${spring.datasource.password:}") dbPass: String?
+        @Value("\${spring.datasource.url:}") dbUrl: String,
+        @Value("\${spring.datasource.username:}") dbUser: String?,
+        @Value("\${spring.datasource.password:}") dbPass: String?
     ): CoreSettingsRepositoryPort {
         val urlLower = dbUrl.lowercase()
         return if (urlLower.startsWith("jdbc:postgresql:") || urlLower.startsWith("jdbc:mysql:")) {
@@ -101,9 +72,9 @@ class AdaptersConfig {
     @Bean
     fun coreSettings(
         repository: CoreSettingsRepositoryPort,
-        @Value($$"${spring.datasource.url:}") dbUrl: String,
-        @Value($$"${spring.datasource.username:}") dbUser: String?,
-        @Value($$"${spring.datasource.password:}") dbPass: String?
+        @Value("\${spring.datasource.url:}") dbUrl: String,
+        @Value("\${spring.datasource.username:}") dbUser: String?,
+        @Value("\${spring.datasource.password:}") dbPass: String?
     ): CoreSettings {
         val defaults = if (repository is DatabaseCoreSettingsRepository) {
             val engineType = if (dbUrl.lowercase().contains("mysql")) "MYSQL" else "POSTGRESQL"
@@ -131,6 +102,11 @@ class AdaptersConfig {
     }
 
     @Bean
+    fun coreSettingsDto(coreSettings: CoreSettings): CoreSettingsDto {
+        return coreSettings.toDto()
+    }
+
+    @Bean
     fun storageConfig(settings: CoreSettings): StorageConfig {
         return StorageConfig(
             settings.storage.jdbcUrl,
@@ -154,29 +130,8 @@ class AdaptersConfig {
     }
 
     @Bean
-    fun queueStoragePort(storagePort: StoragePort): QueueStoragePort {
-        return StorageBackedQueueStorageAdapter(storagePort)
-    }
-
-    @Bean
-    fun queueLeaseLockPort(storagePort: StoragePort): LeaseLockPort {
-        return StorageBackedLeaseLockAdapter(storagePort)
-    }
-
-    @Bean
-    fun queuePort(
-        settings: CoreSettings,
-        queueStoragePort: QueueStoragePort,
-        queueLeaseLockPort: LeaseLockPort,
-        queueCommandHandler: QueueCommandHandler
-    ): OfflineQueuePort {
-        val ownerId = settings.nodeId
-        return OfflineQueueAdapter(queueStoragePort, queueLeaseLockPort, queueCommandHandler, ownerId = ownerId)
-    }
-
-    @Bean
     fun deliveryPort(settings: CoreSettings): DeliveryPort {
-        val adapters = mutableListOf<DeliveryAdapter>()
+        val adapters = mutableListOf<KmpDeliveryPort>()
         val delivery = settings.delivery
         val channelsToUse = if (delivery != null && delivery.channels.isNotEmpty()) {
             delivery.channels.filter { it.enabled }.map { it.channel.uppercase() }
@@ -192,13 +147,13 @@ class AdaptersConfig {
         if (adapters.isEmpty()) {
             adapters.add(stubAdapter(DeliveryChannel.PRINT))
         }
-        return DeliveryServiceAdapter(DeliveryService(adapters))
+        return ServerDeliveryServiceAdapter(createDeliveryServiceApi(adapters))
     }
 
     private fun createDeliveryAdapter(
         channelName: String,
-        delivery: kz.mybrain.superkassa.core.domain.model.settings.DeliverySettings?
-    ): DeliveryAdapter? {
+        delivery: io.github.texport.superkassa.core.domain.api.model.settings.DeliverySettings?
+    ): KmpDeliveryPort? {
         val channel = runCatching { DeliveryChannel.valueOf(channelName) }
             .onFailure { logger.warn("Unknown delivery channel: $channelName", it) }
             .getOrNull() ?: return null
@@ -212,7 +167,7 @@ class AdaptersConfig {
         }
     }
 
-    private fun createPrintAdapter(print: kz.mybrain.superkassa.core.domain.model.settings.PrintDeliverySettings?): DeliveryAdapter {
+    private fun createPrintAdapter(print: io.github.texport.superkassa.core.domain.api.model.settings.PrintDeliverySettings?): KmpDeliveryPort {
         val connection = print?.connection ?: return stubAdapter(DeliveryChannel.PRINT)
         val host = connection.host
         val port = connection.port
@@ -222,7 +177,7 @@ class AdaptersConfig {
         return stubAdapter(DeliveryChannel.PRINT)
     }
 
-    private fun createEmailAdapter(email: kz.mybrain.superkassa.core.domain.model.settings.EmailProviderSettings?): DeliveryAdapter {
+    private fun createEmailAdapter(email: io.github.texport.superkassa.core.domain.api.model.settings.EmailProviderSettings?): KmpDeliveryPort {
         if (email == null) return stubAdapter(DeliveryChannel.EMAIL)
         return EmailDeliveryAdapter(
             email.host,
@@ -233,23 +188,23 @@ class AdaptersConfig {
         )
     }
 
-    private fun createSmsAdapter(sms: kz.mybrain.superkassa.core.domain.model.settings.SmsProviderSettings?): DeliveryAdapter {
+    private fun createSmsAdapter(sms: io.github.texport.superkassa.core.domain.api.model.settings.SmsProviderSettings?): KmpDeliveryPort {
         val url = sms?.providerUrl ?: return stubAdapter(DeliveryChannel.SMS)
         return SmsDeliveryAdapter(url, sms.apiKey)
     }
 
-    private fun createTelegramAdapter(tg: kz.mybrain.superkassa.core.domain.model.settings.TelegramProviderSettings?): DeliveryAdapter {
+    private fun createTelegramAdapter(tg: io.github.texport.superkassa.core.domain.api.model.settings.TelegramProviderSettings?): KmpDeliveryPort {
         val token = tg?.botToken ?: return stubAdapter(DeliveryChannel.TELEGRAM)
         return TelegramDeliveryAdapter(token)
     }
 
-    private fun createWhatsAppAdapter(wa: kz.mybrain.superkassa.core.domain.model.settings.WhatsAppProviderSettings?): DeliveryAdapter {
+    private fun createWhatsAppAdapter(wa: io.github.texport.superkassa.core.domain.api.model.settings.WhatsAppProviderSettings?): KmpDeliveryPort {
         val token = wa?.accessToken ?: return stubAdapter(DeliveryChannel.WHATSAPP)
         val phoneId = wa.phoneNumberId ?: return stubAdapter(DeliveryChannel.WHATSAPP)
         return WhatsAppDeliveryAdapter(token, phoneId)
     }
 
-    private fun stubAdapter(channel: DeliveryChannel): DeliveryAdapter = object : DeliveryAdapter {
+    private fun stubAdapter(channel: DeliveryChannel): KmpDeliveryPort = object : KmpDeliveryPort {
         override val channel: DeliveryChannel = channel
         override fun send(request: DeliveryRequest): DeliveryResult {
             logger.debug("Delivery stub for channel: {}", channel)
@@ -258,11 +213,7 @@ class AdaptersConfig {
     }
 
     @Bean
-    fun receiptRenderPort(): ReceiptRenderPort {
-        return kz.mybrain.superkassa.core.data.receipt.ReceiptHtmlRenderer(
-            qrCodeGenerator = QrCodeDataUriGenerator
-        )
-    }
+    fun qrCodeGeneratorPort(): QrCodeGeneratorPort = QrCodeDataUriGenerator
 
     @Bean
     fun documentConvertPort(): DocumentConvertPort = DocumentConvertAdapter()
@@ -272,89 +223,36 @@ class AdaptersConfig {
 
     @Bean
     fun clockPort(): ClockPort = SystemClock
-
-    @Bean
-    fun ofdConfigPort(): OfdConfigPort = OfdConfigAdapter()
-
-    @Bean
-    fun pinHasherPort(): PinHasherPort = Sha256PinHasherAdapter()
-
-    @Bean
-    fun ofdManagerPort(settings: CoreSettings, storage: StoragePort): OfdManagerPort {
-        val shiftCountersRecalculator = RecalculateShiftCountersUseCase(storage)
-        val requestBuilders = listOf(
-            ServiceRequestBuilderStrategy(),
-            MoneyPlacementRequestBuilderStrategy(storage),
-            ReportRequestBuilderStrategy(storage, shiftCountersRecalculator),
-            CloseShiftRequestBuilderStrategy(storage, shiftCountersRecalculator),
-            TicketRequestBuilderStrategy(storage),
-            NomenclatureRequestBuilderStrategy()
-        )
-        val delegate = OfdManagerAdapter(
-            OfdConfig(
-                protocolVersion = settings.ofdProtocolVersion,
-                prettyPrintJson = prettyPrintJson
-            ),
-            OfdProtocolCodec(),
-            OfdTcpNetworkClient(),
-            requestBuilders = requestBuilders,
-            timeoutSeconds = settings.ofdTimeoutSeconds.coerceAtLeast(5L),
-            reconnectIntervalSeconds = settings.ofdReconnectIntervalSeconds.coerceAtLeast(60L)
-        )
-        val resilience = ResilienceOfdManagerAdapter(delegate)
-        return InterceptorsOfdManager(resilience)
-    }
-
-    @Bean
-    fun tokenCodecPort(): TokenCodecPort =
-        kz.mybrain.superkassa.core.data.adapter.Base64TokenCodecAdapter()
 }
 
-class InterceptorsOfdManager(
-    private val delegate: OfdManagerPort
-) : OfdManagerPort {
-    override fun send(command: OfdCommandRequest): OfdCommandResult {
-        val result = delegate.send(command)
-        if (result.status != OfdCommandStatus.OK) {
-            return result
-        }
-        val responseJson = result.responseJson ?: return result
-        val payload = responseJson["payload"] as? kotlinx.serialization.json.JsonObject ?: return result
-        val ticket = payload["ticket"] as? kotlinx.serialization.json.JsonObject ?: return result
+class ServerDeliveryServiceAdapter(
+    private val deliveryService: DeliveryServiceApi
+) : DeliveryPort {
+    private val logger = LoggerFactory.getLogger(ServerDeliveryServiceAdapter::class.java)
 
-        // Extract ticketNumber (fiscalSign) if it was null
-        var finalFiscalSign = result.fiscalSign
-        if (finalFiscalSign == null) {
-            finalFiscalSign = ticket["ticketNumber"]?.let {
-                if (it is kotlinx.serialization.json.JsonPrimitive) it.content else null
+    @Suppress("TooGenericExceptionCaught")
+    override fun deliver(request: io.github.texport.superkassa.core.domain.api.model.delivery.DeliveryRequest): Boolean {
+        return try {
+            val channel = try {
+                DeliveryChannel.valueOf(request.channel.uppercase())
+            } catch (e: IllegalArgumentException) {
+                logger.warn("Unknown delivery channel: ${request.channel}, using PRINT", e)
+                DeliveryChannel.PRINT
             }
-        }
-
-        // Extract receiptUrl
-        var finalReceiptUrl = result.receiptUrl
-        if (finalReceiptUrl == null) {
-            val qrCodeBase64 = ticket["qrCodeBase64"]?.let {
-                if (it is kotlinx.serialization.json.JsonPrimitive) it.content else null
-            }
-            if (qrCodeBase64 != null) {
-                finalReceiptUrl = try {
-                    String(java.util.Base64.getDecoder().decode(qrCodeBase64), Charsets.UTF_8)
-                } catch (_: Exception) {
-                    null
-                }
-            }
-        }
-
-        if (finalReceiptUrl != null) {
-            StorageAdapter.receiptUrlMap[command.payloadRef] = finalReceiptUrl
-        }
-
-        if (finalFiscalSign != result.fiscalSign || finalReceiptUrl != result.receiptUrl) {
-            return result.copy(
-                fiscalSign = finalFiscalSign,
-                receiptUrl = finalReceiptUrl
+            val result = deliveryService.deliver(
+                DeliveryRequest(
+                    cashboxId = request.kkmId,
+                    documentId = request.documentId,
+                    channel = channel,
+                    destination = request.destination,
+                    payloadUrl = request.payloadUrl,
+                    payloadBytes = request.payloadBytes
+                )
             )
+            result.ok
+        } catch (ex: Exception) {
+            logger.error("Failed to deliver document: ${request.documentId} for KKM: ${request.kkmId}", ex)
+            false
         }
-        return result
     }
 }

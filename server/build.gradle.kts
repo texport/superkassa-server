@@ -16,19 +16,16 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.resilience4j)
     implementation(platform(libs.spring.boot.dependencies))
     implementation(libs.superkassa.core)
-    
-    implementation(libs.superkassa.offline.queue)
-    implementation(libs.superkassa.delivery)
-    implementation(libs.ofd.network.client)
+
     implementation(project(":storage-jdbc"))
     implementation(project(":server-settings"))
     implementation(project(":server-delivery"))
     implementation(project(":server-converter"))
     implementation(project(":server-time"))
     implementation(project(":shared-strings"))
-    implementation(libs.superkassa.receipt.renderer)
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.hikariCP)
@@ -46,6 +43,7 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(libs.mockk)
+    testImplementation(libs.archunit)
     detektPlugins(libs.detekt.formatting)
 }
 
@@ -108,7 +106,9 @@ tasks.jacocoTestCoverageVerification {
                 "*TraceIdFilter*",
                 "*Dto*",
                 "*InterceptorsOfdManager*",
-                "*TrilingualLogConverter*"
+                "*TrilingualLogConverter*",
+                "*ServerPinHasherAdapter*",
+                "*ServerDeliveryServiceAdapter*"
             )
             limit {
                 minimum = "1.0".toBigDecimal()

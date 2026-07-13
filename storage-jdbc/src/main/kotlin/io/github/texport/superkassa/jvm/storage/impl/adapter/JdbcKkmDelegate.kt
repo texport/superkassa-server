@@ -1,10 +1,10 @@
 package io.github.texport.superkassa.jvm.storage.impl.adapter
 
+import io.github.texport.superkassa.core.domain.api.model.auth.KkmUser
+import io.github.texport.superkassa.core.domain.api.model.auth.UserRole
+import io.github.texport.superkassa.core.domain.api.model.kkm.KkmInfo
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.KkmUserRecord
-import kz.mybrain.superkassa.core.domain.model.auth.KkmUser
-import kz.mybrain.superkassa.core.domain.model.auth.UserRole
-import kz.mybrain.superkassa.core.domain.model.kkm.KkmInfo
 
 class JdbcKkmDelegate(private val sessionProvider: () -> StorageSession) {
 

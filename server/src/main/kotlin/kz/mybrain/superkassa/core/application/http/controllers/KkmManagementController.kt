@@ -1,5 +1,12 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmResponse
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmTaxSettingsUpdateRequest
+import io.github.texport.superkassa.core.presentation.api.model.kkm.ReceiptBrandingRequest
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdCommandResponse
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdTokenUpdateRequest
+import io.github.texport.superkassa.core.presentation.api.model.shift.AutoCloseShiftRequest
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -14,12 +21,7 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_K
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_CONFLICT
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_SYNC_BLOCKED
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
-import kz.mybrain.superkassa.core.application.http.toResponse
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptBranding
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.presentation.model.*
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -37,7 +39,7 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
         summary = "Получить информацию о ККМ",
         description = """
             Возвращает полную информацию о конкретной ККМ по её идентификатору.
-            
+
             Что возвращается:
             - Базовые данные: ID, даты создания и обновления
             - Состояние: режим работы (REGISTRATION), статус (ACTIVE, IDLE, INACTIVE)
@@ -46,14 +48,14 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
             - Сервисная информация ОФД: организация, адрес, ИНН, геолокация
             - Статистика: номера последних смен, чеков, Z-отчетов
             - Настройки: автономный режим; автозакрытие смены (autoCloseShift); налог — налоговый режим (taxRegime) и базовая группа НДС (defaultVatGroup)
-            
+
             Как использовать:
             - Передайте идентификатор ККМ в пути запроса
             - Метод не требует авторизации (публичный доступ)
-            
+
             Пример использования:
             GET /kkm/kkm-12345
-            
+
             Возвращаемые коды:
             - 200 OK: ККМ найдена, возвращены данные
             - 404 Not Found: ККМ с указанным ID не найдена
@@ -61,7 +63,7 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
     )
     @KkmApiResponses(ok = MSG_200_KKM_INFO, notFound = MSG_404_KKM_NOT_FOUND)
     fun getKkm(@PathVariable kkmId: String): KkmResponse {
-        return kkmService.getKkm(kkmId).toResponse()
+        return kkmService.getKkm(kkmId)
     }
 
     /**
@@ -73,20 +75,20 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
         summary = "Изменить настройку автозакрытия смены",
         description = """
             Изменяет только настройку автоматического закрытия смены (autoCloseShift).
-            
+
             Как использовать:
             1. Переведите ККМ в режим программирования через POST /kkm/{kkmId}/programming/enter
             2. Вызовите этот метод с новым значением autoCloseShift
             3. Выйдите из режима программирования через POST /kkm/{kkmId}/programming/exit
-            
+
             Требования:
             - ККМ должна быть в режиме программирования (PROGRAMMING mode)
             - ККМ должна находиться в состоянии ACTIVE
             - Требуются права администратора (ADMIN role)
-            - ПИН-код в заголовке Authorization (Bearer <pin> или <pin>)
-            
+            - ПИН-код в заголовке Authorization (Bearer <pin> or <pin>)
+
             Тело запроса: { "autoCloseShift": true | false }
-            
+
             Ответ: KkmResponse с обновлённой настройкой.
         """
     )
@@ -102,7 +104,7 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
         @RequestBody @Valid request: AutoCloseShiftRequest
     ): KkmResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService.updateKkmSettings(kkmId, pin, request.autoCloseShift).toResponse()
+        return kkmService.updateKkmSettings(kkmId, pin, request.autoCloseShift)
     }
 
     /**
@@ -115,17 +117,17 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
         summary = "Обновить налоговые настройки ККМ",
         description = """
             Обновляет налоговый режим ККМ и базовую группу НДС по умолчанию.
-            
+
             Базовые группы НДС:
             - NO_VAT — «Без НДС» (освобожденный оборот)
             - VAT_0 — «НДС 0%» (облагаемый оборот со ставкой 0%)
             - VAT_16 — «НДС 16%» (стандартная ставка)
-            
+
             Налоговый режим:
             - NO_VAT — касса не является плательщиком НДС
             - VAT_PAYER — касса является плательщиком НДС
             - MIXED — смешанный режим (для будущих сценариев)
-            
+
             Ограничения:
             - ККМ должна быть в режиме программирования (PROGRAMMING)
             - Не должно быть открытой смены
@@ -147,16 +149,12 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
         @RequestBody @Valid request: KkmTaxSettingsUpdateRequest
     ): KkmResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService
-            .updateTaxSettings(
-                kkmId = kkmId,
-                pin = pin,
-                taxRegime = kz.mybrain.superkassa.core.domain.model.common.TaxRegime.valueOf(request.taxRegime.name),
-                defaultVatGroup = kz.mybrain.superkassa.core.domain.model.common.VatGroup.valueOf(
-                    request.defaultVatGroup.name
-                )
-            )
-            .toResponse()
+        return kkmService.updateTaxSettings(
+            kkmId = kkmId,
+            pin = pin,
+            taxRegime = request.taxRegime,
+            defaultVatGroup = request.defaultVatGroup
+        )
     }
 
     /**
@@ -170,7 +168,7 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
             Обновляет настройки отображения, локализации и брендирования чеков и отчетов ККМ.
             Позволяет задавать ширину бумаги (58мм или 80мм), язык чека (RU, KK, MIXED),
             а также кастомный HTML-код для шапки и подвала и кастомные CSS-стили.
-            
+
             Ограничения:
             - ККМ должна быть в режиме программирования (PROGRAMMING)
             - Требуются права администратора (ADMIN)
@@ -186,10 +184,10 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
     fun updateBrandingSettings(
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?,
-        @RequestBody request: ReceiptBranding
+        @RequestBody request: ReceiptBrandingRequest
     ): KkmResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService.updateBrandingSettings(kkmId, pin, request).toResponse()
+        return kkmService.updateBrandingSettings(kkmId, pin, request)
     }
 
     /**
@@ -202,26 +200,26 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
         description = """
             Обновляет токен доступа к ОФД для указанной ККМ.
             Требование: касса должна быть в режиме программирования (POST /kkm/{kkmId}/programming/enter).
-            
+
             Когда использовать:
             - Если токен ОФД был изменен вручную в системе ОФД
             - После восстановления доступа к ОФД с новым токеном
             - При миграции ККМ между системами ОФД
             - В случае ошибок авторизации при работе с ОФД
-            
+
             Требования:
             - ККМ должна быть зарегистрирована
             - Требуются права администратора
             - Новый токен должен быть валидным и активным в системе ОФД
-            
+
             Что передавать:
             - kkmId (в пути): Идентификатор ККМ
             - Authorization (в заголовке): ПИН-код администратора в формате "Bearer <pin>" или просто "<pin>"
             - token (в теле запроса): Новый токен доступа к ОФД
-            
+
             Что возвращается:
             - Объект с полем "ok": true при успешном обновлении
-            
+
             Важно:
             - Токен должен быть валидным для указанного провайдера и окружения ОФД
             - После обновления токена рекомендуется проверить связь через GET /kkm/{kkmId}/ofd/ping
@@ -253,9 +251,9 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
         description = """
             Синхронизирует информацию ККМ с данными из ОФД (регистрационный номер, заводской номер, сервисная информация и т.д.).
             Требование: касса должна быть в режиме программирования (POST /kkm/{kkmId}/programming/enter).
-            
+
             Что делает метод:
-            1. Отправляет запрос COMMAND_INFO в ОФД
+            1. Отправляет запрос COMMAND_INFO in ОФД
             2. Получает актуальную информацию о ККМ из системы ОФД
             3. Обновляет локальную базу данных следующими данными:
                - Регистрационный номер ККМ (КГД)
@@ -264,36 +262,36 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
                - Сервисная информация (организация, адрес, ИНН, геолокация)
                - Системный ID в ОФД
             4. Возвращает результат синхронизации
-            
+
             Когда использовать:
             - После регистрации ККМ в ОФД для получения актуальных данных
             - При подозрении на расхождение данных между локальной БД и ОФД
             - После изменения данных ККМ в системе ОФД
             - После восстановления связи с ОФД после автономной работы
             - Перед важными операциями для обеспечения актуальности данных
-            
+
             Требования:
             - ККМ должна быть зарегистрирована и находиться в состоянии ACTIVE
             - Должна быть установлена связь с ОФД (проверяется автоматически)
             - ПИН-код должен соответствовать пользователю с правами ADMIN или CASHIER
             - Не должно быть активных операций, которые могут конфликтовать с синхронизацией
-            
+
             Что передавать:
             - kkmId (в пути): Идентификатор ККМ
             - Authorization (в заголовке): ПИН-код пользователя в формате "Bearer <pin>" или просто "<pin>"
-            
+
             Что возвращается:
             - OfdCommandResult с полями:
               * status: статус операции (OK - синхронизация успешна, FAILED - ошибка)
               * fiscalSign: фискальный признак (если применимо)
               * errorMessage: описание ошибки (если синхронизация не удалась)
               * responseBin: бинарные данные ответа от ОФД
-            
+
             Ограничения:
             - Синхронизация может быть заблокирована, если есть активные операции с ККМ
             - При ошибке связи с ОФД операция будет отклонена
             - Слишком частые синхронизации могут привести к блокировке со стороны ОФД
-            
+
             Важно:
             - Синхронизация обновляет данные в локальной БД, но не изменяет сам кассовый аппарат
             - После успешной синхронизации рекомендуется проверить данные через GET /kkm/{kkmId}
@@ -309,7 +307,7 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
     fun syncOfdServiceInfo(
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?
-    ): OfdCommandResult {
+    ): OfdCommandResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
         return kkmService.syncOfdServiceInfo(kkmId, pin)
     }

@@ -1,8 +1,8 @@
 package io.github.texport.superkassa.jvm.storage.impl.adapter
 
+import io.github.texport.superkassa.core.domain.api.model.queue.QueueTask
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.QueueTaskRecord
-import kz.mybrain.superkassa.core.domain.model.queue.QueueTask
 
 class JdbcQueueDelegate(private val sessionProvider: () -> StorageSession) {
 

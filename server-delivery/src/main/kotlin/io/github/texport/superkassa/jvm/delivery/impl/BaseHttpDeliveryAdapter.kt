@@ -1,6 +1,6 @@
 package io.github.texport.superkassa.jvm.delivery.impl
 
-import io.github.texport.superkassa.delivery.domain.model.DeliveryResult
+import io.github.texport.superkassa.delivery.api.model.DeliveryResult
 import io.github.texport.superkassa.jvm.shared.strings.api.ErrorResolver
 import io.github.texport.superkassa.jvm.shared.strings.api.key.DeliveryErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver

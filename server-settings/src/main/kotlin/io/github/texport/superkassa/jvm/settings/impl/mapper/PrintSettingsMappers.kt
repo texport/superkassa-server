@@ -1,8 +1,8 @@
 package io.github.texport.superkassa.jvm.settings.impl.mapper
 
+import io.github.texport.superkassa.core.domain.api.model.settings.PrintConnectionSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.PrintDeliverySettings
 import io.github.texport.superkassa.jvm.settings.impl.dto.*
-import kz.mybrain.superkassa.core.domain.model.settings.PrintConnectionSettings
-import kz.mybrain.superkassa.core.domain.model.settings.PrintDeliverySettings
 
 fun PrintConnectionSettings.toDto() = PrintConnectionSettingsDto(
     type = type,

@@ -1,5 +1,9 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdAuthInfoRequest
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdAuthInfoResponse
+import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdCommandResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_OFD_AUTH
@@ -9,9 +13,6 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_F
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_KKM_NOT_FOUND
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.domain.model.ofd.OfdCommandResult
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.presentation.model.OfdAuthInfoResponse
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -33,27 +34,27 @@ class KkmDiagnosticsController(private val kkmService: SuperkassaApi) {
         summary = "Получить информацию от ОФД",
         description = """
             Запрашивает актуальную информацию о ККМ из системы ОФД через команду COMMAND_INFO.
-            
+
             Что делает метод:
             - Отправляет запрос COMMAND_INFO в ОФД
             - Получает актуальную информацию о ККМ из системы ОФД
             - Возвращает данные без обновления локальной базы данных
-            
+
             Когда использовать:
             - Для проверки актуальности данных в ОФД
             - При диагностике расхождений между локальными данными и данными ОФД
             - Для получения информации о ККМ без изменения локальной БД
             - Перед синхронизацией для просмотра данных в ОФД
-            
+
             Что передавать:
             - kkmId (в пути): Идентификатор ККМ
-            
+
             Что возвращается:
             - OfdCommandResult с полями:
               * status: статус операции (OK, FAILED)
               * responseBin: бинарные данные ответа от ОФД с информацией о ККМ
               * errorMessage: описание ошибки (если запрос не удался)
-            
+
             Важно:
             - Метод не требует авторизации (публичный доступ)
             - Данные не обновляются в локальной БД автоматически
@@ -62,7 +63,7 @@ class KkmDiagnosticsController(private val kkmService: SuperkassaApi) {
         """
     )
     @KkmApiResponses(ok = MSG_200_OFD_INFO, notFound = MSG_404_KKM_NOT_FOUND)
-    fun getOfdInfo(@PathVariable kkmId: String): OfdCommandResult {
+    fun getOfdInfo(@PathVariable kkmId: String): OfdCommandResponse {
         return kkmService.getOfdInfo(kkmId)
     }
 
@@ -76,27 +77,27 @@ class KkmDiagnosticsController(private val kkmService: SuperkassaApi) {
         summary = "Проверить связь с ОФД",
         description = """
             Проверяет доступность и работоспособность связи с ОФД для указанной ККМ.
-            
+
             Что делает метод:
             - Отправляет команду COMMAND_SYSTEM в ОФД
             - Проверяет возможность доставки команды и получения ответа
             - Возвращает результат проверки связи
-            
+
             Когда использовать:
             - При диагностике проблем с ОФД
             - Перед важными операциями для проверки доступности ОФД
             - Для мониторинга состояния связи с ОФД
             - После настройки или изменения параметров ОФД
-            
+
             Что передавать:
             - kkmId (в пути): Идентификатор ККМ
-            
+
             Что возвращается:
             - OfdCommandResult с полями:
               * status: статус операции (OK - связь работает, FAILED - проблемы с связью)
               * errorMessage: описание ошибки (если связь не работает)
               * responseBin: бинарные данные ответа от ОФД
-            
+
             Важно:
             - Метод не требует авторизации (публичный доступ)
             - Проверка связи не влияет на работу ККМ
@@ -104,7 +105,7 @@ class KkmDiagnosticsController(private val kkmService: SuperkassaApi) {
         """
     )
     @KkmApiResponses(ok = MSG_200_OFD_PING, notFound = MSG_404_KKM_NOT_FOUND)
-    fun checkOfdConnection(@PathVariable kkmId: String): OfdCommandResult {
+    fun checkOfdConnection(@PathVariable kkmId: String): OfdCommandResponse {
         return kkmService.checkOfdConnection(kkmId)
     }
 
@@ -118,34 +119,34 @@ class KkmDiagnosticsController(private val kkmService: SuperkassaApi) {
         summary = "Получить данные авторизации ОФД",
         description = """
             Возвращает информацию об авторизации для работы с ОФД.
-            
+
             Что возвращается:
             - Токен доступа к ОФД (зашифрованный)
             - Номер следующего запроса (reqNum) для последовательности команд
             - Информация о провайдере и окружении ОФД
-            
+
             Когда использовать:
             - Для отладки проблем с авторизацией в ОФД
             - При диагностике ошибок взаимодействия с ОФД
             - Для проверки корректности настроек ОФД
             - При разработке и тестировании интеграции
-            
+
             Требования:
             - ККМ должна быть зарегистрирована
             - ПИН-код должен быть передан в заголовке Authorization (Bearer <pin> или просто <pin>)
             - ПИН-код должен соответствовать пользователю с правами ADMIN или CASHIER
-            
+
             Что передавать:
             - kkmId (в пути): Идентификатор ККМ
             - Authorization (в заголовке): ПИН-код пользователя в формате "Bearer <pin>" или просто "<pin>"
-            
+
             Что возвращается:
             - OfdAuthInfoResponse с полями:
               * token: зашифрованный токен доступа к ОФД
               * reqNum: номер следующего запроса
               * ofdId: идентификатор провайдера ОФД
               * ofdEnvironment: окружение ОФД (TEST/PROD)
-            
+
             Важно:
             - Данные авторизации чувствительны, не передавайте их третьим лицам
             - Токен автоматически обновляется системой при необходимости
@@ -162,6 +163,6 @@ class KkmDiagnosticsController(private val kkmService: SuperkassaApi) {
         @RequestHeader("Authorization") authHeader: String?
     ): OfdAuthInfoResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService.getOfdAuthInfo(kkmId, pin)
+        return kkmService.getOfdAuthInfo(pin, OfdAuthInfoRequest(kkmId))
     }
 }

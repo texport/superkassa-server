@@ -1,5 +1,18 @@
+@file:Suppress("WildcardImport", "AnnotationOnSeparateLine")
+
 package io.github.texport.superkassa.jvm.storage.impl.adapter
 
+import io.github.texport.superkassa.core.domain.api.exception.StorageException
+import io.github.texport.superkassa.core.domain.api.model.auth.KkmUser
+import io.github.texport.superkassa.core.domain.api.model.auth.UserRole
+import io.github.texport.superkassa.core.domain.api.model.common.*
+import io.github.texport.superkassa.core.domain.api.model.kkm.*
+import io.github.texport.superkassa.core.domain.api.model.ofd.*
+import io.github.texport.superkassa.core.domain.api.model.receipt.*
+import io.github.texport.superkassa.core.domain.api.model.shift.*
+import io.github.texport.superkassa.core.presentation.api.model.kkm.OfdServiceInfoResponse
+import io.github.texport.superkassa.core.presentation.api.model.kkm.ReceiptBrandingResponse
+import io.github.texport.superkassa.core.string.api.TrilingualMessage
 import io.github.texport.superkassa.jvm.shared.strings.api.key.StorageErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
@@ -7,19 +20,6 @@ import io.github.texport.superkassa.jvm.storage.impl.domain.model.FiscalDocument
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.KkmUserRecord
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.ShiftRecord
 import kotlinx.serialization.json.Json
-import kz.mybrain.superkassa.core.domain.exception.StorageException
-import kz.mybrain.superkassa.core.domain.exception.TrilingualMessage
-import kz.mybrain.superkassa.core.domain.model.auth.KkmUser
-import kz.mybrain.superkassa.core.domain.model.auth.UserRole
-import kz.mybrain.superkassa.core.domain.model.common.*
-import kz.mybrain.superkassa.core.domain.model.kkm.*
-import kz.mybrain.superkassa.core.domain.model.ofd.*
-import kz.mybrain.superkassa.core.domain.model.receipt.*
-import kz.mybrain.superkassa.core.domain.model.shift.*
-import kz.mybrain.superkassa.core.presentation.model.OfdServiceInfoDto
-import kz.mybrain.superkassa.core.presentation.model.ReceiptBrandingDto
-import kz.mybrain.superkassa.core.presentation.model.toDomain
-import kz.mybrain.superkassa.core.presentation.model.toDto
 import org.slf4j.LoggerFactory
 import java.util.Base64
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.CashboxRecord as StorageKkmRecord
@@ -49,7 +49,8 @@ object StorageMapper {
     fun mapKkm(record: StorageKkmRecord): KkmInfo {
         val branding = record.brandingJson?.let {
             try {
-                json.decodeFromString(ReceiptBrandingDto.serializer(), it).toDomain()
+                val dto = json.decodeFromString(ReceiptBrandingResponse.serializer(), it)
+                mapToDomain(dto)
             } catch (_: Exception) {
                 ReceiptBranding()
             }
@@ -81,6 +82,7 @@ object StorageMapper {
     }
 
     fun mapKkmToRecord(info: KkmInfo): StorageKkmRecord {
+        val dto = mapToResponse(info.branding)
         return StorageKkmRecord(
             id = info.id,
             createdAt = info.createdAt,
@@ -103,18 +105,22 @@ object StorageMapper {
             lastFiscalHash = decodeBase64(info.lastFiscalHashBase64),
             taxRegime = info.taxRegime.name,
             defaultVatGroup = info.defaultVatGroup.name,
-            brandingJson = json.encodeToString(ReceiptBrandingDto.serializer(), info.branding.toDto())
+            brandingJson = json.encodeToString(ReceiptBrandingResponse.serializer(), dto)
         )
     }
 
     fun encodeServiceInfo(info: OfdServiceInfo?): String? {
         if (info == null) return null
-        return runCatching { json.encodeToString(OfdServiceInfoDto.serializer(), info.toDto()) }.getOrNull()
+        val dto = mapToResponse(info)
+        return runCatching { json.encodeToString(OfdServiceInfoResponse.serializer(), dto) }.getOrNull()
     }
 
     fun decodeServiceInfo(payload: String?): OfdServiceInfo? {
         if (payload.isNullOrBlank()) return null
-        return runCatching { json.decodeFromString(OfdServiceInfoDto.serializer(), payload).toDomain() }.getOrNull()
+        return runCatching {
+            val dto = json.decodeFromString(OfdServiceInfoResponse.serializer(), payload)
+            mapToDomain(dto)
+        }.getOrNull()
     }
 
     fun encodeBase64(bytes: ByteArray?): String? {
@@ -213,7 +219,8 @@ object StorageMapper {
         val cashbox = session.cashboxes.findById(r.cashboxId)
         val serviceInfo = cashbox?.ofdServiceInfoJson?.let {
             try {
-                json.decodeFromString(OfdServiceInfoDto.serializer(), it).toDomain()
+                val dto = json.decodeFromString(OfdServiceInfoResponse.serializer(), it)
+                mapToDomain(dto)
             } catch (_: Exception) {
                 null
             }
@@ -242,4 +249,68 @@ object StorageMapper {
             ofdProvider = cashbox?.ofdProvider
         )
     }
+
+    private fun mapToResponse(branding: ReceiptBranding): ReceiptBrandingResponse = ReceiptBrandingResponse(
+        language = io.github.texport.superkassa.core.presentation.api.model.kkm.ReceiptLanguage.valueOf(branding.language.name),
+        headerLogoUrl = branding.headerLogoUrl,
+        paperWidthMm = branding.paperWidthMm,
+        themeColor = branding.themeColor,
+        beforeHeaderMsg = branding.beforeHeaderMsg,
+        headerMsg = branding.headerMsg,
+        afterHeaderMsg = branding.afterHeaderMsg,
+        beforeItemsMsg = branding.beforeItemsMsg,
+        afterItemsMsg = branding.afterItemsMsg,
+        beforeTotalsMsg = branding.beforeTotalsMsg,
+        afterTotalsMsg = branding.afterTotalsMsg,
+        beforeQrMsg = branding.beforeQrMsg,
+        footerMsg = branding.footerMsg,
+        useForceDarkTheme = branding.useForceDarkTheme,
+        customBackgroundColorHex = branding.customBackgroundColorHex,
+        customCardTopBorderColorHex = branding.customCardTopBorderColorHex,
+        ofdTicketAds = branding.ofdTicketAds,
+        printOfdTicketAds = branding.printOfdTicketAds
+    )
+
+    private fun mapToDomain(dto: ReceiptBrandingResponse): ReceiptBranding = ReceiptBranding(
+        language = io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptLanguage.valueOf(dto.language.name),
+        headerLogoUrl = dto.headerLogoUrl,
+        paperWidthMm = dto.paperWidthMm,
+        themeColor = dto.themeColor,
+        beforeHeaderMsg = dto.beforeHeaderMsg,
+        headerMsg = dto.headerMsg,
+        afterHeaderMsg = dto.afterHeaderMsg,
+        beforeItemsMsg = dto.beforeItemsMsg,
+        afterItemsMsg = dto.afterItemsMsg,
+        beforeTotalsMsg = dto.beforeTotalsMsg,
+        afterTotalsMsg = dto.afterTotalsMsg,
+        beforeQrMsg = dto.beforeQrMsg,
+        footerMsg = dto.footerMsg,
+        useForceDarkTheme = dto.useForceDarkTheme,
+        customBackgroundColorHex = dto.customBackgroundColorHex,
+        customCardTopBorderColorHex = dto.customCardTopBorderColorHex,
+        ofdTicketAds = dto.ofdTicketAds,
+        printOfdTicketAds = dto.printOfdTicketAds
+    )
+
+    private fun mapToResponse(info: OfdServiceInfo): OfdServiceInfoResponse = OfdServiceInfoResponse(
+        orgTitle = info.orgTitle,
+        orgAddress = info.orgAddress,
+        orgAddressKz = info.orgAddressKz,
+        orgInn = info.orgInn,
+        orgOkved = info.orgOkved,
+        geoLatitude = info.geoLatitude,
+        geoLongitude = info.geoLongitude,
+        geoSource = info.geoSource
+    )
+
+    private fun mapToDomain(dto: OfdServiceInfoResponse): OfdServiceInfo = OfdServiceInfo(
+        orgTitle = dto.orgTitle,
+        orgAddress = dto.orgAddress,
+        orgAddressKz = dto.orgAddressKz,
+        orgInn = dto.orgInn,
+        orgOkved = dto.orgOkved,
+        geoLatitude = dto.geoLatitude,
+        geoLongitude = dto.geoLongitude,
+        geoSource = dto.geoSource
+    )
 }

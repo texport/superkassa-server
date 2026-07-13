@@ -1,9 +1,9 @@
 # superkassa-storage-jdbc
 
 [![CI Build](https://github.com/texport/superkassa-server/actions/workflows/ci.yml/badge.svg)](https://github.com/texport/superkassa-server/actions)
-[![Version](https://img.shields.io/badge/Version-1.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.0.4-blue.svg)]()
 [![Coverage](https://img.shields.io/badge/Coverage-85%25--100%25-brightgreen.svg)]()
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../time-java/LICENSE)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../LICENSE)
 
 ---
 
@@ -17,8 +17,8 @@ Infrastructure JDBC database storage adapters for the **Superkassa** fiscalizati
 
 ### Key Features
 - **Supported Engines**: PostgreSQL, MySQL, SQLite.
-- **`StorageManager`**: Database connections pool configuration using HikariCP.
-- **`StorageBootstrap`**: Automated database schema migration support using direct migration scripts catalog (`MigrationCatalog`).
+- **`StorageConfig`**: Database connection credentials and pooling config.
+- **`StorageBootstrap`**: Automated database schema migration support using direct migration scripts catalog.
 - **Repositories**: Direct JDBC implementations of KKM users, counters, cashboxes, shifts, fiscal documents, outbox events, and offline queues.
 
 ---
@@ -29,7 +29,7 @@ Add the dependency to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("kz.mybrain:superkassa-storage-jdbc:1.0")
+    implementation("io.github.texport:storage-jdbc:1.0.4")
 }
 ```
 
@@ -38,11 +38,8 @@ dependencies {
 ### Usage Example
 
 ```kotlin
-import kz.mybrain.superkassa.storage.application.connector.StorageManager
-import kz.mybrain.superkassa.storage.application.bootstrap.StorageBootstrap
-
-val storageManager = StorageManager(config, connectorRegistry)
-val storageBootstrap = StorageBootstrap(storageManager, migrationCatalog)
+import io.github.texport.superkassa.jvm.storage.impl.application.bootstrap.StorageBootstrap
+import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 
 // Run migrations on startup
 storageBootstrap.bootstrap()
@@ -56,8 +53,8 @@ storageBootstrap.bootstrap()
 
 ### Ключевые возможности
 - **Поддерживаемые СУБД**: PostgreSQL, MySQL, SQLite.
-- **`StorageManager`**: Конфигурирование пула соединений БД с использованием HikariCP.
-- **`StorageBootstrap`**: Автоматическое применение миграций схемы БД через каталог скриптов миграции (`MigrationCatalog`).
+- **`StorageConfig`**: Конфигурирование подключения и параметров пула соединений БД.
+- **`StorageBootstrap`**: Автоматическое применение миграций схемы БД через каталог скриптов миграции.
 - **Репозитории**: Прямые JDBC-реализации для пользователей кассы, счетчиков, кассовых аппаратов, смен, фискальных документов, событий outbox и офлайн-очереди.
 
 ---
@@ -68,7 +65,7 @@ storageBootstrap.bootstrap()
 
 ```kotlin
 dependencies {
-    implementation("kz.mybrain:superkassa-storage-jdbc:1.0")
+    implementation("io.github.texport:storage-jdbc:1.0.4")
 }
 ```
 
@@ -77,11 +74,8 @@ dependencies {
 ### Пример использования
 
 ```kotlin
-import kz.mybrain.superkassa.storage.application.connector.StorageManager
-import kz.mybrain.superkassa.storage.application.bootstrap.StorageBootstrap
-
-val storageManager = StorageManager(config, connectorRegistry)
-val storageBootstrap = StorageBootstrap(storageManager, migrationCatalog)
+import io.github.texport.superkassa.jvm.storage.impl.application.bootstrap.StorageBootstrap
+import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 
 // Запуск миграций при старте
 storageBootstrap.bootstrap()
@@ -91,6 +85,6 @@ storageBootstrap.bootstrap()
 
 ## License / Лицензия
 
-This project is licensed under the Apache License 2.0. See [LICENSE](../time-java/LICENSE) for details.
+This project is licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.
 
-Этот проект распространяется под лицензией Apache License 2.0. Подробности см. в файле [LICENSE](../time-java/LICENSE).
+Этот проект распространяется под лицензией Apache License 2.0. Подробности см. в файле [LICENSE](../LICENSE).

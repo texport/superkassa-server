@@ -1,7 +1,7 @@
 package kz.mybrain.superkassa.core.application.http.utils
 
-import kz.mybrain.superkassa.core.domain.exception.ErrorMessages
-import kz.mybrain.superkassa.core.domain.exception.ForbiddenException
+import io.github.texport.superkassa.core.domain.api.exception.ForbiddenException
+import io.github.texport.superkassa.core.string.api.CoreStrings
 
 /**
  * Утилиты для работы с заголовком Authorization.
@@ -21,20 +21,20 @@ object AuthHeaderUtils {
      */
     fun extractPin(authHeader: String?): String {
         if (authHeader.isNullOrBlank()) {
-            throw ForbiddenException(ErrorMessages.unauthorized())
+            throw ForbiddenException(CoreStrings.unauthorized())
         }
 
         val trimmed = authHeader.trim()
 
         if (trimmed.equals("Bearer", ignoreCase = true)) {
-            throw ForbiddenException(ErrorMessages.unauthorized())
+            throw ForbiddenException(CoreStrings.unauthorized())
         }
 
         // Поддержка формата "Bearer <pin>"
         if (trimmed.startsWith("Bearer ", ignoreCase = true)) {
             val pin = trimmed.substring(7).trim()
             if (pin.isBlank()) {
-                throw ForbiddenException(ErrorMessages.unauthorized())
+                throw ForbiddenException(CoreStrings.unauthorized())
             }
             return pin
         }

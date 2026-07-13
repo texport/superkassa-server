@@ -1,8 +1,8 @@
 package io.github.texport.superkassa.jvm.settings.api
 
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
 import io.github.texport.superkassa.jvm.shared.strings.api.key.SettingsErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
 
 /**
  * Интерфейс валидатора для проверки корректности конфигурации ядра (сервера или десктопа).

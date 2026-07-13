@@ -1,8 +1,8 @@
 package kz.mybrain.superkassa.core.http.controllers
 
 import kz.mybrain.superkassa.core.application.http.exception.GlobalExceptionHandler
-import kz.mybrain.superkassa.core.domain.exception.SuperkassaException
-import kz.mybrain.superkassa.core.domain.exception.TrilingualMessage
+import io.github.texport.superkassa.core.domain.api.exception.SuperkassaException
+import io.github.texport.superkassa.core.string.api.TrilingualMessage
 import org.springframework.http.HttpStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals

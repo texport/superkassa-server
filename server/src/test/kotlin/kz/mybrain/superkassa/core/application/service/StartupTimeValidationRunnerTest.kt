@@ -2,10 +2,10 @@ package kz.mybrain.superkassa.core.application.service
 
 import kz.mybrain.superkassa.core.application.time.SystemTimeStartupValidationException
 import kz.mybrain.superkassa.core.application.time.ValidateSystemTimeOnStartupUseCase
-import kz.mybrain.superkassa.core.domain.exception.TrilingualMessage
-import kz.mybrain.superkassa.core.domain.model.common.TimeValidationResult
-import kz.mybrain.superkassa.core.domain.port.ClockPort
-import kz.mybrain.superkassa.core.domain.port.TimeValidatorPort
+import io.github.texport.superkassa.core.string.api.TrilingualMessage
+import io.github.texport.superkassa.core.domain.api.model.common.TimeValidationResult
+import io.github.texport.superkassa.core.domain.api.port.integration.ClockPort
+import io.github.texport.superkassa.core.domain.api.port.integration.TimeValidatorPort
 import org.springframework.boot.ApplicationArguments
 import kotlin.test.Test
 import kotlin.test.assertFailsWith

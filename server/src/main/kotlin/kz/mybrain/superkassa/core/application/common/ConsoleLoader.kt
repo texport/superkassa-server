@@ -1,8 +1,8 @@
 package kz.mybrain.superkassa.core.application.common
 
-import kz.mybrain.superkassa.core.domain.model.kkm.KkmState
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
-import kz.mybrain.superkassa.core.domain.port.StoragePort
+import io.github.texport.superkassa.core.domain.api.model.kkm.KkmState
+import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
+import io.github.texport.superkassa.jvm.settings.impl.dto.CoreSettingsDto
 import org.slf4j.LoggerFactory
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
@@ -22,7 +22,7 @@ import java.time.format.DateTimeFormatter
 class ConsoleLoader(
     private val env: Environment,
     private val storage: StoragePort? = null,
-    private val coreSettings: CoreSettings? = null
+    private val coreSettings: CoreSettingsDto? = null
 ) : ApplicationListener<ApplicationReadyEvent> {
 
     private val log = LoggerFactory.getLogger(ConsoleLoader::class.java)

@@ -1,8 +1,8 @@
 package io.github.texport.superkassa.jvm.settings.impl.mapper
 
+import io.github.texport.superkassa.core.domain.api.model.settings.DeliveryChannelSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.DeliverySettings
 import io.github.texport.superkassa.jvm.settings.impl.dto.*
-import kz.mybrain.superkassa.core.domain.model.settings.DeliveryChannelSettings
-import kz.mybrain.superkassa.core.domain.model.settings.DeliverySettings
 
 fun DeliveryChannelSettings.toDto() = DeliveryChannelSettingsDto(
     channel = channel,

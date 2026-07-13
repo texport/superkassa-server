@@ -1,9 +1,9 @@
-# superkassa-delivery
+# superkassa-server-delivery
 
 [![CI Build](https://img.shields.io/github/actions/workflow/status/texport/superkassa-server/ci.yml?branch=main&label=CI%20Build)](https://github.com/texport/superkassa-server/actions)
-[![Version](https://img.shields.io/badge/Version-1.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.0.4-blue.svg)]()
 [![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen.svg)]()
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../time-java/LICENSE)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../LICENSE)
 
 ---
 
@@ -31,7 +31,7 @@ Add the dependency to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.texport:superkassa-delivery:1.0")
+    implementation("io.github.texport:server-delivery:1.0.4")
 }
 ```
 
@@ -68,7 +68,7 @@ telegramAdapter.send(document)
 
 ```kotlin
 dependencies {
-    implementation("io.github.texport:superkassa-delivery:1.0")
+    implementation("io.github.texport:server-delivery:1.0.4")
 }
 ```
 
@@ -87,6 +87,6 @@ telegramAdapter.send(document)
 
 ## License / Лицензия
 
-This project is licensed under the Apache License 2.0. See [LICENSE](../time-java/LICENSE) for details.
+This project is licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.
 
-Этот проект распространяется под лицензией Apache License 2.0. Подробности см. в файле [LICENSE](../time-java/LICENSE).
+Этот проект распространяется под лицензией Apache License 2.0. Подробности см. в файле [LICENSE](../LICENSE).

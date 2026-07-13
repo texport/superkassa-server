@@ -1,9 +1,9 @@
 package io.github.texport.superkassa.jvm.delivery.impl
 
-import io.github.texport.superkassa.delivery.domain.model.DeliveryChannel
-import io.github.texport.superkassa.delivery.domain.model.DeliveryRequest
-import io.github.texport.superkassa.delivery.domain.model.DeliveryResult
-import io.github.texport.superkassa.delivery.domain.port.DeliveryAdapter
+import io.github.texport.superkassa.delivery.api.model.DeliveryChannel
+import io.github.texport.superkassa.delivery.api.model.DeliveryRequest
+import io.github.texport.superkassa.delivery.api.model.DeliveryResult
+import io.github.texport.superkassa.delivery.api.port.DeliveryPort
 import io.github.texport.superkassa.jvm.shared.strings.api.ErrorResolver
 import io.github.texport.superkassa.jvm.shared.strings.api.key.DeliveryErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.api.key.DeliveryTemplateKey
@@ -35,7 +35,7 @@ class EmailDeliveryAdapter(
     private val password: String?,
     private val from: String,
     private val errorResolver: ErrorResolver = DefaultErrorResolver()
-) : DeliveryAdapter {
+) : DeliveryPort {
 
     override val channel: DeliveryChannel = DeliveryChannel.EMAIL
     private val logger = LoggerFactory.getLogger(EmailDeliveryAdapter::class.java)

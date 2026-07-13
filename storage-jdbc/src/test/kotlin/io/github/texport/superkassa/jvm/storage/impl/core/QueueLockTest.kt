@@ -3,13 +3,26 @@ package io.github.texport.superkassa.jvm.storage.impl.core
 import io.github.texport.superkassa.jvm.storage.impl.adapter.StorageAdapter
 import io.github.texport.superkassa.jvm.storage.impl.data.bootstrap.DefaultStorageBootstrap
 import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
-import kz.mybrain.superkassa.core.data.adapter.StorageBackedLeaseLockAdapter
+import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
+import io.github.texport.superkassa.offlinequeue.api.port.LeaseLockPort
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class QueueLockTest {
+
+    class TestLeaseLockAdapter(private val storage: StoragePort) : LeaseLockPort {
+        override fun tryAcquire(cashboxId: String, ownerId: String, leaseUntil: Long, now: Long): Boolean {
+            return storage.tryAcquireQueueLock(cashboxId, ownerId, leaseUntil, now)
+        }
+        override fun renew(cashboxId: String, ownerId: String, leaseUntil: Long, now: Long): Boolean {
+            return storage.renewQueueLock(cashboxId, ownerId, leaseUntil, now)
+        }
+        override fun release(cashboxId: String, ownerId: String): Boolean {
+            return storage.releaseQueueLock(cashboxId, ownerId)
+        }
+    }
 
     @Test
     fun testMultiNodeLeaseLockBehavior() {
@@ -19,8 +32,8 @@ class QueueLockTest {
         storageBootstrap.migrate(storageConfig)
 
         val storage = StorageAdapter(storageBootstrap, storageConfig)
-        val lockPort1 = StorageBackedLeaseLockAdapter(storage)
-        val lockPort2 = StorageBackedLeaseLockAdapter(storage)
+        val lockPort1 = TestLeaseLockAdapter(storage)
+        val lockPort2 = TestLeaseLockAdapter(storage)
 
         val cashboxId = "cashbox-123"
         val now = System.currentTimeMillis()

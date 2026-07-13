@@ -1,9 +1,9 @@
 package io.github.texport.superkassa.jvm.delivery.impl
 
-import io.github.texport.superkassa.delivery.domain.model.DeliveryChannel
-import io.github.texport.superkassa.delivery.domain.model.DeliveryRequest
-import io.github.texport.superkassa.delivery.domain.model.DeliveryResult
-import io.github.texport.superkassa.delivery.domain.port.DeliveryAdapter
+import io.github.texport.superkassa.delivery.api.model.DeliveryChannel
+import io.github.texport.superkassa.delivery.api.model.DeliveryRequest
+import io.github.texport.superkassa.delivery.api.model.DeliveryResult
+import io.github.texport.superkassa.delivery.api.port.DeliveryPort
 import io.github.texport.superkassa.jvm.shared.strings.api.ErrorResolver
 import io.github.texport.superkassa.jvm.shared.strings.api.key.DeliveryErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.api.key.DeliveryTemplateKey
@@ -25,7 +25,7 @@ import java.nio.charset.StandardCharsets
 class TelegramDeliveryAdapter(
     private val botToken: String,
     errorResolver: ErrorResolver = DefaultErrorResolver()
-) : BaseHttpDeliveryAdapter(errorResolver), DeliveryAdapter {
+) : BaseHttpDeliveryAdapter(errorResolver), DeliveryPort {
 
     override val channel: DeliveryChannel = DeliveryChannel.TELEGRAM
     override val logger: Logger = LoggerFactory.getLogger(TelegramDeliveryAdapter::class.java)

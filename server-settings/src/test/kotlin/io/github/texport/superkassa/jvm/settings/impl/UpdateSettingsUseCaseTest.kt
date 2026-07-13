@@ -1,13 +1,13 @@
-package kz.mybrain.superkassa.core.application.settings
+package io.github.texport.superkassa.jvm.settings.impl
 
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kz.mybrain.superkassa.core.domain.exception.SettingsFrozenException
-import kz.mybrain.superkassa.core.domain.model.settings.CoreMode
-import kz.mybrain.superkassa.core.domain.model.settings.CoreSettings
-import kz.mybrain.superkassa.core.domain.model.settings.StorageSettings
-import kz.mybrain.superkassa.core.domain.port.CoreSettingsRepositoryPort
+import io.github.texport.superkassa.core.domain.api.exception.SettingsFrozenException
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreMode
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettings
+import io.github.texport.superkassa.core.domain.api.port.integration.CoreSettingsRepositoryPort
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

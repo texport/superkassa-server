@@ -1,6 +1,6 @@
 package io.github.texport.superkassa.jvm.receipt.impl
 
-import kz.mybrain.superkassa.core.domain.port.DocumentConvertPort
+import io.github.texport.superkassa.core.domain.api.port.integration.DocumentConvertPort
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO

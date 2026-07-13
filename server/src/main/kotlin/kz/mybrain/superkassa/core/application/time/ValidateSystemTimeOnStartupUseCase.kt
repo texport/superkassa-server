@@ -1,8 +1,8 @@
 package kz.mybrain.superkassa.core.application.time
 
-import kz.mybrain.superkassa.core.domain.model.common.TimeValidationResult
-import kz.mybrain.superkassa.core.domain.port.ClockPort
-import kz.mybrain.superkassa.core.domain.port.TimeValidatorPort
+import io.github.texport.superkassa.core.domain.api.model.common.TimeValidationResult
+import io.github.texport.superkassa.core.domain.api.port.integration.ClockPort
+import io.github.texport.superkassa.core.domain.api.port.integration.TimeValidatorPort
 
 class ValidateSystemTimeOnStartupUseCase(
     private val timeValidator: TimeValidatorPort,

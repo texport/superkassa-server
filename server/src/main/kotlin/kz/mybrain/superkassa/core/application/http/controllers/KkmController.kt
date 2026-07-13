@@ -1,6 +1,14 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
-import io.github.texport.superkassa.jvm.receipt.impl.DocumentConvertAdapter
+import io.github.texport.superkassa.core.presentation.api.DeliveryApi
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.kkm.FiscalDocumentResponse
+import io.github.texport.superkassa.core.presentation.api.model.ofd.DeliveryRetryItemResponse
+import io.github.texport.superkassa.core.presentation.api.model.ofd.DeliveryRetryResponse
+import io.github.texport.superkassa.core.presentation.api.model.receipt.PrintDocumentType
+import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptLayoutType
+import io.github.texport.superkassa.core.presentation.api.model.shift.ReportResponse
+import io.github.texport.superkassa.core.presentation.api.model.shift.ShiftResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_DELIVERY_RETRY
@@ -18,15 +26,6 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_S
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_409_SHIFT_OPEN
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.domain.model.kkm.FiscalDocumentSnapshot
-import kz.mybrain.superkassa.core.domain.model.receipt.ReceiptLayoutType
-import kz.mybrain.superkassa.core.domain.model.report.PrintDocumentType
-import kz.mybrain.superkassa.core.domain.model.report.ReportResult
-import kz.mybrain.superkassa.core.domain.model.shift.ShiftInfo
-import kz.mybrain.superkassa.core.domain.port.DocumentConvertPort
-import kz.mybrain.superkassa.core.presentation.facade.SuperkassaApi
-import kz.mybrain.superkassa.core.presentation.model.DeliveryRetryItemResponse
-import kz.mybrain.superkassa.core.presentation.model.DeliveryRetryResponse
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -36,7 +35,7 @@ import org.springframework.web.bind.annotation.*
 @Tag(name = "Управление сменой(Z-Отчет) ККМ", description = "Операции со сменами, чеками и отчетами")
 class KkmController(
     private val kkmService: SuperkassaApi,
-    private val documentConvertPort: DocumentConvertPort = DocumentConvertAdapter()
+    private val deliveryApi: DeliveryApi
 ) {
 
     /** Открыть новую смену. */
@@ -45,31 +44,10 @@ class KkmController(
         summary = "Открыть смену",
         description = """
                 Открывает новую смену для работы с ККМ.
-                
+
                 Что делает метод:
-                - Создает новую смену для указанной ККМ
-                - Инициализирует счетчики смены
-                - Возвращает информацию об открытой смене
-                
-                Требования:
-                - ККМ должна быть зарегистрирована и находиться в состоянии ACTIVE
-                - Предыдущая смена должна быть закрыта (если была открыта)
-                - ПИН-код должен быть передан в заголовке Authorization (Bearer <pin> или просто <pin>)
-                - ПИН-код должен соответствовать пользователю с правами CASHIER или ADMIN
-                
-                Что передавать:
-                - kkmId (в пути): Идентификатор ККМ
-                - Authorization (в заголовке): ПИН-код пользователя в формате "Bearer <pin>" или просто "<pin>"
-                - Тело запроса может быть пустым (все параметры берутся из пути и заголовка)
-                
-                Что возвращается:
-                - ShiftInfo с полями:
-                  * shiftId: идентификатор смены
-                  * shiftNumber: номер смены
-                  * openedAt: время открытия смены
-                  * kkmId: идентификатор ККМ
-                
-                Важно:
+                - Переводит ККМ в режим открытой смены
+                - Регистрирует документ открытия смены в ОФД
                 - После открытия смены можно создавать чеки и выполнять операции
                 - Для закрытия смены используйте POST /kkm/{kkmId}/shift/close
                 - Нельзя открыть новую смену, если предыдущая не закрыта
@@ -84,7 +62,7 @@ class KkmController(
     fun openShift(
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?
-    ): ShiftInfo {
+    ): ShiftResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
         return kkmService.openShift(kkmId, pin)
     }
@@ -95,41 +73,12 @@ class KkmController(
         summary = "Закрыть смену (Z-отчет)",
         description = """
                 Закрывает текущую смену и создает Z-отчет.
-                
+
                 Что делает метод:
                 - Закрывает текущую открытую смену
                 - Формирует Z-отчет с итоговыми данными по смене
                 - Отправляет данные в ОФД
                 - Возвращает результат закрытия смены
-                
-                Z-отчет показывает:
-                - Итоговые данные по смене
-                - Общее количество и сумму операций
-                - Статистику по операциям
-                - После закрытия смены необходимо открыть новую смену для продолжения работы
-                
-                Требования:
-                - ККМ должна быть зарегистрирована и находиться в состоянии ACTIVE
-                - Смена должна быть открыта
-                - ПИН-код должен быть передан в заголовке Authorization (Bearer <pin> или просто <pin>)
-                - ПИН-код должен соответствовать пользователю с правами CASHIER или ADMIN
-                
-                Что передавать:
-                - kkmId (в пути): Идентификатор ККМ
-                - Authorization (в заголовке): ПИН-код пользователя в формате "Bearer <pin>" или просто "<pin>"
-                - Тело запроса может быть пустым (все параметры берутся из пути и заголовка)
-                
-                Что возвращается:
-                - ReportResult с полями:
-                  * documentId: Идентификатор сгенерированного фискального документа отчета в БД.
-                  * deliveryStatus: Статус доставки отчета в ОФД/клиенту (ONLINE_OK, ONLINE_ERROR, OFFLINE_QUEUED, NOT_SENT).
-                  * deliveryError: Текст ошибки доставки, если отправка завершилась неудачно (опционально).
-                  * deliveryPayload: Бинарное представление сгенерированного отчета (опционально).
-                
-                Важно:
-                - После закрытия смены необходимо открыть новую смену через POST /kkm/{kkmId}/shift/open
-                - Z-отчет закрывает смену окончательно, после этого нельзя создавать чеки в закрытой смене
-                - Тип отчета (Z_REPORT) определяется автоматически, не нужно указывать в запросе
             """
     )
     @KkmApiResponses(
@@ -142,7 +91,7 @@ class KkmController(
     fun closeShift(
         @PathVariable kkmId: String,
         @RequestHeader("Authorization") authHeader: String?
-    ): ReportResult {
+    ): ReportResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
         return kkmService.closeShift(kkmId, pin)
     }
@@ -162,7 +111,7 @@ class KkmController(
         @RequestParam(defaultValue = "100") limit: Int,
         @RequestParam(defaultValue = "0") offset: Int,
         @RequestHeader("Authorization") authHeader: String?
-    ): List<ShiftInfo> {
+    ): List<ShiftResponse> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
         return kkmService.listShifts(kkmId, limit, offset, pin)
     }
@@ -188,7 +137,7 @@ class KkmController(
         @RequestParam(defaultValue = "100") limit: Int,
         @RequestParam(defaultValue = "0") offset: Int,
         @RequestHeader("Authorization") authHeader: String?
-    ): List<FiscalDocumentSnapshot> {
+    ): List<FiscalDocumentResponse> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
         return kkmService.listShiftDocuments(kkmId, shiftId, limit, offset, pin)
     }
@@ -210,7 +159,7 @@ class KkmController(
         @RequestParam(defaultValue = "100") limit: Int,
         @RequestParam(defaultValue = "0") offset: Int,
         @RequestHeader("Authorization") authHeader: String?
-    ): List<FiscalDocumentSnapshot> {
+    ): List<FiscalDocumentResponse> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
         val shift = kkmService.getOpenShift(kkmId, pin)
         return kkmService.listShiftDocuments(kkmId, shift.id, limit, offset, pin)
@@ -233,7 +182,7 @@ class KkmController(
         @RequestParam(defaultValue = "100") limit: Int,
         @RequestParam(defaultValue = "0") offset: Int,
         @RequestHeader("Authorization") authHeader: String?
-    ): List<FiscalDocumentSnapshot> {
+    ): List<FiscalDocumentResponse> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
         return kkmService.listFiscalDocumentsByPeriod(kkmId, from, to, limit, offset, pin)
     }
@@ -362,18 +311,17 @@ class KkmController(
             it.id == documentId || it.openDocumentId == documentId || it.closeDocumentId == documentId
         }
 
-        val html = if (matchingShift != null) {
+        val imageBytes = if (matchingShift != null) {
             val type = if (matchingShift.closeDocumentId == documentId || matchingShift.id == documentId) {
                 PrintDocumentType.CLOSE_SHIFT
             } else {
                 PrintDocumentType.OPEN_SHIFT
             }
-            kkmService.getPrintHtml(kkmId, type, null, matchingShift.id, pin, layout)
+            kkmService.getPrintPng(kkmId, type, null, matchingShift.id, pin, layout)
         } else {
-            kkmService.getPrintHtml(kkmId, PrintDocumentType.DOCUMENT, documentId, null, pin, layout)
+            kkmService.getPrintPng(kkmId, PrintDocumentType.DOCUMENT, documentId, null, pin, layout)
         }
 
-        val imageBytes = documentConvertPort.htmlToImage(html)
         return ResponseEntity.ok()
             .contentType(MediaType.IMAGE_PNG)
             .body(imageBytes)
@@ -397,7 +345,7 @@ class KkmController(
         @RequestHeader("Authorization") authHeader: String?
     ): DeliveryRetryResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val results = kkmService.retryReceiptDelivery(kkmId, documentId, pin)
+        val results = deliveryApi.retryReceiptDelivery(kkmId, documentId, pin)
         return DeliveryRetryResponse(
             results = results.map { (ch, ok) -> DeliveryRetryItemResponse(channel = ch, success = ok) }
         )

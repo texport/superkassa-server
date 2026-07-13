@@ -18,7 +18,6 @@ dependencies {
     implementation(project(":server-settings"))
     implementation(project(":shared-strings"))
     implementation(libs.superkassa.core)
-    implementation(libs.superkassa.offline.queue)
     implementation(libs.jackson.module.kotlin)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.slf4j.api)
@@ -27,12 +26,9 @@ dependencies {
     implementation(libs.mysql.connector.j)
     implementation(libs.hikariCP)
 
-    testImplementation(libs.superkassa.core)
     testImplementation(kotlin("test"))
     testImplementation(libs.mockk)
     testImplementation(project(":server-time"))
-    testImplementation(libs.superkassa.delivery)
-    testImplementation(libs.superkassa.receipt.renderer)
     detektPlugins(libs.detekt.formatting)
 }
 
