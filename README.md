@@ -25,7 +25,7 @@ This server integrates with `superkassa-core` Kotlin Multiplatform library to ex
 To use `superkassa-core` in your JVM Gradle project, add the dependency from Maven Local or your repository:
 ```kotlin
 dependencies {
-    implementation("io.github.texport.superkassa:core-presentation:1.1.1")
+    implementation("io.github.texport.superkassa:core-presentation:1.1.4")
 }
 ```
 

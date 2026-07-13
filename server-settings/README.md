@@ -30,7 +30,7 @@ Add the dependency to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.texport:superkassa-core-jvm:1.1.1")
+    implementation("io.github.texport:superkassa-core-jvm:1.1.4")
     implementation("io.github.texport:server-settings:1.0.4")
 }
 ```
@@ -72,7 +72,7 @@ val settings = repository.loadOrCreate(defaults)
 
 ```kotlin
 dependencies {
-    implementation("io.github.texport:superkassa-core-jvm:1.1.1")
+    implementation("io.github.texport:superkassa-core-jvm:1.1.4")
     implementation("io.github.texport:server-settings:1.0.4")
 }
 ```
