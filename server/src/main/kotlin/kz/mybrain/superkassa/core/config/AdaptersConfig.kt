@@ -25,6 +25,7 @@ import io.github.texport.superkassa.jvm.receipt.impl.QrCodeDataUriGenerator
 import io.github.texport.superkassa.jvm.settings.impl.FileCoreSettingsRepository
 import io.github.texport.superkassa.jvm.settings.impl.dto.CoreSettingsDto
 import io.github.texport.superkassa.jvm.settings.impl.mapper.toDto
+import io.github.texport.superkassa.jvm.settings.impl.withDeploymentOwned
 import io.github.texport.superkassa.jvm.storage.impl.adapter.DatabaseCoreSettingsRepository
 import io.github.texport.superkassa.jvm.storage.impl.adapter.StorageAdapter
 import io.github.texport.superkassa.jvm.storage.impl.application.health.StorageHealthChecker
@@ -74,7 +75,13 @@ class AdaptersConfig {
         repository: CoreSettingsRepositoryPort,
         @Value("\${spring.datasource.url:}") dbUrl: String,
         @Value("\${spring.datasource.username:}") dbUser: String?,
-        @Value("\${spring.datasource.password:}") dbPass: String?
+        @Value("\${spring.datasource.password:}") dbPass: String?,
+        @Value("\${superkassa.ofd-provider-id:KAZAKHTELECOM}") ofdProviderId: String,
+        // Умолчание — 2.0.4: это действующая версия CPCR, по которой узел
+        // и сервис приёма разговаривают. Прежнее 203 осталось со времён,
+        // когда кодека 2.0.4 для БФД ещё не было, и узел молча поднимался
+        // на прошлой версии, пока запуск не передавал свойство.
+        @Value("\${superkassa.ofd-protocol-version:204}") ofdProtocolVersion: String
     ): CoreSettings {
         val defaults = if (repository is DatabaseCoreSettingsRepository) {
             val engineType = if (dbUrl.lowercase().contains("mysql")) "MYSQL" else "POSTGRESQL"
@@ -86,7 +93,9 @@ class AdaptersConfig {
                     user = dbUser,
                     password = dbPass
                 ),
-                allowChanges = true
+                allowChanges = true,
+                ofdProviderId = ofdProviderId,
+                ofdProtocolVersion = ofdProtocolVersion
             )
         } else {
             CoreSettings(
@@ -95,10 +104,15 @@ class AdaptersConfig {
                     engine = "SQLITE",
                     jdbcUrl = dbUrl.ifEmpty { "jdbc:sqlite:data/core.db?busy_timeout=30000" }
                 ),
-                allowChanges = true
+                allowChanges = true,
+                ofdProviderId = ofdProviderId,
+                ofdProtocolVersion = ofdProtocolVersion
             )
         }
-        return repository.loadOrCreate(defaults)
+        // Какой ОФД обслуживает узел — решает развёртывание, а не сохранённая
+        // запись: сменить провайдера правкой базы нельзя, а перезапуском с другим
+        // свойством нужно. Перечень таких полей объявлен один раз.
+        return repository.loadOrCreate(defaults).withDeploymentOwned(defaults)
     }
 
     @Bean

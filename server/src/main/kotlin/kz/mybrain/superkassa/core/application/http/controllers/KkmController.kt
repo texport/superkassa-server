@@ -2,6 +2,7 @@ package kz.mybrain.superkassa.core.application.http.controllers
 
 import io.github.texport.superkassa.core.presentation.api.DeliveryApi
 import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.kkm.DocumentDetailsResponse
 import io.github.texport.superkassa.core.presentation.api.model.kkm.FiscalDocumentResponse
 import io.github.texport.superkassa.core.presentation.api.model.ofd.DeliveryRetryItemResponse
 import io.github.texport.superkassa.core.presentation.api.model.ofd.DeliveryRetryResponse
@@ -32,26 +33,29 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/kkm")
-@Tag(name = "Управление сменой(Z-Отчет) ККМ", description = "Операции со сменами, чеками и отчетами")
+@Tag(name = "Управление сменой (Z-Отчет) ККМ", description = "Операции со сменами, чеками и отчетами")
 class KkmController(
     private val kkmService: SuperkassaApi,
     private val deliveryApi: DeliveryApi
 ) {
 
-    /** Открыть новую смену. */
     @PostMapping("/{kkmId}/shift/open")
     @Operation(
         summary = "Открыть смену",
         description = """
-                Открывает новую смену для работы с ККМ.
-
-                Что делает метод:
-                - Переводит ККМ в режим открытой смены
-                - Регистрирует документ открытия смены в ОФД
-                - После открытия смены можно создавать чеки и выполнять операции
-                - Для закрытия смены используйте POST /kkm/{kkmId}/shift/close
-                - Нельзя открыть новую смену, если предыдущая не закрыта
-            """
+            Выполняет операцию открытия новой кассовой смены на ККМ.
+            
+            **Требования и предусловия:**
+            1. Кассовый аппарат должен быть фискализирован и активен (`state = ACTIVE`).
+            2. Предыдущая кассовая смена должна быть обязательно закрыта (Z-отчетом). Нельзя открыть смену, если она уже открыта (ошибка `409 Conflict`).
+            3. Требуется авторизация пользователя ККМ (ПИН-код кассира/администратора передается в HTTP-заголовке `Authorization`).
+            
+            **Что выполняет метод:**
+            - Генерирует уникальный идентификатор смены.
+            - Создает печатную форму документа открытия смены.
+            - Регистрирует запись в локальной БД.
+            - Инициирует отправку фискального пакета открытия смены в ОФД.
+        """
     )
     @KkmApiResponses(
         ok = MSG_200_SHIFT_OPENED,
@@ -67,19 +71,24 @@ class KkmController(
         return kkmService.openShift(kkmId, pin)
     }
 
-    /** Закрыть текущую смену и сформировать Z-отчет. */
     @PostMapping("/{kkmId}/shift/close")
     @Operation(
         summary = "Закрыть смену (Z-отчет)",
         description = """
-                Закрывает текущую смену и создает Z-отчет.
-
-                Что делает метод:
-                - Закрывает текущую открытую смену
-                - Формирует Z-отчет с итоговыми данными по смене
-                - Отправляет данные в ОФД
-                - Возвращает результат закрытия смены
-            """
+            Выполняет операцию закрытия активной кассовой смены и формирует итоговый Z-отчет с гашением.
+            
+            **Требования и предусловия:**
+            1. На ККМ должна быть открыта активная кассовая смена (ошибка `409 Conflict`, если смена уже закрыта).
+            2. Продолжительность смены не должна превышать 24 часа (при превышении касса блокируется до снятия Z-отчета).
+            3. Требуется авторизация пользователя ККМ с правами на снятие отчетов (роль `CASHIER` или `ADMIN`).
+            
+            **Что выполняет метод:**
+            - Подсчитывает суммарные фискальные показатели смены (продажи, возвраты, типы оплат, налоги).
+            - Обнуляет регистры дневных накоплений (производит гашение).
+            - Генерирует фискальный Z-отчет.
+            - Передает отчет в очередь отправки в ОФД.
+            - Меняет статус смены в БД на `CLOSED`.
+        """
     )
     @KkmApiResponses(
         ok = MSG_200_SHIFT_CLOSE_ACCEPTED,
@@ -96,14 +105,19 @@ class KkmController(
         return kkmService.closeShift(kkmId, pin)
     }
 
-    /**
-     * Список смен по ККМ (постранично).
-     * По нему можно получить количество и номера смен, затем для каждой смены запросить документы через GET .../shifts/{shiftId}/documents.
-     */
     @GetMapping("/{kkmId}/shifts")
     @Operation(
         summary = "Список смен",
-        description = "Возвращает смены по ККМ (id, номер смены, статус, время открытия/закрытия). По убыванию времени открытия."
+        description = """
+            Возвращает постраничный список всех зарегистрированных кассовых смен для указанного аппарата ККМ.
+            
+            **Сортировка:**
+            - Список отсортирован по времени открытия смены в обратном хронологическом порядке (сначала новые).
+            
+            **Применение:**
+            - Отображение истории смен в личном кабинете.
+            - Поиск идентификатора конкретной смены (`shiftId`) для последующего просмотра её фискальных документов.
+        """
     )
     @KkmApiResponses(ok = MSG_200_SHIFTS_LIST, forbidden = MSG_403_FORBIDDEN, notFound = MSG_404_KKM_NOT_FOUND)
     fun listShifts(
@@ -116,19 +130,20 @@ class KkmController(
         return kkmService.listShifts(kkmId, limit, offset, pin)
     }
 
-    /**
-     * Список фискальных документов за смену.
-     * Возвращает все документы смены: чеки (в т.ч. автономные), внесения, изъятия, отчёты.
-     */
     @GetMapping("/{kkmId}/shifts/{shiftId}/documents")
     @Operation(
         summary = "Документы смены",
         description = """
-                Возвращает список фискальных документов за указанную смену.
-                Включает чеки (обычные и автономные), внесения/изъятия наличных, X/Z отчёты.
-                Поля каждого документа: id, docType, docNo, shiftNo, createdAt, totalAmount,
-                fiscalSign, autonomousSign, isAutonomous, ofdStatus, deliveredAt.
-            """
+            Возвращает список всех фискальных документов (чеков, отчетов, внесений/изъятий), оформленных в рамках указанной смены.
+            
+            **Включает в себя:**
+            - Чеки продажи (`SALE`) и возврата (`RETURN`).
+            - Чеки покупки (`BUY`) и возврата покупки (`BUY_RETURN`).
+            - Документы операций с наличными внесения (`CASH_IN`) и изъятия (`CASH_OUT`).
+            - Сменные отчеты (`X_REPORT` / Z-отчеты).
+            
+            Каждая запись содержит сведения об уникальном фискальном признаке (FP/FPD), статусе отправки в ОФД и признаке автономности проведения документа.
+        """
     )
     @KkmApiResponses(ok = MSG_200_SHIFT_DOCUMENTS, forbidden = MSG_403_FORBIDDEN, notFound = MSG_404_KKM_NOT_FOUND)
     fun listShiftDocuments(
@@ -142,11 +157,16 @@ class KkmController(
         return kkmService.listShiftDocuments(kkmId, shiftId, limit, offset, pin)
     }
 
-    /** Документы текущей открытой смены. */
     @GetMapping("/{kkmId}/shift/documents")
     @Operation(
         summary = "Документы текущей смены",
-        description = "Список фискальных документов текущей открытой смены. 409 если смена не открыта."
+        description = """
+            Возвращает список фискальных документов, выбитых в рамках текущей (активной) открытой смены.
+            
+            **Особенности:**
+            - Если в данный момент смена на ККМ закрыта, возвращается ошибка `409 Conflict`.
+            - Метод идеален для оперативного контроля продаж кассира на точке в режиме реального времени.
+        """
     )
     @KkmApiResponses(
         ok = MSG_200_SHIFT_DOCUMENTS,
@@ -165,14 +185,19 @@ class KkmController(
         return kkmService.listShiftDocuments(kkmId, shift.id, limit, offset, pin)
     }
 
-    /**
-     * Список фискальных документов за период по дате создания (created_at).
-     * from — начало периода (включительно), to — конец (исключительно), в миллисекундах с 01.01.1970 (epoch).
-     */
     @GetMapping("/{kkmId}/documents")
     @Operation(
         summary = "Документы за период",
-        description = "Список фискальных документов за период по времени создания. Параметры from, to — epoch millis."
+        description = """
+            Возвращает плоский список фискальных документов ККМ, созданных за произвольный промежуток времени.
+            
+            **Фильтрация по времени:**
+            - Параметры `from` (начало, включительно) и `to` (конец, исключительно) передаются как временная метка Unix Epoch в миллисекундах.
+            
+            **Применение:**
+            - Построение внешних отчетов по продажам за день/неделю/месяц.
+            - Сверка данных с учетной системой ERP/1С.
+        """
     )
     @KkmApiResponses(ok = MSG_200_SHIFT_DOCUMENTS, forbidden = MSG_403_FORBIDDEN, notFound = MSG_404_KKM_NOT_FOUND)
     fun listDocumentsByPeriod(
@@ -188,13 +213,43 @@ class KkmController(
     }
 
     /**
-     * Печатная форма HTML по конкретному документу (чек, внесение, изъятие) без указания type.
-     * Упрощённый вариант для вызова по связке (kkmId + documentId).
+     * Документ вместе с составом чека и тем, кто его оформил.
      */
+    @GetMapping("/{kkmId}/documents/{documentId}")
+    @Operation(
+        summary = "Документ с составом чека",
+        description = """
+            Возвращает документ, его позиции и имя оформившего кассира.
+
+            Когда использовать:
+            - частичный возврат: вернуть можно только то, что продано,
+              и в том количестве, в каком продано;
+            - разбор отказа ОФД: по списку документов виден только код.
+
+            У отчётов и операций с наличными список позиций пуст — это не ошибка.
+        """
+    )
+    @KkmApiResponses(ok = "Документ получен", notFound = MSG_404_KKM_NOT_FOUND)
+    fun getDocumentDetails(
+        @PathVariable kkmId: String,
+        @PathVariable documentId: String,
+        @RequestHeader("Authorization") authHeader: String?
+    ): DocumentDetailsResponse =
+        kkmService.getDocumentDetails(kkmId, documentId, AuthHeaderUtils.extractPin(authHeader))
+
     @GetMapping("/{kkmId}/documents/{documentId}/print.html", produces = [MediaType.TEXT_HTML_VALUE])
     @Operation(
         summary = "Печатная форма документа (HTML)",
-        description = "Печать конкретного документа (чек, внесение, изъятие) по его идентификатору. Параметр type не требуется — определяется по документу."
+        description = """
+            Возвращает готовую сверстанную печатную форму чека или сменного отчета в формате HTML.
+            
+            **Параметры макета:**
+            - Через параметр `layout` можно задать шаблон отображения: `TAPE_58MM` (узкий чек для термопринтера), `TAPE_80MM` (стандартный чек) или `FULLSCREEN` (версия для смартфона/A4).
+            
+            **Что умеет метод:**
+            - Автоматически распознает тип документа (фискальный чек, Z-отчет, X-отчет, внесение) по его `documentId`.
+            - Подгружает актуальные трехязычные шаблоны и переводы.
+        """
     )
     @KkmApiResponses(
         ok = MSG_200_PRINT_HTML,
@@ -233,15 +288,18 @@ class KkmController(
             .body(html)
     }
 
-    /**
-     * Печатная форма PDF по конкретному документу (чек, внесение, изъятие) без указания type.
-     * Упрощённый вариант для вызова по связке (kkmId + documentId).
-     */
     @GetMapping("/{kkmId}/documents/{documentId}/print.pdf", produces = [MediaType.APPLICATION_PDF_VALUE])
     @Operation(
         summary = "Печатная форма документа (PDF)",
-        description = "Печать конкретного документа (чек, внесение, изъятие) в формате PDF по его идентификатору. " +
-            "Параметр type не требуется — определяется по документу."
+        description = """
+            Генерирует и возвращает печатную форму документа (чека, отчета) в бинарном формате PDF.
+            
+            **Использование:**
+            - Скачивание копии чека клиентом.
+            - Отправка чека на печать через системный диалог ОС Android/iOS.
+            
+            Поддерживает автоопределение типа документа и выбор ширины чековой ленты (`layout`).
+        """
     )
     @KkmApiResponses(
         ok = MSG_200_RECEIPT_PDF,
@@ -281,14 +339,15 @@ class KkmController(
             .body(bytes)
     }
 
-    /**
-     * Печатная форма PNG по конкретному документу (чек, внесение, изъятие) без указания type.
-     */
     @GetMapping("/{kkmId}/documents/{documentId}/print.png", produces = [MediaType.IMAGE_PNG_VALUE])
     @Operation(
         summary = "Печатная форма документа (PNG)",
-        description = "Печать конкретного документа (чек, внесение, изъятие) в формате PNG по его идентификатору. " +
-            "Параметр type не требуется — определяется по документу."
+        description = """
+            Рендерит печатную форму чека в растровое изображение формата PNG.
+            
+            **Применение:**
+            - Отображение красивого предпросмотра чека на дисплее покупателя или в интерфейсе кассового терминала без необходимости поддержки HTML/PDF на клиенте.
+        """
     )
     @KkmApiResponses(
         ok = "Успешное получение изображения документа",
@@ -330,9 +389,14 @@ class KkmController(
     @PostMapping("/{kkmId}/documents/{documentId}/delivery/retry")
     @Operation(
         summary = "Повторная отправка чека по каналам",
-        description = "Попытка ручной отправки чека по всем настроенным каналам доставки " +
-            "(печать, email, telegram, whatsapp и т.д.). Отправляется документ (PDF/IMAGE); " +
-            "каналы только с ссылкой ОФД (LINK) пропускаются. Требуется Authorization (ПИН)."
+        description = """
+            Инициирует повторную ручную отправку сформированного чека по всем активным каналам связи (Email, Telegram, WhatsApp и т.д.).
+            
+            **Особенности отправки:**
+            - Отправляет бинарные вложения чека (PDF-версия или изображение чека).
+            - Каналы связи, настроенные только на отправку ссылки ОФД (LINK), пропускаются во избежание дублирования трафика.
+            - Требует указания ПИН-кода в заголовке `Authorization`.
+        """
     )
     @KkmApiResponses(
         ok = MSG_200_DELIVERY_RETRY,

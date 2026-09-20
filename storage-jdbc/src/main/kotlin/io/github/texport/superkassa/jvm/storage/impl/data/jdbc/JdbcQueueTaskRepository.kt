@@ -94,11 +94,19 @@ class JdbcQueueTaskRepository(
         }
     }
 
+    /**
+     * Время захвата записывается вместе со статусом.
+     *
+     * По нему очередь отличает задачу, которую сейчас отправляют, от
+     * брошенной умершим обработчиком. Пока время не писалось, брошенная
+     * задача оставалась в `IN_PROGRESS` навсегда и до ОФД не доходила.
+     */
     override fun markInProgress(id: String, now: Long): Boolean {
-        val sql = "UPDATE queue_task SET status = 'IN_PROGRESS' WHERE id = ?"
+        val sql = "UPDATE queue_task SET status = 'IN_PROGRESS', next_attempt_at = ? WHERE id = ?"
         return try {
             connection.prepareStatement(sql).use { stmt ->
-                stmt.setString(1, id)
+                stmt.setLong(1, now)
+                stmt.setString(2, id)
                 stmt.executeUpdate() == 1
             }
         } catch (ex: SQLException) {

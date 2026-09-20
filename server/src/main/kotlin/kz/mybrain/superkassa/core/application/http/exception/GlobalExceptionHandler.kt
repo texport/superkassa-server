@@ -75,16 +75,10 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException::class)
     fun handleJsonException(ex: HttpMessageNotReadableException): ResponseEntity<ApiErrorResponse> {
-        logger.warn("Malformed JSON request: {}", ex.message)
+        logger.warn("Request body rejected: {}", ex.message)
+        val (code, message) = JsonFailure.describe(ex.cause ?: ex)
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(
-                ApiErrorResponse(
-                    code = "INVALID_JSON",
-                    message = "[EN] Malformed JSON request or invalid format / " +
-                        "[RU] Некорректный запрос JSON или неверный формат / " +
-                        "[KK] Қате JSON сұранысы немесе жарамсыз формат"
-                )
-            )
+            .body(ApiErrorResponse(code = code, message = message))
     }
 
     @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException::class)
@@ -145,6 +139,28 @@ class GlobalExceptionHandler {
                 ApiErrorResponse(
                     code = WebErrorKey.UNSUPPORTED_MEDIA_TYPE.code,
                     message = errorResolver.resolve(WebErrorKey.UNSUPPORTED_MEDIA_TYPE).toString()
+                )
+            )
+    }
+
+    /**
+     * Клиент попросил представление, которого у ресурса нет.
+     *
+     * Печатная форма отдаётся картинкой, а клиент по умолчанию просит JSON.
+     * Без этого обработчика такой запрос попадал в общий catch-all и уходил
+     * пятисоткой: приложение считало это сбоем узла, а кассир видел нажатую
+     * кнопку без всякого действия.
+     */
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotAcceptableException::class)
+    fun handleHttpMediaTypeNotAcceptableException(
+        ex: org.springframework.web.HttpMediaTypeNotAcceptableException
+    ): ResponseEntity<ApiErrorResponse> {
+        logger.warn("Representation not acceptable: {}", ex.message)
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
+            .body(
+                ApiErrorResponse(
+                    code = WebErrorKey.NOT_ACCEPTABLE.code,
+                    message = errorResolver.resolve(WebErrorKey.NOT_ACCEPTABLE).toString()
                 )
             )
     }

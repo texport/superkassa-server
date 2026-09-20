@@ -16,6 +16,7 @@ import io.github.texport.superkassa.jvm.shared.strings.api.key.StorageErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver
 import io.github.texport.superkassa.jvm.storage.impl.application.bootstrap.StorageBootstrap
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
+import io.github.texport.superkassa.jvm.storage.impl.data.jdbc.JdbcStorageSession
 import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
@@ -28,6 +29,8 @@ import java.sql.SQLException
  * @property bootstrap компонент начальной инициализации и миграции базы данных.
  * @property config настройки подключения к базе данных.
  */
+private const val QUEUE_SCAN_LIMIT = 500
+
 class StorageAdapter(
     private val bootstrap: StorageBootstrap,
     private val config: StorageConfig
@@ -49,15 +52,43 @@ class StorageAdapter(
     private val documentDelegate = JdbcDocumentDelegate(sessionProvider)
     private val queueDelegate = JdbcQueueDelegate(sessionProvider)
 
-    override fun <T> inTransaction(block: () -> T): T {
-        return withSession { session ->
-            session.inTransaction {
-                sessionHolder.set(session)
-                try {
-                    block()
-                } finally {
-                    sessionHolder.remove()
+    private val transactionSession = ThreadLocal<StorageSession?>()
+
+    override fun startTransaction() {
+        val session = openSessionWithRetry(maxAttempts = 3, delayMs = 200)
+        sessionHolder.set(session)
+        transactionSession.set(session)
+        if (session is JdbcStorageSession) {
+            session.connection.autoCommit = false
+        }
+    }
+
+    override fun commitTransaction() {
+        val session = transactionSession.get()
+        if (session != null) {
+            try {
+                if (session is JdbcStorageSession) {
+                    session.connection.commit()
                 }
+            } finally {
+                sessionHolder.remove()
+                transactionSession.remove()
+                session.close()
+            }
+        }
+    }
+
+    override fun rollbackTransaction() {
+        val session = transactionSession.get()
+        if (session != null) {
+            try {
+                if (session is JdbcStorageSession) {
+                    session.connection.rollback()
+                }
+            } finally {
+                sessionHolder.remove()
+                transactionSession.remove()
+                session.close()
             }
         }
     }
@@ -133,21 +164,19 @@ class StorageAdapter(
         userId: String,
         name: String,
         role: UserRole,
-        pin: String,
         pinHash: String,
         createdAt: Long
     ): Boolean =
-        withSession { kkmDelegate.createUser(kkmId, userId, name, role, pin, pinHash, createdAt) }
+        withSession { kkmDelegate.createUser(kkmId, userId, name, role, pinHash, createdAt) }
 
     override fun updateUser(
         kkmId: String,
         userId: String,
         name: String?,
         role: UserRole?,
-        pin: String?,
         pinHash: String?
     ): Boolean =
-        withSession { kkmDelegate.updateUser(kkmId, userId, name, role, pin, pinHash) }
+        withSession { kkmDelegate.updateUser(kkmId, userId, name, role, pinHash) }
 
     override fun deleteUser(
         kkmId: String,
@@ -222,11 +251,21 @@ class StorageAdapter(
     ): Boolean =
         withSession { documentDelegate.saveCashOperation(kkmId, type, amount, documentId, shiftId, createdAt) }
 
+    override fun saveShiftDocument(
+        kkmId: String,
+        type: String,
+        documentId: String,
+        shiftId: String,
+        createdAt: Long
+    ): Boolean =
+        withSession { documentDelegate.saveShiftDocument(kkmId, type, documentId, shiftId, createdAt) }
+
     override fun updateReceiptStatus(
         documentId: String,
         fiscalSign: String?,
         autonomousSign: String?,
         ofdStatus: String,
+        ofdErrorCode: Int?,
         deliveredAt: Long?,
         isAutonomous: Boolean?
     ): Boolean =
@@ -237,11 +276,18 @@ class StorageAdapter(
                 fiscalSign = fiscalSign,
                 autonomousSign = autonomousSign,
                 ofdStatus = ofdStatus,
+                ofdErrorCode = ofdErrorCode,
                 deliveredAt = deliveredAt,
                 isAutonomous = isAutonomous,
                 receiptUrl = receiptUrl
             )
         }
+
+    override fun updatePrintedDocumentNumber(documentId: String, number: Long): Boolean =
+        withSession { it.documents.updatePrintedDocNo(documentId, number) }
+
+    override fun updateDocumentNumber(documentId: String, docNo: Long): Boolean =
+        withSession { it.documents.updateDocNo(documentId, docNo) }
 
     override fun findFiscalDocumentById(id: String): FiscalDocumentSnapshot? = withSession {
         documentDelegate.findFiscalDocumentById(id)
@@ -287,8 +333,16 @@ class StorageAdapter(
     override fun listQueueTasksByCashbox(cashboxId: String, lane: String, limit: Int, offset: Int): List<QueueTask> =
         withSession { queueDelegate.listQueueTasksByCashbox(cashboxId, lane, limit, offset) }
 
-    override fun nextPendingQueueTask(cashboxId: String, lane: String, now: Long): QueueTask? =
-        withSession { queueDelegate.nextPendingQueueTask(cashboxId, lane, now) }
+    override fun getQueueTasksByStatus(
+        cashboxId: String,
+        lane: String,
+        statuses: Set<String>
+    ): List<QueueTask> =
+        withSession {
+            queueDelegate
+                .listQueueTasksByCashbox(cashboxId, lane, QUEUE_SCAN_LIMIT, 0)
+                .filter { it.status in statuses }
+        }
 
     override fun updateQueueTaskStatus(
         id: String,
@@ -315,14 +369,6 @@ class StorageAdapter(
 
     override fun releaseQueueLock(cashboxId: String, ownerId: String): Boolean =
         withSession { queueDelegate.releaseQueueLock(cashboxId, ownerId) }
-
-    @Deprecated("Используйте OfflineQueuePort.canSendDirectly")
-    override fun hasOfflineQueue(kkmId: String): Boolean {
-        return withSession { session ->
-            session.queueTask.listByCashbox(kkmId, "OFFLINE", 100, 0)
-                .any { it.status != "SENT" }
-        }
-    }
 
     private fun <T> withSession(block: (StorageSession) -> T): T {
         try {

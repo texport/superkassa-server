@@ -118,4 +118,40 @@ class MoreSystemTimeGuardTests {
         assertFalse(result.ok, "Should fail when clock shifts backward")
         assertEquals("MONOTONIC_SKEW", result.reason)
     }
+
+    @Test
+    fun `validate monotonic check self-heals on subsequent call after skew`() {
+        val now = System.currentTimeMillis()
+        testClock.currentTime = now
+        assertTrue(SystemTimeGuard.validate(testClock).ok)
+
+        val lastWallMsField = SystemTimeGuard::class.java.getDeclaredField("lastWallMs").apply { isAccessible = true }
+        val lastMonoNsField = SystemTimeGuard::class.java.getDeclaredField("lastMonoNs").apply { isAccessible = true }
+
+        // Introduce skew
+        lastWallMsField.set(SystemTimeGuard, now - 3 * 60 * 1000L)
+        lastMonoNsField.set(SystemTimeGuard, System.nanoTime() - 1_000_000_000L)
+
+        // Эталона нет — первый вызов отказывает: подтвердить время нечем.
+        SystemTimeGuard::class.java.getDeclaredField("referenceMs")
+            .apply { isAccessible = true }.set(SystemTimeGuard, null)
+        SystemTimeGuard::class.java.getDeclaredField("referenceFetchedAtMs")
+            .apply { isAccessible = true }.set(SystemTimeGuard, null)
+        SystemTimeGuard::class.java.getDeclaredField("lastFetchAttemptMs")
+            .apply { isAccessible = true }.set(SystemTimeGuard, null)
+        val originalUrls = SystemTimeGuard.referenceUrls
+        SystemTimeGuard.referenceUrls = listOf("https://reference.invalid")
+        val result1 = try {
+            SystemTimeGuard.validate(testClock)
+        } finally {
+            SystemTimeGuard.referenceUrls = originalUrls
+        }
+        assertFalse(result1.ok)
+        assertEquals("MONOTONIC_SKEW", result1.reason)
+
+        // Базис сдвинут, часы идут ровно — следующий вызов проходит.
+        testClock.currentTime = now + 1000L
+        val result2 = SystemTimeGuard.validate(testClock)
+        assertTrue(result2.ok, "Should self-heal and pass on subsequent call after baseline is updated")
+    }
 }

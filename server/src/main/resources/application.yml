@@ -11,7 +11,6 @@ spring:
       fail-on-empty-beans: false
 
 app:
-  version: 1.0
   log-language: RU
   logging:
     pretty-print-json: true

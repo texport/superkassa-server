@@ -56,6 +56,21 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    fun `unreadable body caused by an unknown enum value names the field`() {
+        val handler = GlobalExceptionHandler()
+        val cause = kotlinx.serialization.SerializationException(
+            "TaxRegime does not contain element with name 'GENERAL' at path \$.taxRegime"
+        )
+        val ex = HttpMessageNotReadableException("Could not read", cause, mockk<HttpInputMessage>())
+
+        val response = handler.handleJsonException(ex)
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+        assertEquals("INVALID_FIELD_VALUE", response.body?.code)
+        assertEquals(true, response.body?.message?.contains("taxRegime"))
+    }
+
+    @Test
     fun `method argument type mismatch exception is returned as invalid param`() {
         val handler = GlobalExceptionHandler()
         val ex = MethodArgumentTypeMismatchException(

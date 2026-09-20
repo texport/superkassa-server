@@ -30,6 +30,7 @@ import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdCommandSt
 import io.github.texport.superkassa.core.presentation.api.OfflineQueueApi
 import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
 import kz.mybrain.superkassa.core.application.info.SystemInfoApplicationService
+import org.springframework.boot.info.BuildProperties
 import kz.mybrain.superkassa.core.application.measurement.UnitsApplicationService
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -80,7 +81,7 @@ class SystemControllersTest {
         val storage = mockk<StoragePort>()
         val kkmService = mockk<SuperkassaApi>()
         val systemInfoService = SystemInfoApplicationService(settings.toDto(), storage)
-        val controller = SuperkassaInfoController(systemInfoService, kkmService, "9.9.9")
+        val controller = SuperkassaInfoController(systemInfoService, kkmService, buildOf("9.9.9", "1.4.4"))
         val kkm = KkmResponse(
             kkmId = "kkm-1",
             createdAt = 1L,
@@ -110,6 +111,8 @@ class SystemControllersTest {
         assertEquals("kkm-1", list.items.first().kkmId)
         assertEquals("Superkassa Core", info["name"])
         assertEquals("9.9.9", info["version"])
+        // Версия ядра отдаётся отдельно: её и спрашивают у кассы.
+        assertEquals("1.4.4", info["coreVersion"])
         assertEquals(1, (info["statistics"] as Map<*, *>)["registeredKkms"])
     }
 
@@ -124,7 +127,7 @@ class SystemControllersTest {
         val storage = mockk<StoragePort>()
         val kkmService = mockk<SuperkassaApi>()
         val systemInfoService = SystemInfoApplicationService(settings.toDto(), storage)
-        val controller = SuperkassaInfoController(systemInfoService, kkmService, "9.9.9")
+        val controller = SuperkassaInfoController(systemInfoService, kkmService, buildOf("9.9.9", "1.4.4"))
 
         every { storage.countKkms(null, null) } throws RuntimeException("DB offline")
 
@@ -276,3 +279,17 @@ class SystemControllersTest {
         assertEquals("796", piece.code)
     }
 }
+
+/**
+ * Сведения сборки, как их отдаёт Spring Boot.
+ *
+ * Узел берёт версию оттуда, а не из строки в настройках: строку никто
+ * не обновлял, и касса сообщала о себе `1.0`, будучи собранной из 1.0.6.
+ */
+private fun buildOf(version: String, coreVersion: String): BuildProperties =
+    BuildProperties(
+        java.util.Properties().apply {
+            setProperty("version", version)
+            setProperty("coreVersion", coreVersion)
+        }
+    )

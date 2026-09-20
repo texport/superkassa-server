@@ -1,6 +1,7 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
 import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmNameUpdateRequest
 import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmResponse
 import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmTaxSettingsUpdateRequest
 import io.github.texport.superkassa.core.presentation.api.model.kkm.ReceiptBrandingRequest
@@ -104,7 +105,8 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
         @RequestBody @Valid request: AutoCloseShiftRequest
     ): KkmResponse {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService.updateKkmSettings(kkmId, pin, request.autoCloseShift)
+        val currentKkm = kkmService.getKkm(kkmId)
+        return kkmService.updateKkmSettings(kkmId, pin, request.autoCloseShift, currentKkm.autoCashout)
     }
 
     /**
@@ -155,6 +157,51 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
             taxRegime = request.taxRegime,
             defaultVatGroup = request.defaultVatGroup
         )
+    }
+
+    /**
+     * Задать название кассы.
+     *
+     * Название хранится на узле и потому одинаково на всех рабочих местах.
+     */
+    @PutMapping("/{kkmId}/settings/name")
+    @Operation(
+        summary = "Задать название кассы",
+        description = """
+            Задаёт название кассы — то, как её зовёт владелец: «Касса 2 на Достык».
+
+            Название хранится на узле и приходит в сведениях о кассе
+            (GET /kkm и GET /kkm/{kkmId}) полем name. Рабочее место показывает
+            его кассиру на выборе кассы вместо регистрационного номера.
+
+            Название не является фискальным реквизитом: в чек оно не попадает
+            и в ОФД не уходит. Поэтому режим программирования для правки
+            не требуется — иначе назвать кассу можно было бы только остановив
+            ею работу.
+
+            Требования:
+            - ПИН-код пользователя кассы в заголовке Authorization
+              (Bearer <pin> или просто <pin>)
+
+            Тело запроса: { "name": "Касса 2 на Достык" }
+            Пустое значение снимает название: касса снова показывается
+            регистрационным номером.
+
+            Ответ: KkmResponse с обновлённым названием.
+        """
+    )
+    @KkmApiResponses(
+        ok = MSG_200_SETTINGS_UPDATED,
+        forbidden = MSG_403_FORBIDDEN,
+        notFound = MSG_404_KKM_NOT_FOUND
+    )
+    fun updateKkmName(
+        @PathVariable kkmId: String,
+        @RequestHeader("Authorization") authHeader: String?,
+        @RequestBody request: KkmNameUpdateRequest
+    ): KkmResponse {
+        val pin = AuthHeaderUtils.extractPin(authHeader)
+        return kkmService.updateKkmName(kkmId, pin, request.name)
     }
 
     /**

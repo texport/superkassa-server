@@ -21,7 +21,7 @@ import java.sql.Connection
  * JDBC-реализация StorageSession.
  */
 class JdbcStorageSession(
-    private val connection: Connection
+    internal val connection: Connection
 ) : StorageSession {
     override val cashboxes: CashboxRepository = JdbcCashboxRepository(connection)
     override val documents: FiscalDocumentRepository = JdbcFiscalDocumentRepository(connection)

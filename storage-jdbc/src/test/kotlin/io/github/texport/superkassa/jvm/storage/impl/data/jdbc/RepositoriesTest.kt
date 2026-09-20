@@ -36,7 +36,6 @@ class RepositoriesTest {
             cashboxId = "cashbox-1",
             name = "John Doe",
             role = "CASHIER",
-            pin = "1111",
             pinHash = "hash1111",
             createdAt = 123456789L
         )
@@ -46,7 +45,7 @@ class RepositoriesTest {
 
         // Insert duplicate key (should fail/throw or return false depending on implementation, JDBC repo throws SQLiteException but we can catch it or update non-existent)
         // Let's test update failure
-        assertFalse(repo.update("cashbox-1", "non-existent-user", name = "Nobody", role = null, pin = null, pinHash = null))
+        assertFalse(repo.update("cashbox-1", "non-existent-user", name = "Nobody", role = null, pinHash = null))
 
         // Find by id success
         val found = repo.findById("cashbox-1", "user-1")
@@ -71,12 +70,11 @@ class RepositoriesTest {
         assertEquals("user-1", list[0].id)
 
         // Update success
-        assertTrue(repo.update("cashbox-1", "user-1", name = "Jane Doe", role = "ADMIN", pin = "2222", pinHash = "hash2222"))
+        assertTrue(repo.update("cashbox-1", "user-1", name = "Jane Doe", role = "ADMIN", pinHash = "hash2222"))
         val updated = repo.findById("cashbox-1", "user-1")
         assertNotNull(updated)
         assertEquals("Jane Doe", updated.name)
         assertEquals("ADMIN", updated.role)
-        assertEquals("2222", updated.pin)
         assertEquals("hash2222", updated.pinHash)
 
         // Delete by id success
@@ -254,7 +252,6 @@ class RepositoriesTest {
             cashboxId = "cashbox-1",
             name = "Alice",
             role = "CASHIER",
-            pin = "1111",
             pinHash = "hash1111",
             createdAt = 123456789L
         )

@@ -62,6 +62,7 @@ class KkmDecommissioningController(private val kkmService: SuperkassaApi) {
               - `ofdEnvironment`: Окружение ОФД (`TEST` или `PROD`).
               - `ofdSystemId`: Уникальный числовой ID кассы в системе ОФД.
               - `ofdToken`: Токен авторизации подключения к ОФД.
+                Адрес ОФД не передаётся: его задаёт узел по провайдеру и контуру.
 
             **Возвращаемые коды:**
             - 200 OK: Касса успешно инициализирована, возвращен объект `KkmResponse`.

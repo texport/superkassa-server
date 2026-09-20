@@ -12,12 +12,12 @@ import kz.mybrain.superkassa.core.application.measurement.UnitsApplicationServic
 import org.springframework.web.bind.annotation.*
 
 /**
- * Контроллер справочника единиц измерения (ОКЕИ).
+ * Контроллер справочника единиц измерения ИС ЭСФ.
  * Используется для measure_unit_code в позициях чека.
  */
 @RestController
 @RequestMapping("/units-of-measurement")
-@Tag(name = "Единицы измерения (ОКЕИ)", description = "Справочник единиц измерения для measureUnitCode в чеках")
+@Tag(name = "Единицы измерения", description = "Справочник единиц измерения для measureUnitCode в чеках")
 class UnitsOfMeasurementController(
     private val unitsService: UnitsApplicationService
 ) {
@@ -26,7 +26,7 @@ class UnitsOfMeasurementController(
     @Operation(
         summary = "Список единиц измерения",
         description = """
-            Возвращает список единиц измерения (ОКЕИ) с пагинацией и поиском.
+            Возвращает список единиц измерения ИС ЭСФ с пагинацией и поиском.
 
             Параметры:
             - limit: количество записей (1-100, по умолчанию 50)
@@ -48,7 +48,7 @@ class UnitsOfMeasurementController(
     @Operation(
         summary = "Единица измерения по коду",
         description = """
-            Возвращает детальную информацию о конкретной единице измерения из справочника ОКЕИ по её цифровому коду.
+            Возвращает детальную информацию о конкретной единице измерения из справочника ИС ЭСФ по её цифровому коду.
 
             Используется для:
             - Валидации поля `measureUnitCode` в позициях чека при регистрации продаж.
@@ -56,11 +56,11 @@ class UnitsOfMeasurementController(
 
             Примеры кодов:
             - "796" — Штука (шт / дана)
-            - "166" — Килограмм (кг)
+            - "116" — Килограмм (кг)
             - "112" — Литр (л)
             - "018" — Метр (м)
 
-            Если указанный код отсутствует в справочнике ОКЕИ, возвращается ошибка 404 Not Found.
+            Если указанный код отсутствует в справочнике ИС ЭСФ, возвращается ошибка 404 Not Found.
             Метод является публичным и не требует авторизации.
         """
     )

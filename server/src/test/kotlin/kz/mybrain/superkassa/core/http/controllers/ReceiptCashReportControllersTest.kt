@@ -1,5 +1,6 @@
 package kz.mybrain.superkassa.core.http.controllers
 
+import io.github.texport.superkassa.core.domain.api.model.common.Decimal
 import io.github.texport.superkassa.core.presentation.api.model.ofd.DeliveryStatus
 import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
 import io.github.texport.superkassa.core.presentation.api.model.kkm.CashOperationRequest
@@ -72,7 +73,7 @@ class ReceiptCashReportControllersTest {
                     parentTicketNumber = 11,
                     parentTicketDateTime = "2026-03-19T10:00:00Z",
                     kgdKkmId = "RN-1",
-                    parentTicketTotal = 100.0,
+                    parentTicketTotal = Decimal.parse("100.0"),
                     parentTicketIsOffline = false
                 )
             )
@@ -136,7 +137,7 @@ class ReceiptCashReportControllersTest {
             cashController.cashIn(
                 "kkm-1",
                 "Bearer 1111",
-                CashOperationRequest(amount = 500.0, idempotencyKey = "cash-in-1")
+                CashOperationRequest(amount = Decimal.parse("500.0"), idempotencyKey = "cash-in-1")
             )
 
         assertEquals("cash-in-doc", result.documentId)
@@ -145,7 +146,7 @@ class ReceiptCashReportControllersTest {
                 "kkm-1",
                 "1111",
                 match {
-                    it.amount == 500.0 &&
+                    it.amount == Decimal.parse("500.0") &&
                         it.idempotencyKey == "cash-in-1"
                 }
             )
@@ -162,7 +163,7 @@ class ReceiptCashReportControllersTest {
             cashController.cashOut(
                 "kkm-2",
                 "2222",
-                CashOperationRequest(amount = 300.0, idempotencyKey = "cash-out-1")
+                CashOperationRequest(amount = Decimal.parse("300.0"), idempotencyKey = "cash-out-1")
             )
 
         assertEquals("cash-out-doc", result.documentId)
@@ -182,13 +183,13 @@ class ReceiptCashReportControllersTest {
     private fun itemDto(vatGroup: String = "VAT_16") =
         ReceiptItemRequest(
             name = "Bread",
-            price = 100.0,
-            quantity = 1.0,
+            price = Decimal.parse("100.0"),
+            quantity = Decimal.parse("1.0"),
             vatGroup = vatGroup
         )
 
     private fun paymentDto(type: String = "CASH") =
-        ReceiptPaymentRequest(type = type, sum = 100.0)
+        ReceiptPaymentRequest(type = type, sum = Decimal.parse("100.0"))
 
     private fun sellRequest(idem: String) =
         ReceiptSellRequest(

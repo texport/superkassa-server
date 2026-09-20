@@ -175,7 +175,7 @@ class SystemTimeGuardGreyCasesTest {
     }
 
     @Test
-    fun `stale reference is returned during active retry cooldown`() {
+    fun `stale reference returns null during active retry cooldown and validation passes`() {
         val now = 1_800_000_000_000L
         val lastAttempt = now - RETRY_COOL_DOWN_MS
         testClock.currentTime = now
@@ -185,8 +185,7 @@ class SystemTimeGuardGreyCasesTest {
 
         val result = SystemTimeGuard.validate(testClock)
 
-        assertFalse(result.ok)
-        assertEquals("REFERENCE_SKEW", result.reason)
+        assertTrue(result.ok)
         assertEquals(lastAttempt, getField("lastFetchAttemptMs"))
     }
 
@@ -205,7 +204,7 @@ class SystemTimeGuardGreyCasesTest {
     }
 
     @Test
-    fun `expired cache without reference urls keeps previous reference value`() {
+    fun `expired cache with network failure clears cache and passes validation`() {
         val now = 1_800_000_000_000L
         val oldReference = now - 1_000L
         testClock.currentTime = now
@@ -215,7 +214,7 @@ class SystemTimeGuardGreyCasesTest {
         val result = SystemTimeGuard.validate(testClock)
 
         assertTrue(result.ok)
-        assertEquals(oldReference, getField("referenceMs"))
+        assertNull(getField("referenceMs"))
         assertEquals(now, getField("lastFetchAttemptMs"))
     }
 

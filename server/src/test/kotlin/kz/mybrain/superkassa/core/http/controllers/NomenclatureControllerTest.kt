@@ -1,5 +1,6 @@
 package kz.mybrain.superkassa.core.http.controllers
 
+import io.github.texport.superkassa.core.domain.api.model.common.Decimal
 import io.github.texport.superkassa.core.domain.api.exception.NotFoundException
 import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
 import io.github.texport.superkassa.core.presentation.api.model.ofd.NomenclatureItemResponse
@@ -27,7 +28,7 @@ class NomenclatureControllerTest {
             name = "Напиток Piko Pulpy",
             nameKk = "Piko Pulpy сусыны",
             ntin = "0200091550792",
-            price = 0.0,
+            price = Decimal.parse("0.0"),
             measureUnitCode = "166",
             vatGroup = "VAT_16"
         )

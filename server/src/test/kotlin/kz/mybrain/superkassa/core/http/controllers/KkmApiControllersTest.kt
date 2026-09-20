@@ -3,6 +3,7 @@ package kz.mybrain.superkassa.core.http.controllers
 import io.github.texport.superkassa.core.presentation.api.DeliveryApi
 import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
 import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmInitSimpleRequest
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmNameUpdateRequest
 import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmResponse
 import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmTaxSettingsUpdateRequest
 import io.github.texport.superkassa.core.presentation.api.model.kkm.CounterSnapshotResponse
@@ -180,7 +181,7 @@ class KkmApiControllersTest {
         val kkm = sampleKkm("kkm-mgmt")
         val ofd = OfdCommandResponse(status = OfdCommandStatus.OK)
         every { service.getKkm("kkm-mgmt") } returns kkm
-        every { service.updateKkmSettings("kkm-mgmt", "6666", true) } returns kkm
+        every { service.updateKkmSettings("kkm-mgmt", "6666", true, any()) } returns kkm
         every {
             service.updateTaxSettings(
                 kkmId = "kkm-mgmt",
@@ -221,6 +222,31 @@ class KkmApiControllersTest {
     }
 
     @Test
+    fun `name endpoint delegates to service and returns the named kkm`() {
+        val named = sampleKkm("kkm-mgmt").copy(name = "Касса 2 на Достык")
+        every { service.updateKkmName("kkm-mgmt", "6666", "Касса 2 на Достык") } returns named
+
+        val updated = managementController.updateKkmName(
+            "kkm-mgmt",
+            "Bearer 6666",
+            KkmNameUpdateRequest(name = "Касса 2 на Достык")
+        )
+
+        assertEquals("Касса 2 на Достык", updated.name)
+        verify { service.updateKkmName("kkm-mgmt", "6666", "Касса 2 на Достык") }
+    }
+
+    @Test
+    fun `empty name clears the kkm name`() {
+        val unnamed = sampleKkm("kkm-mgmt")
+        every { service.updateKkmName("kkm-mgmt", "6666", null) } returns unnamed
+
+        val updated = managementController.updateKkmName("kkm-mgmt", "6666", KkmNameUpdateRequest())
+
+        assertEquals(null, updated.name)
+    }
+
+    @Test
     fun `decommissioning endpoints delegate and map responses`() {
         val kkm = sampleKkm("kkm-init")
         every { service.initKkmSimple("7777", any()) } returns kkm
@@ -251,15 +277,13 @@ class KkmApiControllersTest {
             UserResponse(
                 userId = "u-1",
                 name = "Admin",
-                role = UserRole.ADMIN,
-                pin = "0000"
+                role = UserRole.ADMIN
             )
         val cashier =
             UserResponse(
                 userId = "u-2",
                 name = "Cashier",
-                role = UserRole.CASHIER,
-                pin = "1111"
+                role = UserRole.CASHIER
             )
 
         every { service.listUsers("kkm-users", "8888") } returns listOf(admin)

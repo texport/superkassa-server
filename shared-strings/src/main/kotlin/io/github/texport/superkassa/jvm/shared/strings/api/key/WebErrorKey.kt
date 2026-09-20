@@ -15,6 +15,9 @@ enum class WebErrorKey(override val code: String) : ErrorKey {
     /** Неподдерживаемый тип содержимого (Media Type) */
     UNSUPPORTED_MEDIA_TYPE("UNSUPPORTED_MEDIA_TYPE"),
 
+    /** Клиент не принимает ни один из типов ответа, которые даёт ресурс */
+    NOT_ACCEPTABLE("NOT_ACCEPTABLE"),
+
     /** Запрошенный ресурс не найден */
     RESOURCE_NOT_FOUND("RESOURCE_NOT_FOUND"),
 

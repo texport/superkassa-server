@@ -9,9 +9,11 @@ import io.github.texport.superkassa.core.domain.api.model.common.*
 import io.github.texport.superkassa.core.domain.api.model.kkm.*
 import io.github.texport.superkassa.core.domain.api.model.ofd.*
 import io.github.texport.superkassa.core.domain.api.model.receipt.*
+import io.github.texport.superkassa.core.domain.api.model.receipt.TicketAd
 import io.github.texport.superkassa.core.domain.api.model.shift.*
 import io.github.texport.superkassa.core.presentation.api.model.kkm.OfdServiceInfoResponse
 import io.github.texport.superkassa.core.presentation.api.model.kkm.ReceiptBrandingResponse
+import io.github.texport.superkassa.core.presentation.api.model.kkm.TicketAdDto
 import io.github.texport.superkassa.core.string.api.TrilingualMessage
 import io.github.texport.superkassa.jvm.shared.strings.api.key.StorageErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver
@@ -73,11 +75,13 @@ object StorageMapper {
             lastReceiptNo = record.lastReceiptNo,
             lastZReportNo = record.lastZReportNo,
             autonomousSince = record.autonomousSince,
+            blockReasonCode = record.blockReasonCode,
             autoCloseShift = record.autoCloseShift,
             lastFiscalHashBase64 = encodeBase64(record.lastFiscalHash),
             taxRegime = parseTaxRegime(record.taxRegime),
             defaultVatGroup = parseVatGroup(record.defaultVatGroup),
-            branding = branding
+            branding = branding,
+            name = record.name
         )
     }
 
@@ -90,6 +94,11 @@ object StorageMapper {
             mode = info.mode,
             state = info.state,
             ofdProvider = info.ofdProvider,
+            // Адрес ОФД у кассы больше не свой: его задаёт контур
+            // выбранного ОФД, а провайдер «свой адрес» убран. Колонки
+            // остаются пустыми, пока их не снимет миграция.
+            ofdHost = null,
+            ofdPort = null,
             registrationNumber = info.registrationNumber,
             factoryNumber = info.factoryNumber,
             manufactureYear = info.manufactureYear,
@@ -101,11 +110,13 @@ object StorageMapper {
             lastReceiptNo = info.lastReceiptNo,
             lastZReportNo = info.lastZReportNo,
             autonomousSince = info.autonomousSince,
+            blockReasonCode = info.blockReasonCode,
             autoCloseShift = info.autoCloseShift,
             lastFiscalHash = decodeBase64(info.lastFiscalHashBase64),
             taxRegime = info.taxRegime.name,
             defaultVatGroup = info.defaultVatGroup.name,
-            brandingJson = json.encodeToString(ReceiptBrandingResponse.serializer(), dto)
+            brandingJson = json.encodeToString(ReceiptBrandingResponse.serializer(), dto),
+            name = info.name
         )
     }
 
@@ -152,7 +163,6 @@ object StorageMapper {
             id = record.id,
             name = record.name,
             role = parseUserRole(record.role),
-            pin = record.pin,
             createdAt = record.createdAt
         )
     }
@@ -231,6 +241,7 @@ object StorageMapper {
             shiftId = r.shiftId ?: "",
             docType = r.docType,
             docNo = r.docNo,
+            printedDocumentNumber = r.printedDocumentNumber,
             shiftNo = r.shiftNo,
             createdAt = r.createdAt,
             totalAmount = r.totalAmount,
@@ -241,6 +252,7 @@ object StorageMapper {
             ofdStatus = r.ofdStatus,
             deliveredAt = r.deliveredAt,
             receiptUrl = r.receiptUrl,
+            ofdErrorCode = r.ofdErrorCode,
             registrationNumber = cashbox?.registrationNumber,
             taxpayerName = serviceInfo?.orgTitle,
             taxpayerBin = serviceInfo?.orgInn,
@@ -267,7 +279,7 @@ object StorageMapper {
         useForceDarkTheme = branding.useForceDarkTheme,
         customBackgroundColorHex = branding.customBackgroundColorHex,
         customCardTopBorderColorHex = branding.customCardTopBorderColorHex,
-        ofdTicketAds = branding.ofdTicketAds,
+        ofdTicketAds = branding.ofdTicketAds.map { TicketAdDto(it.type, it.version, it.text) },
         printOfdTicketAds = branding.printOfdTicketAds
     )
 
@@ -288,7 +300,7 @@ object StorageMapper {
         useForceDarkTheme = dto.useForceDarkTheme,
         customBackgroundColorHex = dto.customBackgroundColorHex,
         customCardTopBorderColorHex = dto.customCardTopBorderColorHex,
-        ofdTicketAds = dto.ofdTicketAds,
+        ofdTicketAds = dto.ofdTicketAds.map { TicketAd(it.type, it.version, it.text) },
         printOfdTicketAds = dto.printOfdTicketAds
     )
 

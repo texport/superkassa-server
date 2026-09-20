@@ -1,6 +1,7 @@
 package io.github.texport.superkassa.jvm.storage.impl.data.migration
 
 import io.github.texport.superkassa.jvm.storage.impl.application.connector.StorageConnectorRegistry
+import io.github.texport.superkassa.jvm.storage.impl.application.migration.DataMigration
 import io.github.texport.superkassa.jvm.storage.impl.application.migration.MigrationCatalog
 import io.github.texport.superkassa.jvm.storage.impl.application.migration.MigrationRunner
 import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
@@ -14,7 +15,8 @@ import java.sql.Connection
  */
 class JdbcMigrationRunner(
     private val registry: StorageConnectorRegistry,
-    private val catalog: MigrationCatalog = DefaultMigrationCatalog()
+    private val catalog: MigrationCatalog = DefaultMigrationCatalog(),
+    private val dataMigrations: List<DataMigration> = listOf(ReceiptTotalsInTiynMigration())
 ) : MigrationRunner {
     private val logger = LoggerFactory.getLogger(JdbcMigrationRunner::class.java)
 
@@ -36,6 +38,21 @@ class JdbcMigrationRunner(
                 applySql(connection, sql)
                 insertMigration(connection, script.version, script.checksum)
                 logger.info("Migration applied. version={}", script.version)
+            }
+            // Миграции данных идут после схемных: они опираются на её вид.
+            for (migration in dataMigrations) {
+                if (applied.contains(migration.version)) {
+                    logger.info("Data migration skipped. version={}", migration.version)
+                    continue
+                }
+                logger.info(
+                    "Data migration apply. version={}, description={}",
+                    migration.version,
+                    migration.description
+                )
+                migration.apply(connection)
+                insertMigration(connection, migration.version, migration.checksum)
+                logger.info("Data migration applied. version={}", migration.version)
             }
         }
         logger.info("Migration finished. engine={}", engine)

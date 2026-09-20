@@ -20,9 +20,9 @@ class StartupTimeValidationRunner(
             logger.info("System time validation passed on startup")
         } catch (e: SystemTimeStartupValidationException) {
             logger.error(
-                "System time validation failed on startup: reason={}",
+                "System time validation failed on startup: reason={} | error={}",
                 e.validationResult.reason,
-                e
+                e.message
             )
             throw e
         }

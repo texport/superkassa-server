@@ -65,7 +65,6 @@ class JdbcKkmDelegate(private val sessionProvider: () -> StorageSession) {
         userId: String,
         name: String,
         role: UserRole,
-        pin: String,
         pinHash: String,
         createdAt: Long
     ): Boolean {
@@ -75,7 +74,6 @@ class JdbcKkmDelegate(private val sessionProvider: () -> StorageSession) {
                 id = userId,
                 name = name,
                 role = role.name,
-                pin = pin,
                 pinHash = pinHash,
                 createdAt = createdAt
             )
@@ -87,7 +85,6 @@ class JdbcKkmDelegate(private val sessionProvider: () -> StorageSession) {
         userId: String,
         name: String?,
         role: UserRole?,
-        pin: String?,
         pinHash: String?
     ): Boolean {
         return sessionProvider().users.update(
@@ -95,7 +92,6 @@ class JdbcKkmDelegate(private val sessionProvider: () -> StorageSession) {
             userId = userId,
             name = name,
             role = role?.name,
-            pin = pin,
             pinHash = pinHash
         )
     }

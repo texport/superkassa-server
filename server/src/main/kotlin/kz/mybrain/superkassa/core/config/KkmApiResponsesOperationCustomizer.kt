@@ -49,11 +49,16 @@ class KkmApiResponsesOperationCustomizer : OperationCustomizer {
     }
 
     private fun addResponse(responses: ApiResponses, code: String, description: String) {
-        if (description.isBlank()) return // Do not add response if description is empty or blank
+        if (description.isBlank()) return
 
-        if (!responses.containsKey(code)) {
-            val apiResponse = ApiResponse().description(description)
+        val existing = responses[code]
+        if (existing != null) {
+            if (existing.description.isNullOrEmpty()) {
+                existing.description = description
+            }
+        } else {
             if (code != "200") {
+                val apiResponse = ApiResponse().description(description)
                 val content = Content()
                 val mediaType = MediaType()
                 val schema = Schema<Any>()
@@ -61,13 +66,10 @@ class KkmApiResponsesOperationCustomizer : OperationCustomizer {
                 mediaType.schema = schema
                 content.addMediaType("application/json", mediaType)
                 apiResponse.content = content
+                responses.addApiResponse(code, apiResponse)
             }
-            responses.addApiResponse(code, apiResponse)
-        } else {
-            val existing = responses[code]
-            if (existing?.description.isNullOrEmpty()) {
-                existing?.description = description
-            }
+            // For "200", if it is missing, we do not add a blank schema-less response
+            // so that SpringDoc can automatically resolve and set the response schema.
         }
     }
 }

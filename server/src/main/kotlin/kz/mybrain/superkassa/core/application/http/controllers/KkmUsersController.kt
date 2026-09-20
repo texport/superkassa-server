@@ -62,6 +62,37 @@ class KkmUsersController(private val kkmService: SuperkassaApi) {
         return kkmService.listUsers(kkmId, pin)
     }
 
+    /** Узнать, кто вошёл под ПИН-кодом из заголовка. */
+    @GetMapping("/users/me")
+    @Operation(
+        summary = "Узнать текущего пользователя ККМ",
+        description = """
+            Возвращает пользователя, которому принадлежит ПИН-код из заголовка `Authorization`.
+
+            Нужен рабочему месту, чтобы показать вошедшему только доступные ему разделы:
+            роль выясняется одним запросом, а не отказами на каждом разделе.
+
+            **Требования:**
+            - Касса ККМ с указанным ID должна существовать.
+            - Достаточно прав любого пользователя кассы: роль не проверяется, а возвращается.
+
+            **Возвращаемая структура:**
+            - Объект `UserResponse`: идентификатор, имя и роль. ПИН-кода в ответе нет.
+        """
+    )
+    @KkmApiResponses(
+        ok = MSG_200_USERS_LIST,
+        forbidden = MSG_403_FORBIDDEN,
+        notFound = MSG_404_KKM_NOT_FOUND
+    )
+    fun currentUser(
+        @PathVariable kkmId: String,
+        @RequestHeader("Authorization") authHeader: String?
+    ): UserResponse {
+        val pin = AuthHeaderUtils.extractPin(authHeader)
+        return kkmService.currentUser(kkmId, pin)
+    }
+
     /** Создать нового пользователя (кассира/админа) для ККМ. */
     @PostMapping("/users")
     @Operation(

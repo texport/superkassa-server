@@ -3,6 +3,7 @@ package io.github.texport.superkassa.jvm.storage.impl.data.jdbc
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.FiscalDocumentRecord
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.FiscalDocumentRepository
 import java.sql.Connection
+import java.sql.PreparedStatement
 import java.sql.ResultSet
 
 /**
@@ -16,8 +17,9 @@ class JdbcFiscalDocumentRepository(
             INSERT INTO fiscal_document (
                 id, cashbox_id, shift_id, doc_type, doc_no, shift_no, created_at,
                 total_amount, currency, payload_bin, payload_hash, fiscal_sign,
-                autonomous_sign, is_autonomous, ofd_status, delivered_at, receipt_url
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                autonomous_sign, is_autonomous, ofd_status, delivered_at, receipt_url,
+                ofd_error_code
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
         connection.prepareStatement(sql).use { stmt ->
             stmt.setString(1, record.id)
@@ -37,6 +39,7 @@ class JdbcFiscalDocumentRepository(
             stmt.bindString(15, record.ofdStatus)
             stmt.bindLong(16, record.deliveredAt)
             stmt.bindString(17, record.receiptUrl)
+            stmt.bindInt(18, record.ofdErrorCode)
             return stmt.executeUpdate() == 1
         }
     }
@@ -62,82 +65,61 @@ class JdbcFiscalDocumentRepository(
         }
     }
 
+    override fun updatePrintedDocNo(id: String, number: Long): Boolean {
+        val sql = "UPDATE fiscal_document SET printed_document_number = ? WHERE id = ?"
+        connection.prepareStatement(sql).use { stmt ->
+            stmt.setLong(1, number)
+            stmt.setString(2, id)
+            return stmt.executeUpdate() > 0
+        }
+    }
+
+    override fun updateDocNo(id: String, docNo: Long): Boolean {
+        val sql = "UPDATE fiscal_document SET doc_no = ? WHERE id = ?"
+        connection.prepareStatement(sql).use { stmt ->
+            stmt.setLong(1, docNo)
+            stmt.setString(2, id)
+            return stmt.executeUpdate() > 0
+        }
+    }
+
     override fun updateStatus(
         id: String,
         ofdStatus: String,
         fiscalSign: String?,
         autonomousSign: String?,
         deliveredAt: Long?,
+        ofdErrorCode: Int?,
         isAutonomous: Boolean?,
         receiptUrl: String?
     ): Boolean {
-        val sql = if (receiptUrl != null) {
-            if (isAutonomous != null) {
-                """
-                UPDATE fiscal_document SET
-                    ofd_status = ?,
-                    fiscal_sign = ?,
-                    autonomous_sign = ?,
-                    delivered_at = ?,
-                    is_autonomous = ?,
-                    receipt_url = ?
-                WHERE id = ?
-                """.trimIndent()
-            } else {
-                """
-                UPDATE fiscal_document SET
-                    ofd_status = ?,
-                    fiscal_sign = ?,
-                    autonomous_sign = ?,
-                    delivered_at = ?,
-                    receipt_url = ?
-                WHERE id = ?
-                """.trimIndent()
-            }
-        } else {
-            if (isAutonomous != null) {
-                """
-                UPDATE fiscal_document SET
-                    ofd_status = ?,
-                    fiscal_sign = ?,
-                    autonomous_sign = ?,
-                    delivered_at = ?,
-                    is_autonomous = ?
-                WHERE id = ?
-                """.trimIndent()
-            } else {
-                """
-                UPDATE fiscal_document SET
-                    ofd_status = ?,
-                    fiscal_sign = ?,
-                    autonomous_sign = ?,
-                    delivered_at = ?
-                WHERE id = ?
-                """.trimIndent()
-            }
+        // Колонки собираются списком, а не четырьмя вариантами запроса
+        // на два необязательных поля. Признак автономности и ссылку на чек
+        // трогаем, только если вызывающий их передал: null у них означает
+        // «оставить как было», а не «стереть».
+        val columns = mutableListOf("ofd_status", "fiscal_sign", "autonomous_sign", "delivered_at", "ofd_error_code")
+        val binders = mutableListOf<(PreparedStatement, Int) -> Unit>(
+            { stmt, i -> stmt.setString(i, ofdStatus) },
+            { stmt, i -> stmt.bindString(i, fiscalSign) },
+            { stmt, i -> stmt.bindString(i, autonomousSign) },
+            { stmt, i -> stmt.bindLong(i, deliveredAt) },
+            { stmt, i -> stmt.bindInt(i, ofdErrorCode) }
+        )
+        if (isAutonomous != null) {
+            columns += "is_autonomous"
+            binders += { stmt, i -> stmt.setInt(i, if (isAutonomous) 1 else 0) }
         }
+        if (receiptUrl != null) {
+            columns += "receipt_url"
+            binders += { stmt, i -> stmt.setString(i, receiptUrl) }
+        }
+
+        val sql = "UPDATE fiscal_document SET " +
+            columns.joinToString(", ") { "$it = ?" } +
+            " WHERE id = ?"
         connection.prepareStatement(sql).use { stmt ->
-            stmt.setString(1, ofdStatus)
-            stmt.bindString(2, fiscalSign)
-            stmt.bindString(3, autonomousSign)
-            stmt.bindLong(4, deliveredAt)
-            if (receiptUrl != null) {
-                if (isAutonomous != null) {
-                    stmt.setInt(5, if (isAutonomous) 1 else 0)
-                    stmt.bindString(6, receiptUrl)
-                    stmt.setString(7, id)
-                } else {
-                    stmt.bindString(5, receiptUrl)
-                    stmt.setString(6, id)
-                }
-            } else {
-                if (isAutonomous != null) {
-                    stmt.setInt(5, if (isAutonomous) 1 else 0)
-                    stmt.setString(6, id)
-                } else {
-                    stmt.setString(5, id)
-                }
-            }
+            binders.forEachIndexed { index, bind -> bind(stmt, index + 1) }
+            stmt.setString(binders.size + 1, id)
             return stmt.executeUpdate() == 1
         }
     }
@@ -257,6 +239,7 @@ class JdbcFiscalDocumentRepository(
             shiftId = rs.getString("shift_id"),
             docType = rs.getString("doc_type"),
             docNo = rs.getLong("doc_no").takeIf { !rs.wasNull() },
+            printedDocumentNumber = rs.getLong("printed_document_number").takeIf { !rs.wasNull() },
             shiftNo = rs.getLong("shift_no").takeIf { !rs.wasNull() },
             createdAt = rs.getLong("created_at"),
             totalAmount = rs.getLong("total_amount").takeIf { !rs.wasNull() },
@@ -268,7 +251,8 @@ class JdbcFiscalDocumentRepository(
             isAutonomous = rs.getInt("is_autonomous") == 1,
             ofdStatus = rs.getString("ofd_status"),
             deliveredAt = rs.getLong("delivered_at").takeIf { !rs.wasNull() },
-            receiptUrl = rs.getString("receipt_url")
+            receiptUrl = rs.getString("receipt_url"),
+            ofdErrorCode = rs.getInt("ofd_error_code").takeIf { !rs.wasNull() }
         )
     }
 }

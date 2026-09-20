@@ -113,6 +113,7 @@ class OpenApiConfigAdapter {
             // Определяем желаемый порядок тегов
             val tagOrder = listOf(
                 "О Superkassa",
+                "Справочники и Словари",
                 "Диагностика",
                 "Настройки Superkassa",
                 "Режим программирования ККМ",

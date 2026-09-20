@@ -193,6 +193,11 @@ class DefaultErrorResolver : ErrorResolver {
             ru = "Идентификатор телефона WhatsApp должен состоять только из цифр.",
             kk = "WhatsApp телефон идентификаторы тек сандардан тұруы керек."
         ),
+        SettingsErrorKey.OFD_PROTOCOL_VERSION_FIXED_AT_STARTUP to TrilingualString(
+            en = "Protocol version is set at node startup and cannot be changed through the API.",
+            ru = "Версия протокола задаётся при запуске узла и через API не меняется.",
+            kk = "Хаттама нұсқасы түйінді іске қосу кезінде беріледі және API арқылы өзгермейді."
+        ),
         SettingsErrorKey.SETTINGS_FROZEN_SERVER_MODE to TrilingualString(
             en = "Settings cannot be modified via API in SERVER mode.",
             ru = "Настройки не могут быть изменены через API в режиме SERVER.",
@@ -382,6 +387,11 @@ class DefaultErrorResolver : ErrorResolver {
             en = "Media type not supported",
             ru = "Неподдерживаемый тип содержимого",
             kk = "Қолдау көрсетілмейтін мазмұн түрі"
+        ),
+        WebErrorKey.NOT_ACCEPTABLE to TrilingualString(
+            en = "Requested representation is not available",
+            ru = "Запрошенное представление ресурса недоступно",
+            kk = "Сұралған ресурс ұсынымы қолжетімсіз"
         ),
         WebErrorKey.RESOURCE_NOT_FOUND to TrilingualString(
             en = "Requested resource was not found",

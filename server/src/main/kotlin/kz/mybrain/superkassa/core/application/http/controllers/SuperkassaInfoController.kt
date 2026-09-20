@@ -5,12 +5,15 @@ import io.github.texport.superkassa.core.presentation.api.model.common.Paginated
 import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmListParams
 import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmResponse
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_KKM_LIST
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_VERSION
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.info.SystemInfoApplicationService
-import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.info.BuildProperties
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -26,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController
 class SuperkassaInfoController(
     private val systemInfoService: SystemInfoApplicationService,
     private val kkmService: SuperkassaApi,
-    @Value("\${app.version:1.0}") private val appVersion: String
+    private val build: BuildProperties
 ) {
 
     /**
@@ -109,7 +112,7 @@ class SuperkassaInfoController(
 
             **name** (string): Название системы - всегда "Superkassa Core"
 
-            **version** (string): Версия приложения, берется из конфигурации app.version
+            **version** (string): Версия узла из сборки; **coreVersion** — версия ядра внутри него
 
             **mode** (string): Режим работы системы:
             - DESKTOP - десктопное приложение для локального использования
@@ -119,7 +122,7 @@ class SuperkassaInfoController(
             Используется в SERVER режиме для идентификации узла при распределенной обработке.
 
             **ofdProtocolVersion** (string): Версия протокола ОФД, используемая для обмена с ОФД.
-            Текущая версия: "203"
+            Текущая версия: "204"
 
             **storage** (object): Информация о хранилище данных:
             - engine (string): Тип СУБД (SQLITE, POSTGRESQL, MYSQL)
@@ -137,8 +140,82 @@ class SuperkassaInfoController(
             Используется для мониторинга и диагностики системы.
         """
     )
+    @ApiResponse(
+        responseCode = "200",
+        description = MSG_200_VERSION,
+        content = [
+            Content(
+                mediaType = "application/json",
+                schema = Schema(implementation = SystemInfoResponse::class)
+            )
+        ]
+    )
     @KkmApiResponses(ok = MSG_200_VERSION)
     fun info(): Map<String, Any> {
-        return systemInfoService.getInfo(appVersion)
+        // Пустых версий не бывает: сборка их проставляет. Подстановка нужна
+        // только компилятору — платформенный тип Spring считается обнуляемым.
+        val node = build.version ?: UNKNOWN_VERSION
+        return systemInfoService.getInfo(node, build.get("coreVersion") ?: node)
     }
 }
+
+/**
+ * Информация о системе Superkassa Core.
+ */
+@io.swagger.v3.oas.annotations.media.Schema(description = "Информация о системе Superkassa Core")
+data class SystemInfoResponse(
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Название системы", example = "Superkassa Core")
+    val name: String,
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Версия приложения", example = "1.1.5")
+    val version: String,
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Режим работы системы (DESKTOP или SERVER)", example = "SERVER")
+    val mode: String,
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Уникальный идентификатор узла в кластере", example = "node-1")
+    val nodeId: String,
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Версия протокола ОФД", example = "204")
+    val ofdProtocolVersion: String,
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Информация о хранилище данных")
+    val storage: StorageInfoResponse,
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Статистика системы")
+    val statistics: SystemStatisticsResponse,
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Дополнительные возможности системы")
+    val features: SystemFeaturesResponse
+)
+
+/**
+ * Информация о хранилище данных.
+ */
+@io.swagger.v3.oas.annotations.media.Schema(description = "Информация о хранилище данных")
+data class StorageInfoResponse(
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Тип СУБД (SQLITE, POSTGRESQL, MYSQL)", example = "SQLITE")
+    val engine: String,
+    @io.swagger.v3.oas.annotations.media.Schema(description = "JDBC URL для подключения к БД (пароль скрыт)", example = "jdbc:sqlite:superkassa.db")
+    val jdbcUrl: String
+)
+
+/**
+ * Статистика системы.
+ */
+@io.swagger.v3.oas.annotations.media.Schema(description = "Статистика системы")
+data class SystemStatisticsResponse(
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Количество зарегистрированных ККМ в системе", example = "1")
+    val registeredKkms: Int
+)
+
+/**
+ * Дополнительные возможности системы.
+ */
+@io.swagger.v3.oas.annotations.media.Schema(description = "Дополнительные возможности системы")
+data class SystemFeaturesResponse(
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Разрешены ли изменения настроек через API", example = "true")
+    val allowSettingsChanges: Boolean,
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Список каналов доставки документов", example = "[\"PRINT\"]")
+    val deliveryChannels: List<String>,
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Общее время на обработку транзакции ОФД в секундах", example = "15")
+    val ofdTimeoutSeconds: Int,
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Интервал между попытками восстановления связи в секундах", example = "60")
+    val ofdReconnectIntervalSeconds: Int
+)
+
+/** Версия неизвестна: сборка без build-info. */
+private const val UNKNOWN_VERSION = "—"

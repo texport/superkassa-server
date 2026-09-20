@@ -7,6 +7,9 @@ import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdCommandSt
 import io.github.texport.superkassa.jvm.storage.impl.application.health.StorageHealthChecker
 import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_200_OK
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
@@ -63,6 +66,26 @@ class DiagnosticsController(
                - "SKIPPED: no active KKM" - если нет активных ККМ для данной комбинации
                - "ERROR: <сообщение>" - если произошла исключительная ситуация
         """
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = MSG_200_OK,
+        content = [
+            Content(
+                mediaType = "application/json",
+                schema = Schema(implementation = HealthResponse::class)
+            )
+        ]
+    )
+    @ApiResponse(
+        responseCode = "503",
+        description = "Сервис временно недоступен или деградирован",
+        content = [
+            Content(
+                mediaType = "application/json",
+                schema = Schema(implementation = HealthResponse::class)
+            )
+        ]
     )
     @KkmApiResponses(ok = MSG_200_OK)
     fun health(
@@ -183,3 +206,19 @@ class DiagnosticsController(
         return if (parts.size == 2) parts[0] to parts[1] else tag to null
     }
 }
+
+/**
+ * Результат проверки здоровья сервиса.
+ */
+@io.swagger.v3.oas.annotations.media.Schema(description = "Результат проверки работоспособности сервиса")
+data class HealthResponse(
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Статус базы данных (storage)", example = "OK")
+    val storage: String,
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Общий статус здоровья сервиса (OK или DEGRADED)", example = "OK")
+    val status: String,
+    @io.swagger.v3.oas.annotations.media.Schema(
+        description = "Результаты проверки подключения к ОФД (передается при checkOfd=true). Может быть строкой или словарем результатов.",
+        example = "{\"KAZAKHTELECOM:TEST\": \"OK\"}"
+    )
+    val ofd: Any? = null
+)

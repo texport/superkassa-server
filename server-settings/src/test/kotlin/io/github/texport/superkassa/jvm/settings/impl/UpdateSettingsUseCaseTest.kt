@@ -18,6 +18,26 @@ class UpdateSettingsUseCaseTest {
     private val repo = mockk<CoreSettingsRepositoryPort>()
 
     @Test
+    fun `protocol version fixed at startup cannot be changed`() {
+        // Правка версии протокола раньше принималась и молча не действовала.
+        val current = CoreSettings(
+            mode = CoreMode.DESKTOP,
+            storage = StorageSettings(engine = "SQLITE", jdbcUrl = "jdbc:sqlite:build/core.db"),
+            allowChanges = true,
+            ofdProtocolVersion = "204"
+        )
+        val repo = mockk<CoreSettingsRepositoryPort>()
+        every { repo.save(any()) } returns true
+
+        val exception = assertFailsWith<SettingsFrozenException> {
+            UpdateSettingsUseCase(repo, current).execute(current.copy(ofdProtocolVersion = "203"))
+        }
+
+        assertTrue(exception.message?.contains("204") == true, exception.message.orEmpty())
+        verify(exactly = 0) { repo.save(any()) }
+    }
+
+    @Test
     fun `execute saves settings in desktop mode when allowed`() {
         val initial = CoreSettings(
             mode = CoreMode.DESKTOP,

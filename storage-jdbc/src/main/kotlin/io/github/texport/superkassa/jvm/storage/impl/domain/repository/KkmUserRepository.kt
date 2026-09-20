@@ -12,7 +12,6 @@ interface KkmUserRepository {
         userId: String,
         name: String?,
         role: String?,
-        pin: String?,
         pinHash: String?
     ): Boolean
     fun deleteById(cashboxId: String, userId: String): Boolean

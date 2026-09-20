@@ -17,6 +17,10 @@ data class CashboxRecord(
     val state: String,
     // Провайдер ОФД.
     val ofdProvider: String? = null,
+    // Хост ОФД, заданный вручную. Есть только у провайдера CUSTOM.
+    val ofdHost: String? = null,
+    // Порт ОФД, заданный вручную. Есть только у провайдера CUSTOM.
+    val ofdPort: Int? = null,
     // Регистрационный номер в налоговой.
     val registrationNumber: String? = null,
     // Заводской номер.
@@ -39,6 +43,9 @@ data class CashboxRecord(
     val lastZReportNo: Int? = null,
     // Время начала автономного режима.
     val autonomousSince: Long? = null,
+
+    /** Код причины блокировки, полученный от ОФД. */
+    val blockReasonCode: Int? = null,
     // Автоматическое закрытие смены при превышении лимита.
     val autoCloseShift: Boolean = false,
     // Последний hash для фискального журнала.
@@ -48,5 +55,7 @@ data class CashboxRecord(
     // Базовая группа НДС по умолчанию.
     val defaultVatGroup: String? = null,
     // JSON-строка настроек брендирования и локализации.
-    val brandingJson: String? = null
+    val brandingJson: String? = null,
+    // Название кассы, данное владельцем; у заведённых раньше его нет.
+    val name: String? = null
 )

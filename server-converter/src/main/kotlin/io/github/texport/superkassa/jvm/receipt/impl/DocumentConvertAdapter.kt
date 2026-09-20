@@ -8,10 +8,68 @@ import javax.imageio.ImageIO
 /**
  * Адаптер конвертации HTML в PDF и Image (делегирует ESC/POS в EscPosConverter).
  */
+/** Логическая ширина ленты 80 мм в точках CSS. */
+private const val CANVAS_WIDTH_PX = 380
+
+/**
+ * Высота окна, когда высоту страницы измерить не удалось.
+ *
+ * Снимок headless Chromium берёт окно, а не страницу целиком, поэтому
+ * длинный документ обрезался ровно по этой границе: Z-отчёт заканчивался
+ * посреди налоговых блоков, а пустого низа не оставалось — обрезку было
+ * не видно. Поэтому высота окна теперь измеряется по самой странице,
+ * а это значение остаётся запасным.
+ */
+private const val CANVAS_HEIGHT_PX = 3000
+
+/**
+ * Предел высоты окна в логических точках.
+ *
+ * Снимок плотнее логических точек в [RENDER_SCALE] раз, и растр высотой
+ * в десятки тысяч точек стоит сотни мегабайт. Документ длиннее предела
+ * обрежется, зато касса останется на ногах.
+ */
+private const val CANVAS_HEIGHT_LIMIT_PX = 20_000
+
+/** Запас под нижний отступ ленты: с ним последняя строка не прилипает к краю. */
+private const val CANVAS_HEIGHT_MARGIN_PX = 80
+
+/** Во сколько раз снимок плотнее логических точек. */
+private const val RENDER_SCALE = 3
+
 class DocumentConvertAdapter : DocumentConvertPort {
 
     companion object {
         private const val BOTTOM_PADDING_PX = 20
+
+        /** Окно мерки: высота не важна, растр не рисуется. */
+        private const val MEASURE_WINDOW_HEIGHT_PX = 600
+
+        /** Сколько виртуального времени дать странице на загрузку шрифтов и разметки. */
+        private const val MEASURE_BUDGET_MS = 3000
+
+        private const val MEASURE_TIMEOUT_S = 15L
+
+        /**
+         * Скрипт мерки: страница сама сообщает свою высоту заголовком окна.
+         *
+         * Прибавляется к разметке снимка, а не к печатной форме узла: в снимке
+         * он безвреден, потому что заголовок в растр не попадает.
+         */
+        private val HEIGHT_PROBE = """
+            <script>
+            window.addEventListener('load', function () {
+                var page = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+                document.title = 'superkassa-height:' + Math.ceil(page);
+            });
+            </script>
+        """.trimIndent()
+
+        /** Узкая лента: класс стоит на самой форме, а не только в стилях. */
+        private val NARROW_TAPE = Regex("""class="[^"]*\btape-58mm\b""")
+
+        /** Чем страница сообщает свою высоту: подменённым заголовком окна. */
+        private val HEIGHT_MARK = Regex("""superkassa-height:(\d+)""")
 
         init {
             System.setProperty("xr.util-logging.loggingEnabled", "false")
@@ -41,12 +99,16 @@ class DocumentConvertAdapter : DocumentConvertPort {
             val heightPx = img.height
 
             // 2. Вычисляем размеры ленты
-            val is58 = html.contains("tape-58mm")
+            // Ширина ленты — по классу самой формы, а не по вхождению строки:
+            // таблица стилей описывает обе ленты, и поиск подстроки находил
+            // 58 мм в любом чеке, отчего 80-миллиметровая форма печаталась
+            // на узкой странице.
+            val is58 = NARROW_TAPE.containsMatchIn(html)
             val paperWidth = if (is58) 58.0 else 80.0
 
-            // 380px — логическая ширина, 3.0 — масштаб устройства (scale factor)
+            // CANVAS_WIDTH_PX — логическая ширина ленты, RENDER_SCALE — масштаб устройства
             val heightCss = heightPx / 3.0
-            val scale = paperWidth / 380.0
+            val scale = paperWidth / CANVAS_WIDTH_PX.toDouble()
             val heightMm = (heightCss * scale) + 8.0 // добавляем 8мм запас на отступы
 
             val cssInject = """
@@ -124,15 +186,24 @@ class DocumentConvertAdapter : DocumentConvertPort {
         val tempHtmlFile = java.io.File.createTempFile("receipt-", ".html")
         val tempPngFile = java.io.File.createTempFile("receipt-", ".png")
         try {
+            // Ширина холста задаётся в самой странице, а не только окном
+            // браузера: окно уже своего минимума браузер не отдаёт, вёрстка
+            // шла по более широкому окну, а снимок резался по этой ширине —
+            // чек уезжал вправо и обрезался по правому краю.
             val cssInject = """
+                $HEIGHT_PROBE
                 <style>
                 * {
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
-                body {
+                html, body {
+                    width: ${CANVAS_WIDTH_PX}px !important;
+                    min-width: ${CANVAS_WIDTH_PX}px !important;
+                    max-width: ${CANVAS_WIDTH_PX}px !important;
                     margin: 0 !important;
                     padding: 0 !important;
+                    overflow-x: hidden !important;
                 }
                 </style>
             """.trimIndent()
@@ -149,14 +220,15 @@ class DocumentConvertAdapter : DocumentConvertPort {
 
             tempHtmlFile.writeText(wrapHtml(modifiedHtml))
 
+            val windowHeight = pageHeight(tempHtmlFile)
             val process = ProcessBuilder(
                 resolveChromiumPath(),
                 "--headless",
                 "--disable-gpu",
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
-                "--window-size=380,3000", // standard 80mm width, very long height to avoid clipping
-                "--force-device-scale-factor=3",
+                "--window-size=$CANVAS_WIDTH_PX,$windowHeight",
+                "--force-device-scale-factor=$RENDER_SCALE",
                 "--screenshot=${tempPngFile.absolutePath}",
                 tempHtmlFile.absolutePath
             ).start()
@@ -203,6 +275,37 @@ class DocumentConvertAdapter : DocumentConvertPort {
             } catch (_: Throwable) {
             }
         }
+    }
+
+    /**
+     * Высота страницы в логических точках: её знает только сама страница.
+     *
+     * Chromium измеряет её у себя и приносит числом в заголовке окна —
+     * `--dump-dom` печатает разметку после загрузки, и заголовок в ней уже
+     * подменён. Растр при этом не рисуется, поэтому мерка дешёвая. Не вышло
+     * измерить — работаем по запасной высоте, как раньше.
+     */
+    private fun pageHeight(htmlFile: java.io.File): Int {
+        val measured = runCatching {
+            val process = ProcessBuilder(
+                resolveChromiumPath(),
+                "--headless",
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--window-size=$CANVAS_WIDTH_PX,$MEASURE_WINDOW_HEIGHT_PX",
+                "--virtual-time-budget=$MEASURE_BUDGET_MS",
+                "--dump-dom",
+                htmlFile.absolutePath
+            ).redirectErrorStream(false).start()
+            val dom = process.inputStream.bufferedReader().readText()
+            if (!process.waitFor(MEASURE_TIMEOUT_S, java.util.concurrent.TimeUnit.SECONDS)) {
+                process.destroyForcibly()
+            }
+            HEIGHT_MARK.find(dom)?.groupValues?.get(1)?.toIntOrNull()
+        }.getOrNull()
+        val height = measured ?: return CANVAS_HEIGHT_PX
+        return (height + CANVAS_HEIGHT_MARGIN_PX).coerceIn(CANVAS_HEIGHT_PX, CANVAS_HEIGHT_LIMIT_PX)
     }
 
     private fun cropSolidBottom(image: BufferedImage): BufferedImage {

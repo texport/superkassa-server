@@ -11,8 +11,14 @@ class SettingsApplicationService(
     private val coreSettings: CoreSettings,
     private val updateSettingsUseCase: UpdateSettingsUseCase
 ) {
+    /**
+     * Текущие настройки узла — те же, по которым узел работает.
+     *
+     * Сохранённая запись перекрывается полями запуска: иначе метод отдаёт
+     * версию протокола, на которой узел не разговаривает.
+     */
     fun getSettings(): CoreSettingsDto {
-        return settingsRepository.loadOrCreate(coreSettings).toDto()
+        return settingsRepository.loadOrCreate(coreSettings).withDeploymentOwned(coreSettings).toDto()
     }
 
     fun updateSettings(newSettingsDto: CoreSettingsDto): CoreSettingsDto {

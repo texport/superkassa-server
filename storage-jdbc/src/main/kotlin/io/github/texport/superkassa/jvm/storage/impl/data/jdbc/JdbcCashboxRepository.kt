@@ -17,8 +17,8 @@ class JdbcCashboxRepository(
                 id, created_at, updated_at, mode, state, ofd_provider, registration_number,
                 factory_number, manufacture_year, system_id, ofd_service_info, token_enc, token_updated_at,
                 last_shift_no, last_receipt_no, last_z_report_no, autonomous_since, auto_close_shift, last_fiscal_hash,
-                tax_regime, default_vat_group, branding_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                tax_regime, default_vat_group, branding_json, block_reason_code, ofd_host, ofd_port, name
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
         connection.prepareStatement(sql).use { stmt ->
             stmt.setString(1, record.id)
@@ -43,6 +43,10 @@ class JdbcCashboxRepository(
             stmt.bindString(20, record.taxRegime)
             stmt.bindString(21, record.defaultVatGroup)
             stmt.bindString(22, record.brandingJson)
+            stmt.bindInt(23, record.blockReasonCode)
+            stmt.bindString(24, record.ofdHost)
+            stmt.bindInt(25, record.ofdPort)
+            stmt.bindString(26, record.name)
             return stmt.executeUpdate() == 1
         }
     }
@@ -69,7 +73,11 @@ class JdbcCashboxRepository(
                 last_fiscal_hash = ?,
                 tax_regime = ?,
                 default_vat_group = ?,
-                branding_json = ?
+                branding_json = ?,
+                block_reason_code = ?,
+                ofd_host = ?,
+                ofd_port = ?,
+                name = ?
             WHERE id = ?
         """.trimIndent()
         connection.prepareStatement(sql).use { stmt ->
@@ -93,7 +101,11 @@ class JdbcCashboxRepository(
             stmt.bindString(18, record.taxRegime)
             stmt.bindString(19, record.defaultVatGroup)
             stmt.bindString(20, record.brandingJson)
-            stmt.setString(21, record.id)
+            stmt.bindInt(21, record.blockReasonCode)
+            stmt.bindString(22, record.ofdHost)
+            stmt.bindInt(23, record.ofdPort)
+            stmt.bindString(24, record.name)
+            stmt.setString(25, record.id)
             return stmt.executeUpdate() == 1
         }
     }
@@ -210,7 +222,11 @@ class JdbcCashboxRepository(
             lastFiscalHash = rs.getBytes("last_fiscal_hash"),
             taxRegime = rs.getString("tax_regime"),
             defaultVatGroup = rs.getString("default_vat_group"),
-            brandingJson = rs.getString("branding_json")
+            brandingJson = rs.getString("branding_json"),
+            blockReasonCode = rs.getInt("block_reason_code").takeIf { !rs.wasNull() },
+            ofdHost = rs.getString("ofd_host"),
+            ofdPort = rs.getInt("ofd_port").takeIf { !rs.wasNull() },
+            name = rs.getString("name")
         )
     }
 
@@ -231,8 +247,11 @@ class JdbcCashboxRepository(
         }
 
         if (search != null && search.isNotBlank()) {
-            conditions.add("registration_number LIKE ?")
-            params.add("%$search%")
+            conditions.add("(LOWER(registration_number) LIKE ? OR LOWER(factory_number) LIKE ? OR LOWER(ofd_service_info) LIKE ?)")
+            val likeParam = "%${search.trim().lowercase()}%"
+            params.add(likeParam)
+            params.add(likeParam)
+            params.add(likeParam)
         }
 
         val whereClause = if (conditions.isEmpty()) "" else "WHERE ${conditions.joinToString(" AND ")}"
@@ -283,8 +302,11 @@ class JdbcCashboxRepository(
         }
 
         if (search != null && search.isNotBlank()) {
-            conditions.add("registration_number LIKE ?")
-            params.add("%$search%")
+            conditions.add("(LOWER(registration_number) LIKE ? OR LOWER(factory_number) LIKE ? OR LOWER(ofd_service_info) LIKE ?)")
+            val likeParam = "%${search.trim().lowercase()}%"
+            params.add(likeParam)
+            params.add(likeParam)
+            params.add(likeParam)
         }
 
         val whereClause = if (conditions.isEmpty()) "" else "WHERE ${conditions.joinToString(" AND ")}"

@@ -1,5 +1,6 @@
 package io.github.texport.superkassa.jvm.storage.impl.core
 
+import io.github.texport.superkassa.core.domain.api.model.common.Decimal
 import io.github.texport.superkassa.core.data.api.SuperkassaCoreEngine
 import io.github.texport.superkassa.core.domain.api.model.ofd.OfdCommandRequest
 import io.github.texport.superkassa.core.domain.api.model.ofd.OfdCommandResult
@@ -13,7 +14,8 @@ import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettin
 import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmInitDirectRequest
 import io.github.texport.superkassa.core.presentation.api.model.kkm.OfdServiceInfoResponse
 import io.github.texport.superkassa.core.presentation.api.model.user.UserRole
-import io.github.texport.superkassa.core.presentation.api.model.user.UserUpdateRequest
+import io.github.texport.superkassa.core.presentation.api.model.user.UserCreateRequest
+import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptDocumentTypes
 import io.github.texport.superkassa.core.presentation.api.model.receipt.CreateReceiptCommand
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptItemRequest
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptPaymentRequest
@@ -28,6 +30,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.nio.file.Files
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 class CoreIntegrationTest {
@@ -70,6 +73,12 @@ class CoreIntegrationTest {
                                 put(
                                     "report",
                                     buildJsonObject {
+                                        put(
+                                            // Тип отчёта задан явно: при его отсутствии
+                                            // разбор считает смену открытой, и регистрация
+                                            // восстановит её, а тест открывает смену сам.
+                                            "reportType", JsonPrimitive("REPORT_Z")
+                                        )
                                         put(
                                             "zxReport",
                                             buildJsonObject {
@@ -176,29 +185,23 @@ class CoreIntegrationTest {
                     geoLatitude = 1,
                     geoLongitude = 1,
                     geoSource = "TEST"
-                )
+                ),
+                adminPin = "4321"
             )
         )
         val kkmId = init.kkmId
 
-        // List and change PINs to secure ones
-        val users = service.listUsers(kkmId, "0000")
-        val admin = users.first { it.role == UserRole.ADMIN }
-        val cashier = users.first { it.role == UserRole.CASHIER }
+        // Касса рождается с одним администратором: кассира заводит он сам.
+        val users = service.listUsers(kkmId, "4321")
+        assertEquals(1, users.size)
+        assertEquals(UserRole.ADMIN, users.first().role)
 
-        service.updateUser(
+        service.createUser(
             kkmId = kkmId,
-            userId = admin.userId,
-            pin = "0000",
-            request = UserUpdateRequest(
-                userPin = "4321"
-            )
-        )
-        service.updateUser(
-            kkmId = kkmId,
-            userId = cashier.userId,
             pin = "4321",
-            request = UserUpdateRequest(
+            request = UserCreateRequest(
+                name = "Кассир",
+                role = UserRole.CASHIER,
                 userPin = "5432"
             )
         )
@@ -214,10 +217,14 @@ class CoreIntegrationTest {
             items = listOf(
                 ReceiptItemRequest(
                     name = "Item",
-                    price = 10.0,
-                    quantity = 1.0,
+                    price = Decimal.parse("10.0"),
+                    quantity = Decimal.parse("1.0"),
                     barcode = null,
-                    vatGroup = "VAT_16",
+                    // Касса этого прогона плательщиком НДС не заводится,
+                    // и ставка в позиции ей запрещена: ядро отвергает такой
+                    // чек до фискального эффекта. Проверяется здесь не налог,
+                    // а обратное чтение чека и стойкость причины отказа.
+                    vatGroup = null,
                     discountPercent = null,
                     discountSum = null,
                     markupPercent = null,
@@ -235,10 +242,10 @@ class CoreIntegrationTest {
             payments = listOf(
                 ReceiptPaymentRequest(
                     type = "CASH",
-                    sum = 10.0
+                    sum = Decimal.parse("10.0")
                 )
             ),
-            taken = 10.0,
+            taken = Decimal.parse("10.0"),
             parentTicket = null,
             defaultVatGroup = null,
             customerBin = null
@@ -246,7 +253,31 @@ class CoreIntegrationTest {
         val result = service.createReceipt(command)
         assertNotNull(result.documentId)
 
+        // Содержимое чека обязано читаться обратно по его документу: из него
+        // собирается запрос в ОФД и пересчёт счётчиков смены. Проверка на
+        // единственный прежний тип «CHECK» отсекала каждый чек, записанный
+        // под именем своей операции: в ОФД он не уходил вовсе, а X-отчёт
+        // считал кассу пустой.
+        val stored = storage.findFiscalDocumentWithReceiptPayload(result.documentId)
+        assertNotNull(stored)
+        assertEquals(ReceiptDocumentTypes.SALE, stored.first.docType)
+        assertEquals(1, stored.second.items.size)
+
         val report = service.closeShift(kkmId, "5432")
         assertNotNull(report.documentId)
+
+        // Причина отказа обязана переживать перезапуск. Колонки под неё
+        // в схеме не было, и узел помечал документ отвергнутым, но код
+        // отказа молча терял: кассир видел «ошибка» без причины.
+        storage.updateReceiptStatus(
+            documentId = result.documentId,
+            fiscalSign = null,
+            autonomousSign = null,
+            ofdStatus = "FAILED",
+            ofdErrorCode = 13,
+            deliveredAt = null,
+            isAutonomous = false
+        )
+        assertEquals(13, storage.findFiscalDocumentById(result.documentId)?.ofdErrorCode)
     }
 }

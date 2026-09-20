@@ -15,6 +15,8 @@ data class FiscalDocumentRecord(
     val docType: String,
     // Номер документа в кассе.
     val docNo: Long? = null,
+    /** Сквозной номер печатного документа, присвоенный кассой. */
+    val printedDocumentNumber: Long? = null,
     // Номер смены, к которой относится документ.
     val shiftNo: Long? = null,
     // Время создания документа (epoch millis).
@@ -38,5 +40,7 @@ data class FiscalDocumentRecord(
     // Время доставки документа (epoch millis).
     val deliveredAt: Long? = null,
     // Ссылка на чек в ОФД.
-    val receiptUrl: String? = null
+    val receiptUrl: String? = null,
+    // Код отказа ОФД, если документ отвергнут.
+    val ofdErrorCode: Int? = null
 )

@@ -88,6 +88,14 @@ tasks.jacocoTestCoverageVerification {
         rule {
             element = "CLASS"
             excludes = listOf(
+                // Типы ниже объявлены только для описания схемы OpenAPI:
+                // контроллеры возвращают Map, эти классы нигде не создаются,
+                // исполняемого кода в них нет и покрывать тестами нечего.
+                "*HealthResponse*",
+                "*SystemInfoResponse*",
+                "*StorageInfoResponse*",
+                "*SystemStatisticsResponse*",
+                "*SystemFeaturesResponse*",
                 "*SuperkassaApplication*",
                 "*ConsoleLoader*",
                 "*OfdHealthIndicator*",
@@ -119,4 +127,15 @@ tasks.jacocoTestCoverageVerification {
 
 tasks.check {
     dependsOn(tasks.jacocoTestCoverageVerification)
+}
+
+// Версия узла и версия ядра внутри него — из сборки, а не из строки в yml.
+// Узел сообщал о себе `1.0`, пока на деле собирался из 1.0.6 с ядром 1.4.4:
+// значение в `application.yml` никто не обновлял, а КГД версию ПО спрашивает.
+springBoot {
+    buildInfo {
+        properties {
+            additional.set(mapOf("coreVersion" to libs.versions.superkassaCore.get()))
+        }
+    }
 }

@@ -2,7 +2,9 @@ package io.github.texport.superkassa.jvm.storage.impl.data.jdbc
 
 import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 import java.io.File
+import java.sql.SQLException
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class SqliteConnectorTest {
@@ -128,6 +130,37 @@ class SqliteConnectorTest {
         } finally {
             connection.close()
             File("test_no_parent.db").delete()
+        }
+    }
+
+    @Test
+    fun testConnectFailsLoudlyOnFileThatIsNotADatabase() {
+        // Подготовка соединения выполняет прагмы сразу после открытия.
+        // Если под именем базы лежит посторонний файл, отказ обязан выйти
+        // наружу, а не остаться незамеченным: тихо продолжить работу
+        // означало бы писать чеки в никуда.
+        val testDir = File("build/test_sqlite_not_a_db")
+        testDir.mkdirs()
+        val dbFile = File(testDir, "garbage.db")
+        dbFile.writeText("это не база данных")
+
+        val config = StorageConfig(
+            jdbcUrl = "jdbc:sqlite:${dbFile.absolutePath}",
+            user = null,
+            password = null
+        )
+
+        val failure = assertFailsWith<SQLException> {
+            SqliteConnector().connect(config)
+        }
+
+        try {
+            assertTrue(
+                failure.message?.contains("not a database") == true,
+                "Ожидался отказ SQLite о постороннем файле, получено: ${failure.message}"
+            )
+        } finally {
+            testDir.deleteRecursively()
         }
     }
 

@@ -45,7 +45,11 @@ class ServicesConfig {
             qrCode = qrCodeGenerator,
             pdfConverter = documentConvertPort
         )
-        val originalApi = engine.buildApi(ownerId = coreSettings.nodeId)
+        val originalApi = engine.buildApi(
+            ownerId = coreSettings.nodeId,
+            ofdProviderId = coreSettings.ofdProviderId,
+            ofdProtocolVersion = coreSettings.ofdProtocolVersion
+        )
         return decorateSuperkassaApi(originalApi)
     }
 
@@ -71,19 +75,30 @@ class ServicesConfig {
     ): SettingsApplicationService =
         SettingsApplicationService(settingsRepository, coreSettings, updateSettingsUseCase)
 
+    /**
+     * Рисовальщик печатных форм ядра.
+     *
+     * Ядро собирает его внутри сборки API и наружу не отдаёт, а узлу он
+     * нужен своим: по нему рисуются и доставляемые чеки, и документы,
+     * пришедшие пакетом протокола. Рисовальщик здесь один на узел —
+     * второй давал бы второй вид того же документа.
+     */
     @Bean
-    fun deliveryApi(
-        kkmService: SuperkassaApi,
-        storage: StoragePort,
-        delivery: DeliveryPort,
-        coreSettings: CoreSettings,
-        documentConvertPort: DocumentConvertPort
-    ): DeliveryApi {
+    fun receiptRenderPort(kkmService: SuperkassaApi): ReceiptRenderPort {
         val apiImpl = kkmService as SuperkassaApiImpl
         val field = apiImpl.javaClass.getDeclaredField("receiptRenderPort")
         field.isAccessible = true
-        val receiptRenderPort = field.get(apiImpl) as ReceiptRenderPort
+        return field.get(apiImpl) as ReceiptRenderPort
+    }
 
+    @Bean
+    fun deliveryApi(
+        storage: StoragePort,
+        delivery: DeliveryPort,
+        coreSettings: CoreSettings,
+        documentConvertPort: DocumentConvertPort,
+        receiptRenderPort: ReceiptRenderPort
+    ): DeliveryApi {
         return DeliveryApiImpl(
             storage = storage,
             pinHasher = ServerPinHasherAdapter(),

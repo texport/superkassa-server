@@ -77,26 +77,68 @@ class SystemTimeGuardTest {
     }
 
     @Test
-    fun testMonotonicClockSkewDetection() {
+    fun testMonotonicSkewWithoutReferenceIsRefused() {
         val now = System.currentTimeMillis()
         testClock.currentTime = now
 
-        // First validation to establish baseline
         var result = SystemTimeGuard.validate(testClock)
         assertTrue(result.ok)
 
         val lastWallMsField = SystemTimeGuard::class.java.getDeclaredField("lastWallMs").apply { isAccessible = true }
         val lastMonoNsField = SystemTimeGuard::class.java.getDeclaredField("lastMonoNs").apply { isAccessible = true }
 
-        // Simulate last wall time was 3 minutes ago
+        // Настенные часы ушли на три минуты вперёд относительно монотонных.
         lastWallMsField.set(SystemTimeGuard, now - 3 * 60 * 1000L)
-        // Simulate only 1 second elapsed in monotonic CPU clock
         lastMonoNsField.set(SystemTimeGuard, System.nanoTime() - 1_000_000_000L)
 
-        // Validate -> skew should be 3 mins - 1 sec = 2 mins 59 secs (exceeding 2 min limit)
-        result = SystemTimeGuard.validate(testClock)
-        assertFalse(result.ok, "Validation must fail when manual system clock skew is detected")
+        // Эталона нет: кэш гасим и сеть уводим в никуда.
+        SystemTimeGuard::class.java.getDeclaredField("referenceMs")
+            .apply { isAccessible = true }.set(SystemTimeGuard, null)
+        SystemTimeGuard::class.java.getDeclaredField("referenceFetchedAtMs")
+            .apply { isAccessible = true }.set(SystemTimeGuard, null)
+        SystemTimeGuard::class.java.getDeclaredField("lastFetchAttemptMs")
+            .apply { isAccessible = true }.set(SystemTimeGuard, null)
+        val originalUrls = SystemTimeGuard.referenceUrls
+        SystemTimeGuard.referenceUrls = listOf("https://reference.invalid")
+        try {
+            result = SystemTimeGuard.validate(testClock)
+        } finally {
+            SystemTimeGuard.referenceUrls = originalUrls
+        }
+
+        assertFalse(result.ok, "без эталона разрыв часов обязан отвергаться")
         assertEquals("MONOTONIC_SKEW", result.reason)
+    }
+
+    /**
+     * Спящая машина — не перевод стрелок: монотонные часы на время сна
+     * останавливаются, и разрыв равен времени сна. Прежде касса после
+     * пробуждения ноутбука отвергала первый же чек, и кассиру оставалось
+     * перезапускать узел.
+     */
+    @Test
+    fun testMonotonicSkewConfirmedByReferenceIsAccepted() {
+        val now = System.currentTimeMillis()
+        testClock.currentTime = now
+
+        val lastWallMsField = SystemTimeGuard::class.java.getDeclaredField("lastWallMs").apply { isAccessible = true }
+        val lastMonoNsField = SystemTimeGuard::class.java.getDeclaredField("lastMonoNs").apply { isAccessible = true }
+        val referenceMsField = SystemTimeGuard::class.java.getDeclaredField("referenceMs").apply { isAccessible = true }
+        val referenceFetchedAtMsField = SystemTimeGuard::class.java.getDeclaredField(
+            "referenceFetchedAtMs"
+        ).apply { isAccessible = true }
+
+        // Машина спала час: настенные часы ушли вперёд, монотонные стояли.
+        lastWallMsField.set(SystemTimeGuard, now - 60 * 60 * 1000L)
+        lastMonoNsField.set(SystemTimeGuard, System.nanoTime() - 1_000_000_000L)
+        // Эталон сходится с настенными часами: время верное.
+        referenceMsField.set(SystemTimeGuard, now)
+        referenceFetchedAtMsField.set(SystemTimeGuard, now)
+
+        val result = SystemTimeGuard.validate(testClock)
+
+        assertTrue(result.ok, "подтверждённое эталоном время не повод отказывать")
+        assertNull(result.reason)
     }
 
     @Test

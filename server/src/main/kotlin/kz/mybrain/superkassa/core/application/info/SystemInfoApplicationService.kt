@@ -10,7 +10,7 @@ class SystemInfoApplicationService(
     private val storage: StoragePort
 ) {
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
-    fun getInfo(appVersion: String): Map<String, Any> {
+    fun getInfo(appVersion: String, coreVersion: String): Map<String, Any> {
         val kkmCount = try {
             storage.countKkms(state = null, search = null)
         } catch (e: Exception) {
@@ -20,6 +20,9 @@ class SystemInfoApplicationService(
         return mapOf(
             "name" to "Superkassa Core",
             "version" to appVersion,
+            // Версия ядра отдельно от версии узла: у кассы спрашивают именно её,
+            // а узел вокруг ядра выпускается своим темпом.
+            "coreVersion" to coreVersion,
             "mode" to coreSettings.mode.name,
             "nodeId" to coreSettings.nodeId,
             "ofdProtocolVersion" to coreSettings.ofdProtocolVersion,

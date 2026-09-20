@@ -29,6 +29,26 @@ class SettingsApplicationServiceTest {
         assertEquals(initial.toDto(), settings)
     }
 
+    /**
+     * Узел отвечает одной правдой о версии протокола.
+     *
+     * Сохранённая запись говорила 204, запуск — 203, обмен шёл по 2.0.3:
+     * `GET /info` отдавал 203, `GET /settings` — 204, и экран диагностики
+     * показывал «Протокол ОФД 204» над строкой «Версия протокола 203»,
+     * полученной от самого ОФД.
+     */
+    @Test
+    fun `getSettings answers with the protocol version the node runs on`() {
+        val startedWith = initial.copy(ofdProtocolVersion = "203", ofdProviderId = "BFD")
+        val stored = initial.copy(ofdProtocolVersion = "204", ofdProviderId = "KAZAKHTELECOM")
+        every { repo.loadOrCreate(startedWith) } returns stored
+        val service = SettingsApplicationService(repo, startedWith, updateUseCase)
+
+        val settings = service.getSettings()
+
+        assertEquals("203", settings.ofdProtocolVersion)
+    }
+
     @Test
     fun `updateSettings executes useCase and updates cache`() {
         val nextDomain = CoreSettings(

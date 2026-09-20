@@ -61,49 +61,64 @@ object SystemTimeGuard : TimeValidatorPort {
                 )
             )
         }
-        synchronized(lock) {
-            val lastWall = lastWallMs
-            val lastMono = lastMonoNs
-            if (lastWall != null && lastMono != null) {
-                val deltaMonoMs = (System.nanoTime() - lastMono) / 1_000_000
-                val expected = lastWall + deltaMonoMs
-                val skew = abs(now - expected)
-                if (skew > MAX_MONOTONIC_SKEW_MS) {
-                    logger.error(
-                        resolver.resolve(TimeDebugKey.CLOCK_SKEW_DETECTED).formatArgs(skew).en
-                    )
-                    val msg = resolver.resolve(TimeErrorKey.TIME_MONOTONIC_SKEW)
-                    return TimeValidationResult(
-                        ok = false,
-                        reason = "MONOTONIC_SKEW",
-                        trilingualMessage = TrilingualMessage(
-                            ru = msg.ru,
-                            kk = msg.kk,
-                            en = msg.en
-                        )
-                    )
-                }
-            }
-            lastWallMs = now
-            lastMonoNs = System.nanoTime()
+        val skew = anchor(now)
+        // Назад часы во сне не идут: отрицательный разрыв — это перевод
+        // стрелок, и его касса не принимает ни при каком эталоне.
+        if (skew < -MAX_MONOTONIC_SKEW_MS) {
+            return monotonicRefusal()
         }
+
         val reference = ensureReference(now)
-        if (reference != null) {
-            val skew = abs(now - reference)
-            if (skew > MAX_REFERENCE_SKEW_MS) {
-                val msg = resolver.resolve(TimeErrorKey.TIME_REFERENCE_SKEW)
-                return TimeValidationResult(
-                    ok = false,
-                    reason = "REFERENCE_SKEW",
-                    trilingualMessage = TrilingualMessage(
-                        ru = msg.ru,
-                        kk = msg.kk,
-                        en = msg.en
-                    )
-                )
-            }
+        if (reference != null && abs(now - reference) > MAX_REFERENCE_SKEW_MS) {
+            val msg = resolver.resolve(TimeErrorKey.TIME_REFERENCE_SKEW)
+            return TimeValidationResult(
+                ok = false,
+                reason = "REFERENCE_SKEW",
+                trilingualMessage = TrilingualMessage(ru = msg.ru, kk = msg.kk, en = msg.en)
+            )
+        }
+        // Разрыв монотонных и настенных часов сам по себе не значит перевода
+        // стрелок: у спящей машины монотонные часы останавливаются, и разрыв
+        // равен времени сна. Отличить сон от подмены можно только эталоном:
+        // сошлось с ним — часы верны, не сошлось или эталона нет — отказ.
+        if (skew > MAX_MONOTONIC_SKEW_MS && reference == null) {
+            return monotonicRefusal()
         }
         return TimeValidationResult(true, null)
+    }
+
+    private fun monotonicRefusal(): TimeValidationResult {
+        val msg = resolver.resolve(TimeErrorKey.TIME_MONOTONIC_SKEW)
+        return TimeValidationResult(
+            ok = false,
+            reason = "MONOTONIC_SKEW",
+            trilingualMessage = TrilingualMessage(ru = msg.ru, kk = msg.kk, en = msg.en)
+        )
+    }
+
+    /**
+     * Запоминает пару «настенные и монотонные часы».
+     *
+     * @return разрыв со знаком: вперёд — плюс, назад — минус, ноль —
+     *   базиса ещё не было.
+     */
+    private fun anchor(now: Long): Long = synchronized(lock) {
+        val lastWall = lastWallMs
+        val lastMono = lastMonoNs
+        val skew = if (lastWall != null && lastMono != null) {
+            val deltaMonoMs = (System.nanoTime() - lastMono) / 1_000_000
+            now - (lastWall + deltaMonoMs)
+        } else {
+            0L
+        }
+        if (abs(skew) > MAX_MONOTONIC_SKEW_MS) {
+            logger.error(resolver.resolve(TimeDebugKey.CLOCK_SKEW_DETECTED).formatArgs(skew).en)
+        }
+        // Базис сдвигается всегда: иначе один разрыв отвергал бы каждое
+        // следующее обращение до перезапуска узла.
+        lastWallMs = now
+        lastMonoNs = System.nanoTime()
+        skew
     }
 
     private fun ensureReference(now: Long): Long? {
@@ -120,7 +135,7 @@ object SystemTimeGuard : TimeValidatorPort {
             // чтобы не спамить запросами и не блокировать потоки.
             val lastAttempt = lastFetchAttemptMs
             if (lastAttempt != null && now - lastAttempt <= RETRY_COOL_DOWN_MS) {
-                return cached
+                return null
             }
 
             // Обновляем время попытки
@@ -134,8 +149,12 @@ object SystemTimeGuard : TimeValidatorPort {
             if (fetched != null) {
                 referenceMs = fetched
                 referenceFetchedAtMs = now
+                return fetched
+            } else {
+                referenceMs = null
+                referenceFetchedAtMs = null
+                return null
             }
-            return referenceMs
         }
     }
 

@@ -38,6 +38,18 @@ class UpdateSettingsUseCase(
             val msg = errorResolver.resolve(SettingsErrorKey.SETTINGS_FROZEN_DISALLOWED)
             throw SettingsFrozenException("RU: ${msg.ru} | KK: ${msg.kk} | EN: ${msg.en}")
         }
+        // Версию протокола ОФД задаёт запуск узла: сохранённая запись при
+        // старте перезаписывается свойством запуска. Раньше её правка
+        // принималась и молча не действовала — вызывающий считал, что
+        // переключил версию, а узел продолжал говорить на прежней.
+        if (newSettings.ofdProtocolVersion != currentSettings.ofdProtocolVersion) {
+            val msg = errorResolver.resolve(SettingsErrorKey.OFD_PROTOCOL_VERSION_FIXED_AT_STARTUP)
+            throw SettingsFrozenException(
+                "RU: ${msg.ru} Сейчас ${currentSettings.ofdProtocolVersion}. | " +
+                    "KK: ${msg.kk} Қазір ${currentSettings.ofdProtocolVersion}. | " +
+                    "EN: ${msg.en} Currently ${currentSettings.ofdProtocolVersion}."
+            )
+        }
         settingsRepository.save(newSettings)
         return newSettings
     }

@@ -89,6 +89,42 @@ class DefaultMigrationCatalog : MigrationCatalog {
                 version = "15",
                 resourcePath = "$prefix/V15__cashbox_branding.sql",
                 checksum = "v15"
+            ),
+            MigrationScript(
+                version = "16",
+                resourcePath = "$prefix/V16__printed_document_number.sql",
+                checksum = "v16"
+            ),
+            MigrationScript(
+                version = "17",
+                resourcePath = "$prefix/V17__cashbox_block_reason.sql",
+                checksum = "v17"
+            ),
+            MigrationScript(
+                version = "18",
+                resourcePath = "$prefix/V18__fiscal_document_ofd_error_code.sql",
+                checksum = "v18"
+            ),
+            MigrationScript(
+                version = "19",
+                resourcePath = "$prefix/V19__queue_task_rejected_status.sql",
+                checksum = "v19"
+            ),
+            // 20 занята миграцией данных ReceiptTotalsInTiynMigration.
+            MigrationScript(
+                version = "21",
+                resourcePath = "$prefix/V21__kkm_user_drop_plain_pin.sql",
+                checksum = "v21"
+            ),
+            MigrationScript(
+                version = "22",
+                resourcePath = "$prefix/V22__cashbox_ofd_address.sql",
+                checksum = "v22"
+            ),
+            MigrationScript(
+                version = "23",
+                resourcePath = "$prefix/V23__cashbox_name.sql",
+                checksum = "v23"
             )
         )
     }

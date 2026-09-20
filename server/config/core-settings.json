@@ -5,5 +5,11 @@
         "jdbcUrl": "jdbc:sqlite:data/core.db?busy_timeout=30000"
     },
     "allowChanges": true,
-    "ofdTimeoutSeconds": 15
+    "ofdProtocolVersion": "204",
+    "deliveryChannels": [
+        "OFD"
+    ],
+    "ofdTimeoutSeconds": 15,
+    "defaultAdminPin": "4821",
+    "defaultCashierPin": "4821"
 }

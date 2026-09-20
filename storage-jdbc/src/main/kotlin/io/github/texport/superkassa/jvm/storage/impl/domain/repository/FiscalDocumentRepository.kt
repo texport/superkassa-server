@@ -30,12 +30,20 @@ interface FiscalDocumentRepository {
      * Обновляет статус доставки и фискальные признаки.
      * @param isAutonomous если не null — обновляет признак автономного документа.
      */
+    /** Проставляет номер фискального документа. */
+    fun updateDocNo(id: String, docNo: Long): Boolean
+
+    /** Проставляет сквозной номер печатного документа кассы. */
+    fun updatePrintedDocNo(id: String, number: Long): Boolean
+
     fun updateStatus(
         id: String,
         ofdStatus: String,
         fiscalSign: String?,
         autonomousSign: String?,
         deliveredAt: Long?,
+        /** Код отказа ОФД; null очищает его у принятого документа. */
+        ofdErrorCode: Int? = null,
         isAutonomous: Boolean? = null,
         receiptUrl: String? = null
     ): Boolean

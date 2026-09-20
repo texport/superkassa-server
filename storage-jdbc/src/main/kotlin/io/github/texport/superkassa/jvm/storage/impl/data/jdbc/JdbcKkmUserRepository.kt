@@ -12,17 +12,16 @@ class JdbcKkmUserRepository(
 ) : KkmUserRepository {
     override fun insert(record: KkmUserRecord): Boolean {
         val sql = """
-            INSERT INTO kkm_user (id, cashbox_id, name, role, pin, pin_hash, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO kkm_user (id, cashbox_id, name, role, pin_hash, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
         """.trimIndent()
         connection.prepareStatement(sql).use { stmt ->
             stmt.setString(1, record.id)
             stmt.setString(2, record.cashboxId)
             stmt.setString(3, record.name)
             stmt.setString(4, record.role)
-            stmt.setString(5, record.pin)
-            stmt.setString(6, record.pinHash)
-            stmt.setLong(7, record.createdAt)
+            stmt.setString(5, record.pinHash)
+            stmt.setLong(6, record.createdAt)
             return stmt.executeUpdate() == 1
         }
     }
@@ -32,24 +31,21 @@ class JdbcKkmUserRepository(
         userId: String,
         name: String?,
         role: String?,
-        pin: String?,
         pinHash: String?
     ): Boolean {
         val sql = """
             UPDATE kkm_user
             SET name = COALESCE(?, name),
                 role = COALESCE(?, role),
-                pin = COALESCE(?, pin),
                 pin_hash = COALESCE(?, pin_hash)
             WHERE cashbox_id = ? AND id = ?
         """.trimIndent()
         connection.prepareStatement(sql).use { stmt ->
             stmt.setString(1, name)
             stmt.setString(2, role)
-            stmt.setString(3, pin)
-            stmt.setString(4, pinHash)
-            stmt.setString(5, cashboxId)
-            stmt.setString(6, userId)
+            stmt.setString(3, pinHash)
+            stmt.setString(4, cashboxId)
+            stmt.setString(5, userId)
             return stmt.executeUpdate() == 1
         }
     }
@@ -82,7 +78,6 @@ class JdbcKkmUserRepository(
                         cashboxId = it.getString("cashbox_id"),
                         name = it.getString("name"),
                         role = it.getString("role"),
-                        pin = it.getString("pin"),
                         pinHash = it.getString("pin_hash"),
                         createdAt = it.getLong("created_at")
                     )
@@ -103,7 +98,6 @@ class JdbcKkmUserRepository(
                         cashboxId = rs.getString("cashbox_id"),
                         name = rs.getString("name"),
                         role = rs.getString("role"),
-                        pin = rs.getString("pin"),
                         pinHash = rs.getString("pin_hash"),
                         createdAt = rs.getLong("created_at")
                     )
@@ -126,7 +120,6 @@ class JdbcKkmUserRepository(
                         cashboxId = rs.getString("cashbox_id"),
                         name = rs.getString("name"),
                         role = rs.getString("role"),
-                        pin = rs.getString("pin"),
                         pinHash = rs.getString("pin_hash"),
                         createdAt = rs.getLong("created_at")
                     )
