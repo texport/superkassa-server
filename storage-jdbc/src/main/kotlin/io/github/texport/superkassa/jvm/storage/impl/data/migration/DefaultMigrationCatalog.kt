@@ -130,6 +130,11 @@ class DefaultMigrationCatalog : MigrationCatalog {
                 version = "24",
                 resourcePath = "$prefix/V24__fiscal_document_ofd_error_text.sql",
                 checksum = "v24"
+            ),
+            MigrationScript(
+                version = "25",
+                resourcePath = "$prefix/V25__cashbox_auto_cashout.sql",
+                checksum = "v25"
             )
         )
     }

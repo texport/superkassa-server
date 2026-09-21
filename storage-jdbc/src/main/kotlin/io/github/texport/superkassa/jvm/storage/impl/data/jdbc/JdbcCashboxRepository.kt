@@ -17,8 +17,9 @@ class JdbcCashboxRepository(
                 id, created_at, updated_at, mode, state, ofd_provider, registration_number,
                 factory_number, manufacture_year, system_id, ofd_service_info, token_enc, token_updated_at,
                 last_shift_no, last_receipt_no, last_z_report_no, autonomous_since, auto_close_shift, last_fiscal_hash,
-                tax_regime, default_vat_group, branding_json, block_reason_code, ofd_host, ofd_port, name
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                tax_regime, default_vat_group, branding_json, block_reason_code, ofd_host, ofd_port, name,
+                auto_cashout
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
         connection.prepareStatement(sql).use { stmt ->
             stmt.setString(1, record.id)
@@ -47,6 +48,7 @@ class JdbcCashboxRepository(
             stmt.bindString(24, record.ofdHost)
             stmt.bindInt(25, record.ofdPort)
             stmt.bindString(26, record.name)
+            stmt.setBoolean(27, record.autoCashout)
             return stmt.executeUpdate() == 1
         }
     }
@@ -77,7 +79,8 @@ class JdbcCashboxRepository(
                 block_reason_code = ?,
                 ofd_host = ?,
                 ofd_port = ?,
-                name = ?
+                name = ?,
+                auto_cashout = ?
             WHERE id = ?
         """.trimIndent()
         connection.prepareStatement(sql).use { stmt ->
@@ -105,7 +108,8 @@ class JdbcCashboxRepository(
             stmt.bindString(22, record.ofdHost)
             stmt.bindInt(23, record.ofdPort)
             stmt.bindString(24, record.name)
-            stmt.setString(25, record.id)
+            stmt.setBoolean(25, record.autoCashout)
+            stmt.setString(26, record.id)
             return stmt.executeUpdate() == 1
         }
     }
@@ -219,6 +223,7 @@ class JdbcCashboxRepository(
             lastZReportNo = rs.getInt("last_z_report_no").takeIf { !rs.wasNull() },
             autonomousSince = rs.getLong("autonomous_since").takeIf { !rs.wasNull() },
             autoCloseShift = rs.getBoolean("auto_close_shift"),
+            autoCashout = rs.getBoolean("auto_cashout"),
             lastFiscalHash = rs.getBytes("last_fiscal_hash"),
             taxRegime = rs.getString("tax_regime"),
             defaultVatGroup = rs.getString("default_vat_group"),

@@ -48,6 +48,8 @@ data class CashboxRecord(
     val blockReasonCode: Int? = null,
     // Автоматическое закрытие смены при превышении лимита.
     val autoCloseShift: Boolean = false,
+    /** Изымать ли наличные при закрытии смены. */
+    val autoCashout: Boolean = false,
     // Последний hash для фискального журнала.
     val lastFiscalHash: ByteArray? = null,
     // Налоговый режим ККМ.

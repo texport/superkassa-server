@@ -1,0 +1,2 @@
+ALTER TABLE cashbox
+ADD COLUMN auto_cashout INTEGER NOT NULL DEFAULT 0;
