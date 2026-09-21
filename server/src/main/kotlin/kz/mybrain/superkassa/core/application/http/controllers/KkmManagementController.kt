@@ -7,6 +7,7 @@ import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmTaxSettin
 import io.github.texport.superkassa.core.presentation.api.model.kkm.ReceiptBrandingRequest
 import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdCommandResponse
 import io.github.texport.superkassa.core.presentation.api.model.ofd.OfdTokenUpdateRequest
+import io.github.texport.superkassa.core.presentation.api.model.shift.AutoCashoutRequest
 import io.github.texport.superkassa.core.presentation.api.model.shift.AutoCloseShiftRequest
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -107,6 +108,47 @@ class KkmManagementController(private val kkmService: SuperkassaApi) {
         val pin = AuthHeaderUtils.extractPin(authHeader)
         val currentKkm = kkmService.getKkm(kkmId)
         return kkmService.updateKkmSettings(kkmId, pin, request.autoCloseShift, currentKkm.autoCashout)
+    }
+
+    /**
+     * Изменить настройку автоизъятия наличных при закрытии смены.
+     * Точечная настройка: только автоизъятие. Требует режима программирования.
+     */
+    @PutMapping("/{kkmId}/settings/autocashout")
+    @Operation(
+        summary = "Изменить настройку автоизъятия наличных",
+        description = """
+            Изменяет только настройку автоизъятия наличных при закрытии смены (autoCashout).
+
+            При закрытии смены касса сама оформляет изъятие остатка наличных:
+            иначе Z-отчёт снимается, а деньги остаются в ящике числиться
+            за новой сменой.
+
+            Требования:
+            - ККМ должна быть в режиме программирования (PROGRAMMING mode)
+            - ККМ должна находиться в состоянии ACTIVE
+            - Требуются права администратора (ADMIN role)
+            - ПИН-код в заголовке Authorization (Bearer <pin> or <pin>)
+
+            Тело запроса: { "autoCashout": true | false }
+
+            Ответ: KkmResponse с обновлённой настройкой.
+        """
+    )
+    @KkmApiResponses(
+        ok = MSG_200_SETTINGS_UPDATED,
+        badRequest = MSG_400_NOT_PROGRAMMING_MODE,
+        forbidden = MSG_403_FORBIDDEN,
+        notFound = MSG_404_KKM_NOT_FOUND
+    )
+    fun updateAutoCashout(
+        @PathVariable kkmId: String,
+        @RequestHeader("Authorization") authHeader: String?,
+        @RequestBody @Valid request: AutoCashoutRequest
+    ): KkmResponse {
+        val pin = AuthHeaderUtils.extractPin(authHeader)
+        val currentKkm = kkmService.getKkm(kkmId)
+        return kkmService.updateKkmSettings(kkmId, pin, currentKkm.autoCloseShift, request.autoCashout)
     }
 
     /**
