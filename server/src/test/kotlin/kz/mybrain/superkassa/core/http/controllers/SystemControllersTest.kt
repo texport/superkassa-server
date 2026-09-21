@@ -80,7 +80,7 @@ class SystemControllersTest {
             )
         val storage = mockk<StoragePort>()
         val kkmService = mockk<SuperkassaApi>()
-        val systemInfoService = SystemInfoApplicationService(settings.toDto(), storage)
+        val systemInfoService = SystemInfoApplicationService(settings.toDto(), storage, StorageConfig(jdbcUrl = settings.storage.jdbcUrl))
         val controller = SuperkassaInfoController(systemInfoService, kkmService, buildOf("9.9.9", "1.4.4"))
         val kkm = KkmResponse(
             kkmId = "kkm-1",
@@ -126,7 +126,7 @@ class SystemControllersTest {
             )
         val storage = mockk<StoragePort>()
         val kkmService = mockk<SuperkassaApi>()
-        val systemInfoService = SystemInfoApplicationService(settings.toDto(), storage)
+        val systemInfoService = SystemInfoApplicationService(settings.toDto(), storage, StorageConfig(jdbcUrl = settings.storage.jdbcUrl))
         val controller = SuperkassaInfoController(systemInfoService, kkmService, buildOf("9.9.9", "1.4.4"))
 
         every { storage.countKkms(null, null) } throws RuntimeException("DB offline")

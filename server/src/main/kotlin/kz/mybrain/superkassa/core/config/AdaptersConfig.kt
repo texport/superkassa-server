@@ -39,7 +39,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import java.nio.file.Paths
 import io.github.texport.superkassa.delivery.api.port.DeliveryPort as KmpDeliveryPort
 
 @Configuration
@@ -56,8 +55,24 @@ class AdaptersConfig {
         logger.info("Установлен системный язык логирования: {}", logLanguage)
     }
 
+    /**
+     * Рабочее место узла создаётся раньше хранилища настроек: оно запоминает,
+     * лежали ли настройки на месте до того, как узел запишет умолчания.
+     */
+    @Bean
+    fun nodeHome(@Value("\${superkassa.home:}") configured: String): NodeHome {
+        val home = NodeHome.of(configured)
+        logger.info(
+            "Node workspace: {} (settings {})",
+            home.dir,
+            if (home.settingsFound) "found" else "absent, first start"
+        )
+        return home
+    }
+
     @Bean
     fun settingsRepository(
+        home: NodeHome,
         @Value("\${spring.datasource.url:}") dbUrl: String,
         @Value("\${spring.datasource.username:}") dbUser: String?,
         @Value("\${spring.datasource.password:}") dbPass: String?
@@ -66,7 +81,7 @@ class AdaptersConfig {
         return if (urlLower.startsWith("jdbc:postgresql:") || urlLower.startsWith("jdbc:mysql:")) {
             DatabaseCoreSettingsRepository(jdbcUrl = dbUrl, user = dbUser, password = dbPass)
         } else {
-            FileCoreSettingsRepository(Paths.get("config/core-settings.json"))
+            FileCoreSettingsRepository(home.settingsFile)
         }
     }
 
@@ -120,10 +135,18 @@ class AdaptersConfig {
         return coreSettings.toDto()
     }
 
+    /**
+     * Путь к базе привязывается к рабочему месту здесь, один раз: дальше
+     * коннектор, миграции и диагностика видят уже абсолютный адрес.
+     */
     @Bean
-    fun storageConfig(settings: CoreSettings): StorageConfig {
+    fun storageConfig(settings: CoreSettings, home: NodeHome): StorageConfig {
+        val jdbcUrl = home.resolveJdbcUrl(settings.storage.jdbcUrl)
+        runCatching { home.requireDatabase(jdbcUrl) }
+            .onFailure { logger.error("Storage check failed: {}", it.message) }
+            .getOrThrow()
         return StorageConfig(
-            settings.storage.jdbcUrl,
+            jdbcUrl,
             null,
             settings.storage.user,
             settings.storage.password

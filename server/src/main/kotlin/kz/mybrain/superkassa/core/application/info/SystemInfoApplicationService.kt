@@ -2,12 +2,14 @@ package kz.mybrain.superkassa.core.application.info
 
 import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
 import io.github.texport.superkassa.jvm.settings.impl.dto.CoreSettingsDto
+import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 import org.springframework.stereotype.Service
 
 @Service
 class SystemInfoApplicationService(
     private val coreSettings: CoreSettingsDto,
-    private val storage: StoragePort
+    private val storage: StoragePort,
+    private val storageConfig: StorageConfig
 ) {
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
     fun getInfo(appVersion: String, coreVersion: String): Map<String, Any> {
@@ -28,7 +30,10 @@ class SystemInfoApplicationService(
             "ofdProtocolVersion" to coreSettings.ofdProtocolVersion,
             "storage" to mapOf(
                 "engine" to coreSettings.storage.engine,
-                "jdbcUrl" to coreSettings.storage.jdbcUrl.replace(Regex(":.*@"), ":***@") // Скрываем пароль
+                // Адрес отдаётся тот, к которому узел подключён на самом деле,
+                // а не строка из настроек: относительный путь к файлу SQLite
+                // уже привязан к рабочему месту, и по нему видно, та ли база открыта.
+                "jdbcUrl" to storageConfig.jdbcUrl.replace(Regex(":.*@"), ":***@") // Скрываем пароль
             ),
             "statistics" to mapOf(
                 "registeredKkms" to kkmCount

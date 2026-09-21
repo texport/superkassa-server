@@ -13,6 +13,10 @@ COPY server/build/libs/server-1.0.6.jar app.jar
 # Создаем директорию для базы данных SQLite, чтобы ее можно было монтировать как volume
 RUN mkdir -p /app/data
 
+# Рабочее место узла называется явно: настройки и база лежат в /app,
+# и переезд рабочего каталога процесса их не потеряет
+ENV SUPERKASSA_HOME=/app
+
 # Настраиваем окружение для сохранения БД в примонтированной папке
 ENV SPRING_DATASOURCE_URL=jdbc:sqlite:/app/data/core.db?busy_timeout=30000
 
