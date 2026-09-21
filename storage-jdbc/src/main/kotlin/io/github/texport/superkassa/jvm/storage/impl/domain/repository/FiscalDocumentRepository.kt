@@ -45,7 +45,9 @@ interface FiscalDocumentRepository {
         /** Код отказа ОФД; null очищает его у принятого документа. */
         ofdErrorCode: Int? = null,
         isAutonomous: Boolean? = null,
-        receiptUrl: String? = null
+        receiptUrl: String? = null,
+        /** Причина отказа словами ОФД; null очищает её у принятого документа. */
+        ofdErrorText: String? = null
     ): Boolean
 
     /**

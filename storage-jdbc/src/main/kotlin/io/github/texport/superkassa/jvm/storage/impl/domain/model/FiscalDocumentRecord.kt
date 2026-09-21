@@ -42,5 +42,7 @@ data class FiscalDocumentRecord(
     // Ссылка на чек в ОФД.
     val receiptUrl: String? = null,
     // Код отказа ОФД, если документ отвергнут.
-    val ofdErrorCode: Int? = null
+    val ofdErrorCode: Int? = null,
+    /** Причина отказа словами ОФД. */
+    val ofdErrorText: String? = null
 )

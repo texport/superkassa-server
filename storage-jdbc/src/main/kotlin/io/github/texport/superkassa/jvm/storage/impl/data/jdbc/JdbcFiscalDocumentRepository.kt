@@ -91,19 +91,23 @@ class JdbcFiscalDocumentRepository(
         deliveredAt: Long?,
         ofdErrorCode: Int?,
         isAutonomous: Boolean?,
-        receiptUrl: String?
+        receiptUrl: String?,
+        ofdErrorText: String?
     ): Boolean {
         // Колонки собираются списком, а не четырьмя вариантами запроса
         // на два необязательных поля. Признак автономности и ссылку на чек
         // трогаем, только если вызывающий их передал: null у них означает
         // «оставить как было», а не «стереть».
-        val columns = mutableListOf("ofd_status", "fiscal_sign", "autonomous_sign", "delivered_at", "ofd_error_code")
+        val columns = mutableListOf(
+            "ofd_status", "fiscal_sign", "autonomous_sign", "delivered_at", "ofd_error_code", "ofd_error_text"
+        )
         val binders = mutableListOf<(PreparedStatement, Int) -> Unit>(
             { stmt, i -> stmt.setString(i, ofdStatus) },
             { stmt, i -> stmt.bindString(i, fiscalSign) },
             { stmt, i -> stmt.bindString(i, autonomousSign) },
             { stmt, i -> stmt.bindLong(i, deliveredAt) },
-            { stmt, i -> stmt.bindInt(i, ofdErrorCode) }
+            { stmt, i -> stmt.bindInt(i, ofdErrorCode) },
+            { stmt, i -> stmt.bindString(i, ofdErrorText) }
         )
         if (isAutonomous != null) {
             columns += "is_autonomous"
@@ -271,7 +275,8 @@ class JdbcFiscalDocumentRepository(
             ofdStatus = rs.getString("ofd_status"),
             deliveredAt = rs.getLong("delivered_at").takeIf { !rs.wasNull() },
             receiptUrl = rs.getString("receipt_url"),
-            ofdErrorCode = rs.getInt("ofd_error_code").takeIf { !rs.wasNull() }
+            ofdErrorCode = rs.getInt("ofd_error_code").takeIf { !rs.wasNull() },
+            ofdErrorText = rs.getString("ofd_error_text")
         )
     }
 }

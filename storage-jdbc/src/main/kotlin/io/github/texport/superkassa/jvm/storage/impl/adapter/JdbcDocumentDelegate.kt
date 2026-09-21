@@ -135,7 +135,8 @@ class JdbcDocumentDelegate(private val sessionProvider: () -> StorageSession) {
         deliveredAt: Long?,
         ofdErrorCode: Int? = null,
         isAutonomous: Boolean? = null,
-        receiptUrl: String? = null
+        receiptUrl: String? = null,
+        ofdErrorText: String? = null
     ): Boolean {
         return sessionProvider().documents.updateStatus(
             id = documentId,
@@ -145,7 +146,8 @@ class JdbcDocumentDelegate(private val sessionProvider: () -> StorageSession) {
             deliveredAt = deliveredAt,
             ofdErrorCode = ofdErrorCode,
             isAutonomous = isAutonomous,
-            receiptUrl = receiptUrl
+            receiptUrl = receiptUrl,
+            ofdErrorText = ofdErrorText
         )
     }
 

@@ -267,7 +267,8 @@ class StorageAdapter(
         ofdStatus: String,
         ofdErrorCode: Int?,
         deliveredAt: Long?,
-        isAutonomous: Boolean?
+        isAutonomous: Boolean?,
+        ofdErrorText: String?
     ): Boolean =
         withSession {
             val receiptUrl = receiptUrlMap.remove(documentId)
@@ -279,7 +280,8 @@ class StorageAdapter(
                 ofdErrorCode = ofdErrorCode,
                 deliveredAt = deliveredAt,
                 isAutonomous = isAutonomous,
-                receiptUrl = receiptUrl
+                receiptUrl = receiptUrl,
+                ofdErrorText = ofdErrorText
             )
         }
 

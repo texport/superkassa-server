@@ -253,6 +253,7 @@ object StorageMapper {
             deliveredAt = r.deliveredAt,
             receiptUrl = r.receiptUrl,
             ofdErrorCode = r.ofdErrorCode,
+            ofdErrorText = r.ofdErrorText,
             registrationNumber = cashbox?.registrationNumber,
             taxpayerName = serviceInfo?.orgTitle,
             taxpayerBin = serviceInfo?.orgInn,
