@@ -145,6 +145,25 @@ class JdbcFiscalDocumentRepository(
         }
     }
 
+    override fun firstPaymentTime(shiftId: String, docTypes: Collection<String>): Long? {
+        if (docTypes.isEmpty()) {
+            return null
+        }
+        val places = docTypes.joinToString(", ") { "?" }
+        val sql = "SELECT MIN(created_at) FROM fiscal_document WHERE shift_id = ? AND doc_type IN ($places)"
+        connection.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, shiftId)
+            docTypes.forEachIndexed { index, type -> stmt.setString(index + 2, type) }
+            stmt.executeQuery().use { rows ->
+                if (!rows.next()) {
+                    return null
+                }
+                val first = rows.getLong(1)
+                return if (rows.wasNull()) null else first
+            }
+        }
+    }
+
     override fun listByShift(
         cashboxId: String,
         shiftId: String,

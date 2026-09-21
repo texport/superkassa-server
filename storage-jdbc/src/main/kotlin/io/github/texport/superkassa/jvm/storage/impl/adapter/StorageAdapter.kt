@@ -298,6 +298,9 @@ class StorageAdapter(
     ): Pair<FiscalDocumentSnapshot, ReceiptRequest>? =
         withSession { documentDelegate.findFiscalDocumentWithReceiptPayload(documentId) }
 
+    override fun firstPaymentTimeInShift(shiftId: String): Long? =
+        withSession { documentDelegate.firstPaymentTimeInShift(shiftId) }
+
     override fun listFiscalDocumentsByShift(
         kkmId: String,
         shiftId: String,

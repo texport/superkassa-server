@@ -172,6 +172,9 @@ class JdbcDocumentDelegate(private val sessionProvider: () -> StorageSession) {
         return StorageMapper.toFiscalDocumentSnapshot(record, session) to payload.toReceiptRequest()
     }
 
+    fun firstPaymentTimeInShift(shiftId: String): Long? =
+        sessionProvider().documents.firstPaymentTime(shiftId, ReceiptDocumentTypes.ALL)
+
     fun listFiscalDocumentsByShift(
         kkmId: String,
         shiftId: String,

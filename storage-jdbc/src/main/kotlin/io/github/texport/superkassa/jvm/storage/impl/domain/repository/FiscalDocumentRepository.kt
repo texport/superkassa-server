@@ -54,6 +54,15 @@ interface FiscalDocumentRepository {
     fun listByCashbox(cashboxId: String, limit: Int, offset: Int = 0): List<FiscalDocumentRecord>
 
     /**
+     * Время первого платёжного документа смены; `null` — их в смене нет.
+     *
+     * Одним запросом, а не перебором документов смены: продолжительность
+     * смены сверяется на каждую кассовую операцию, а чеков за смену
+     * бывают сотни.
+     */
+    fun firstPaymentTime(shiftId: String, docTypes: Collection<String>): Long?
+
+    /**
      * Список документов по смене (постранично).
      */
     fun listByShift(
