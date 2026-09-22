@@ -15,9 +15,11 @@ import io.github.texport.superkassa.core.domain.api.model.settings.SmsProviderSe
 import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettings
 import io.github.texport.superkassa.core.domain.api.model.settings.TelegramProviderSettings
 import io.github.texport.superkassa.core.domain.api.model.settings.WhatsAppProviderSettings
+import io.github.texport.superkassa.delivery.api.model.DeliveryChannel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class CoreSettingsValidatorTest {
 
@@ -258,6 +260,67 @@ class CoreSettingsValidatorTest {
         assertEquals(coreDefaults.nodeId, settings.nodeId)
         assertEquals(coreDefaults.defaultAdminPin, settings.defaultAdminPin)
         assertEquals(coreDefaults.defaultCashierPin, settings.defaultCashierPin)
+        validator.validateSettings(settings)
+    }
+
+    /**
+     * Имя канала вне перечисления не проходит проверку настроек.
+     *
+     * Верхнеуровневый список каналов не проверял никто: «OFD» доходил
+     * до сборки узла, адаптеров по нему не собиралось, и доставка
+     * отвечала успехом, ничего не доставив.
+     */
+    @Test
+    fun `validateSettings unknown delivery channel name`() {
+        assertValidationFails(
+            """
+            {
+                "mode": "DESKTOP",
+                "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:db.sqlite" },
+                "ofdProtocolVersion": "203",
+                "deliveryChannels": ["OFD"]
+            }
+        """
+        )
+    }
+
+    /** Отказ называет имена каналов, которые узел знает. */
+    @Test
+    fun `unknown delivery channel names the supported ones`() {
+        val settings = json.decodeFromString(
+            CoreSettingsDto.serializer(),
+            """
+            {
+                "mode": "DESKTOP",
+                "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:db.sqlite" },
+                "deliveryChannels": ["OFD"]
+            }
+        """
+        ).toDomain()
+
+        val failure = assertFailsWith<IllegalServerConfigurationException> {
+            validator.validateSettings(settings)
+        }
+        val message = failure.message.orEmpty()
+        for (channel in DeliveryChannel.entries) {
+            assertTrue(message.contains(channel.name), "отказ не называет канал ${channel.name}")
+        }
+    }
+
+    /** Известное имя в любом регистре проходит. */
+    @Test
+    fun `validateSettings accepts known delivery channel names`() {
+        val settings = json.decodeFromString(
+            CoreSettingsDto.serializer(),
+            """
+            {
+                "mode": "DESKTOP",
+                "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:db.sqlite" },
+                "deliveryChannels": ["print", "EMAIL"]
+            }
+        """
+        ).toDomain()
+
         validator.validateSettings(settings)
     }
 

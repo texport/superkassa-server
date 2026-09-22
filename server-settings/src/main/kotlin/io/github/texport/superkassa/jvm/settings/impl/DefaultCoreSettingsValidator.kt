@@ -46,6 +46,12 @@ class DefaultCoreSettingsValidator(
             throw IllegalServerConfigurationException(resolver.resolve(SettingsErrorKey.OFD_RECONNECT_INTERVAL).toString())
         }
 
+        // Оба списка каналов проверяются одинаково строго. Верхнеуровневый
+        // не проверял никто, и имя вне перечисления доходило до сборки узла:
+        // адаптеров по нему не собиралось, доставки не было, а кассир получал
+        // ответ об успешной отправке чека.
+        DeliveryValidator.validateChannelNames(settings.deliveryChannels)
+
         val delivery = settings.delivery
         if (delivery != null) {
             DeliveryValidator.validateDeliveryChannels(delivery)
