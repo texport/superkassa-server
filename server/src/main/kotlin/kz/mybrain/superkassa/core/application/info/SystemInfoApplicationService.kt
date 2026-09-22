@@ -1,6 +1,7 @@
 package kz.mybrain.superkassa.core.application.info
 
 import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
+import io.github.texport.superkassa.jvm.receipt.impl.BrowserLocator
 import io.github.texport.superkassa.jvm.settings.impl.dto.CoreSettingsDto
 import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
 import org.springframework.stereotype.Service
@@ -12,7 +13,7 @@ class SystemInfoApplicationService(
     private val storageConfig: StorageConfig
 ) {
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
-    fun getInfo(appVersion: String, coreVersion: String): Map<String, Any> {
+    fun getInfo(appVersion: String, coreVersion: String): Map<String, Any?> {
         val kkmCount = try {
             storage.countKkms(state = null, search = null)
         } catch (e: Exception) {
@@ -28,6 +29,10 @@ class SystemInfoApplicationService(
             "mode" to coreSettings.mode.name,
             "nodeId" to coreSettings.nodeId,
             "ofdProtocolVersion" to coreSettings.ofdProtocolVersion,
+            // Чем узел рисует образы документов. Пусто — браузера на машине
+            // нет, и просмотр с печатью работать не будут: обслуживание
+            // должно видеть это здесь, а не по отказу на первом чеке.
+            "documentRenderer" to BrowserLocator.local.name(),
             "storage" to mapOf(
                 "engine" to coreSettings.storage.engine,
                 // Адрес отдаётся тот, к которому узел подключён на самом деле,

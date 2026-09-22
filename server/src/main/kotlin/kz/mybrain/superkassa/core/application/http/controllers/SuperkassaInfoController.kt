@@ -151,7 +151,7 @@ class SuperkassaInfoController(
         ]
     )
     @KkmApiResponses(ok = MSG_200_VERSION)
-    fun info(): Map<String, Any> {
+    fun info(): Map<String, Any?> {
         // Пустых версий не бывает: сборка их проставляет. Подстановка нужна
         // только компилятору — платформенный тип Spring считается обнуляемым.
         val node = build.version ?: UNKNOWN_VERSION

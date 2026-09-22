@@ -37,6 +37,16 @@ private const val CANVAS_HEIGHT_MARGIN_PX = 80
 /** Во сколько раз снимок плотнее логических точек. */
 private const val RENDER_SCALE = 3
 
+/** Миллиметров в одной точке CSS: 96 точек на дюйм. */
+private const val MM_PER_CSS_PX = 25.4 / 96
+
+/** Ширина ленты, миллиметров. */
+private const val TAPE_80_MM = 80.0
+private const val TAPE_58_MM = 58.0
+
+/** Запас снизу страницы PDF: последняя строка не должна лечь на обрез. */
+private const val PDF_BOTTOM_MARGIN_MM = 2.0
+
 class DocumentConvertAdapter : DocumentConvertPort {
 
     companion object {
@@ -83,65 +93,69 @@ class DocumentConvertAdapter : DocumentConvertPort {
     }
 
     /**
-     * Преобразует HTML-документ чека в формат PDF с помощью headless Chromium.
-     * Это гарантирует 100% соответствие вида PDF исходному HTML-виду (включая CSS-переменные, цвета и сетки).
+     * Преобразует печатную форму в PDF: страница — сама лента.
+     *
+     * Лента и в PDF, и на экране одна и та же разметка, но страница PDF
+     * прежде считалась по снимку экрана: там тело зафиксировано на ширине
+     * [CANVAS_WIDTH_PX], а в печати Chromium верстал под ширину бумаги —
+     * строки переносились, документ становился выше, и QR-код уезжал
+     * на вторую, почти пустую страницу.
+     *
+     * Теперь лента верстается прямо на ширину бумаги, её высота измеряется
+     * в этой же вёрстке, и страница задаётся ровно по ней. Фон страницы
+     * и поля вокруг ленты в PDF не нужны: покупатель получает чек, а не
+     * экран кассы.
      *
      * @param html исходный HTML-код чека.
-     * @return массив байт сгенерированного PDF-документа.
+     * @return массив байт PDF-документа.
      */
     override fun htmlToPdf(html: String): ByteArray {
         val tempHtmlFile = java.io.File.createTempFile("receipt-", ".html")
         val tempPdfFile = java.io.File.createTempFile("receipt-", ".pdf")
         try {
-            // 1. Рендерим в PNG для определения реальной высоты
-            val imgBytes = htmlToImage(html)
-            val img = javax.imageio.ImageIO.read(java.io.ByteArrayInputStream(imgBytes))
-            val heightPx = img.height
-
-            // 2. Вычисляем размеры ленты
-            // Ширина ленты — по классу самой формы, а не по вхождению строки:
-            // таблица стилей описывает обе ленты, и поиск подстроки находил
-            // 58 мм в любом чеке, отчего 80-миллиметровая форма печаталась
-            // на узкой странице.
-            val is58 = NARROW_TAPE.containsMatchIn(html)
-            val paperWidth = if (is58) 58.0 else 80.0
-
-            // CANVAS_WIDTH_PX — логическая ширина ленты, RENDER_SCALE — масштаб устройства
-            val heightCss = heightPx / 3.0
-            val scale = paperWidth / CANVAS_WIDTH_PX.toDouble()
-            val heightMm = (heightCss * scale) + 8.0 // добавляем 8мм запас на отступы
-
-            val cssInject = """
+            val paperWidth = if (NARROW_TAPE.containsMatchIn(html)) TAPE_58_MM else TAPE_80_MM
+            val widthPx = (paperWidth / MM_PER_CSS_PX).toInt()
+            val tapeCss = """
+                $HEIGHT_PROBE
                 <style>
-                @page {
-                    size: ${paperWidth}mm ${heightMm}mm;
-                    margin: 0 !important;
-                }
                 * {
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
-                body {
+                html, body {
+                    width: ${paperWidth}mm !important;
                     margin: 0 !important;
                     padding: 0 !important;
+                    background: #ffffff !important;
+                    overflow-x: hidden !important;
+                }
+                .receipt {
+                    margin: 0 !important;
+                    width: ${paperWidth}mm !important;
+                    max-width: ${paperWidth}mm !important;
+                    box-shadow: none !important;
                 }
                 </style>
             """.trimIndent()
+            val tapeHtml = html.replace("@media print", "@media print_disabled").withHead(tapeCss)
+            tempHtmlFile.writeText(wrapHtml(tapeHtml))
 
-            val modifiedHtml = html
-                .replace("@media print", "@media print_disabled")
-                .let {
-                    if (it.contains("</head>")) {
-                        it.replace("</head>", "$cssInject\n</head>")
-                    } else {
-                        "<html><head>$cssInject</head><body>$it</body></html>"
-                    }
+            // Не измерилось — страница высотой в запасное окно: длинный
+            // Z-отчёт лучше с пустым низом, чем обрезанный.
+            val heightCss = measuredHeight(tempHtmlFile, widthPx) ?: CANVAS_HEIGHT_PX
+            val heightMm = heightCss * MM_PER_CSS_PX + PDF_BOTTOM_MARGIN_MM
+            val pageCss = """
+                <style>
+                @page {
+                    size: ${paperWidth}mm ${"%.2f".format(java.util.Locale.ROOT, heightMm)}mm;
+                    margin: 0 !important;
                 }
-
-            tempHtmlFile.writeText(wrapHtml(modifiedHtml))
+                </style>
+            """.trimIndent()
+            tempHtmlFile.writeText(wrapHtml(tapeHtml.withHead(pageCss)))
 
             val process = ProcessBuilder(
-                resolveChromiumPath(),
+                BrowserLocator.local.path(),
                 "--headless",
                 "--disable-gpu",
                 "--no-sandbox",
@@ -174,6 +188,10 @@ class DocumentConvertAdapter : DocumentConvertPort {
             }
         }
     }
+
+    /** Вставляет разметку в `<head>`; страница без `<head>` оборачивается целиком. */
+    private fun String.withHead(inject: String): String =
+        if (contains("</head>")) replace("</head>", "$inject\n</head>") else "<html><head>$inject</head><body>$this</body></html>"
 
     /**
      * Преобразует HTML-документ чека в растровое изображение формата PNG.
@@ -222,7 +240,7 @@ class DocumentConvertAdapter : DocumentConvertPort {
 
             val windowHeight = pageHeight(tempHtmlFile)
             val process = ProcessBuilder(
-                resolveChromiumPath(),
+                BrowserLocator.local.path(),
                 "--headless",
                 "--disable-gpu",
                 "--no-sandbox",
@@ -285,28 +303,41 @@ class DocumentConvertAdapter : DocumentConvertPort {
      * подменён. Растр при этом не рисуется, поэтому мерка дешёвая. Не вышло
      * измерить — работаем по запасной высоте, как раньше.
      */
+    /**
+     * Высота окна для снимка: измеренная страница с запасом, не ниже
+     * запасного значения и не выше предела. Лишний низ снимка срезается
+     * потом по цвету, поэтому запас безвреден.
+     */
     private fun pageHeight(htmlFile: java.io.File): Int {
-        val measured = runCatching {
-            val process = ProcessBuilder(
-                resolveChromiumPath(),
-                "--headless",
-                "--disable-gpu",
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--window-size=$CANVAS_WIDTH_PX,$MEASURE_WINDOW_HEIGHT_PX",
-                "--virtual-time-budget=$MEASURE_BUDGET_MS",
-                "--dump-dom",
-                htmlFile.absolutePath
-            ).redirectErrorStream(false).start()
-            val dom = process.inputStream.bufferedReader().readText()
-            if (!process.waitFor(MEASURE_TIMEOUT_S, java.util.concurrent.TimeUnit.SECONDS)) {
-                process.destroyForcibly()
-            }
-            HEIGHT_MARK.find(dom)?.groupValues?.get(1)?.toIntOrNull()
-        }.getOrNull()
-        val height = measured ?: return CANVAS_HEIGHT_PX
+        val height = measuredHeight(htmlFile, CANVAS_WIDTH_PX) ?: return CANVAS_HEIGHT_PX
         return (height + CANVAS_HEIGHT_MARGIN_PX).coerceIn(CANVAS_HEIGHT_PX, CANVAS_HEIGHT_LIMIT_PX)
     }
+
+    /**
+     * Высота страницы в точках CSS, как её сообщила сама страница.
+     *
+     * `null` — измерить не удалось: браузер не ответил или не подставил
+     * заголовок. Вёрстка идёт при заданной ширине окна: у ленты на бумаге
+     * она своя, и высота при другой ширине была бы чужой.
+     */
+    private fun measuredHeight(htmlFile: java.io.File, widthPx: Int): Int? = runCatching {
+        val process = ProcessBuilder(
+            BrowserLocator.local.path(),
+            "--headless",
+            "--disable-gpu",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--window-size=$widthPx,$MEASURE_WINDOW_HEIGHT_PX",
+            "--virtual-time-budget=$MEASURE_BUDGET_MS",
+            "--dump-dom",
+            htmlFile.absolutePath
+        ).redirectErrorStream(false).start()
+        val dom = process.inputStream.bufferedReader().readText()
+        if (!process.waitFor(MEASURE_TIMEOUT_S, java.util.concurrent.TimeUnit.SECONDS)) {
+            process.destroyForcibly()
+        }
+        HEIGHT_MARK.find(dom)?.groupValues?.get(1)?.toIntOrNull()
+    }.getOrNull()
 
     private fun cropSolidBottom(image: BufferedImage): BufferedImage {
         val width = image.width
@@ -372,16 +403,5 @@ $html
 </body>
 </html>
         """.trimIndent()
-    }
-
-    private fun resolveChromiumPath(): String {
-        val os = System.getProperty("os.name").lowercase()
-        if (os.contains("mac")) {
-            val macChrome = java.io.File("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-            if (macChrome.exists()) {
-                return macChrome.absolutePath
-            }
-        }
-        return "chromium-browser"
     }
 }
