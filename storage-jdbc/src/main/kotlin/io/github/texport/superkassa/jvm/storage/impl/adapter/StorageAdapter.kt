@@ -2,7 +2,6 @@
 
 package io.github.texport.superkassa.jvm.storage.impl.adapter
 
-import io.github.texport.superkassa.core.domain.api.exception.StorageException
 import io.github.texport.superkassa.core.domain.api.exception.SuperkassaException
 import io.github.texport.superkassa.core.domain.api.model.auth.*
 import io.github.texport.superkassa.core.domain.api.model.common.*
@@ -11,9 +10,6 @@ import io.github.texport.superkassa.core.domain.api.model.queue.*
 import io.github.texport.superkassa.core.domain.api.model.receipt.*
 import io.github.texport.superkassa.core.domain.api.model.shift.*
 import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
-import io.github.texport.superkassa.core.string.api.TrilingualMessage
-import io.github.texport.superkassa.jvm.shared.strings.api.key.StorageErrorKey
-import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver
 import io.github.texport.superkassa.jvm.storage.impl.application.bootstrap.StorageBootstrap
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
 import io.github.texport.superkassa.jvm.storage.impl.data.jdbc.JdbcStorageSession
@@ -40,7 +36,6 @@ class StorageAdapter(
     }
 
     private val logger = LoggerFactory.getLogger(StorageAdapter::class.java)
-    private val resolver = DefaultErrorResolver()
     private val sessionHolder = ThreadLocal<StorageSession?>()
 
     private val sessionProvider: () -> StorageSession = {
@@ -392,15 +387,11 @@ class StorageAdapter(
         } catch (e: SuperkassaException) {
             throw e
         } catch (e: Exception) {
-            val msg = resolver.resolve(StorageErrorKey.DATABASE_ERROR).formatArgs(e.message ?: "")
-            throw StorageException(
-                TrilingualMessage(
-                    ru = msg.ru,
-                    kk = msg.kk,
-                    en = msg.en
-                ),
-                cause = e
-            )
+            logger.error("Storage operation failed: {}", StorageFailures.describe(e))
+            if (StorageFailures.isUniqueViolation(e)) {
+                throw StorageFailures.duplicateRecord()
+            }
+            throw StorageFailures.storageFailure(e)
         }
     }
 
@@ -419,7 +410,7 @@ class StorageAdapter(
                     attempt,
                     maxAttempts,
                     delayMs,
-                    e.message
+                    StorageFailures.describe(e)
                 )
                 Thread.sleep(delayMs)
             }

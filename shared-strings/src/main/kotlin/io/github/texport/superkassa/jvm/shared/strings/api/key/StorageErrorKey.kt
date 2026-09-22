@@ -24,5 +24,11 @@ enum class StorageErrorKey(override val code: String) : ErrorKey {
     INVALID_TAX_REGIME("INVALID_TAX_REGIME"),
 
     /** Неверная группа НДС в БД */
-    INVALID_VAT_GROUP("INVALID_VAT_GROUP")
+    INVALID_VAT_GROUP("INVALID_VAT_GROUP"),
+
+    /** Пин уже принадлежит другому пользователю этой кассы */
+    USER_PIN_TAKEN("USER_PIN_TAKEN"),
+
+    /** Запись с такими же уникальными признаками уже есть */
+    DUPLICATE_RECORD("DUPLICATE_RECORD")
 }

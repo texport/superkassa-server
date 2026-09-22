@@ -5,6 +5,7 @@ import io.github.texport.superkassa.core.domain.api.model.auth.UserRole
 import io.github.texport.superkassa.core.domain.api.model.kkm.KkmInfo
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.KkmUserRecord
+import java.sql.SQLException
 
 class JdbcKkmDelegate(private val sessionProvider: () -> StorageSession) {
 
@@ -67,8 +68,8 @@ class JdbcKkmDelegate(private val sessionProvider: () -> StorageSession) {
         role: UserRole,
         pinHash: String,
         createdAt: Long
-    ): Boolean {
-        return sessionProvider().users.insert(
+    ): Boolean = rejectingTakenPin {
+        sessionProvider().users.insert(
             KkmUserRecord(
                 cashboxId = kkmId,
                 id = userId,
@@ -86,8 +87,8 @@ class JdbcKkmDelegate(private val sessionProvider: () -> StorageSession) {
         name: String?,
         role: UserRole?,
         pinHash: String?
-    ): Boolean {
-        return sessionProvider().users.update(
+    ): Boolean = rejectingTakenPin {
+        sessionProvider().users.update(
             cashboxId = kkmId,
             userId = userId,
             name = name,
@@ -95,6 +96,19 @@ class JdbcKkmDelegate(private val sessionProvider: () -> StorageSession) {
             pinHash = pinHash
         )
     }
+
+    /**
+     * Пин уникален в пределах кассы. Занятый пин — не сбой хранилища,
+     * а отказ, который кассир должен прочитать словами: иначе до него
+     * доходил текст драйвера с именами таблицы и колонок.
+     */
+    private fun <T> rejectingTakenPin(block: () -> T): T =
+        try {
+            block()
+        } catch (e: SQLException) {
+            if (StorageFailures.isUniqueViolation(e)) throw StorageFailures.userPinTaken()
+            throw e
+        }
 
     fun deleteUser(kkmId: String, userId: String): Boolean {
         return sessionProvider().users.deleteById(kkmId, userId)
