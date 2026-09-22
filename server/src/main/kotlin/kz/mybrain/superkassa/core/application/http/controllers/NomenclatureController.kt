@@ -42,7 +42,9 @@ class NomenclatureController(private val kkmService: SuperkassaApi) {
 
             Что возвращается:
             - Сведения о найденной номенклатурной позиции (ID, штрихкод, наименование на русском и казахском, NTIN, цена, группа НДС).
-            - В случае отсутствия товара в НКТ возвращается статус 404 Not Found.
+            - Каталог ответил, и товара в нём нет: 404 Not Found с кодом NOMENCLATURE_NOT_FOUND.
+            - Справочник спросить не удалось: 503 с кодом NOMENCLATURE_UNAVAILABLE.
+            - ККМ заблокирована: 400 с кодом KKM_BLOCKED и причиной блокировки.
         """
     )
     @KkmApiResponses(

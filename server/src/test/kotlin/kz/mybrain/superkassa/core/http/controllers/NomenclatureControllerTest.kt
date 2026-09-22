@@ -1,8 +1,10 @@
 package kz.mybrain.superkassa.core.http.controllers
 
-import io.github.texport.superkassa.core.domain.api.model.common.Decimal
 import io.github.texport.superkassa.core.domain.api.exception.NotFoundException
+import io.github.texport.superkassa.core.domain.api.exception.ValidationException
+import io.github.texport.superkassa.core.domain.api.model.common.Decimal
 import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmResponse
 import io.github.texport.superkassa.core.presentation.api.model.ofd.NomenclatureItemResponse
 import io.github.texport.superkassa.core.presentation.api.model.ofd.NomenclatureLookupRequest
 import io.github.texport.superkassa.core.presentation.api.model.ofd.NomenclatureLookupResponse
@@ -11,10 +13,18 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kz.mybrain.superkassa.core.application.http.controllers.NomenclatureController
+import kz.mybrain.superkassa.core.application.http.utils.NomenclatureUnavailableException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
+/**
+ * Поиск по штрихкоду: три исхода, а не один.
+ *
+ * Отсутствие товара, молчащий справочник и заблокированная касса прежде
+ * уходили кассе одним и тем же 404, и кассир читал «нет такого штрихкода»
+ * там, где товар есть, а спросить о нём нельзя.
+ */
 class NomenclatureControllerTest {
 
     private val service = mockk<SuperkassaApi>()
@@ -24,7 +34,7 @@ class NomenclatureControllerTest {
     fun `lookupNomenclature returns response when found`() {
         val dto = NomenclatureItemResponse(
             id = 639308L,
-            barcode = "5449000176431",
+            barcode = BARCODE,
             name = "Напиток Piko Pulpy",
             nameKk = "Piko Pulpy сусыны",
             ntin = "0200091550792",
@@ -32,37 +42,88 @@ class NomenclatureControllerTest {
             measureUnitCode = "166",
             vatGroup = "VAT_16"
         )
-        val lookupResult = NomenclatureLookupResponse(
-            found = true,
-            item = dto,
-            resultCode = 0,
-            resultText = "OK"
-        )
-        val request = NomenclatureLookupRequest("kkm-1", "5449000176431")
-        every { service.lookupNomenclature("1234", request) } returns lookupResult
+        val lookupResult = NomenclatureLookupResponse(found = true, item = dto, resultCode = 0, resultText = "OK")
+        active()
+        every { service.lookupNomenclature(PIN, request()) } returns lookupResult
 
-        val response = controller.lookupNomenclature("kkm-1", "Bearer 1234", "5449000176431")
+        val response = controller.lookupNomenclature(KKM, "Bearer $PIN", BARCODE)
         assertEquals(lookupResult, response)
 
-        verify(exactly = 1) { service.lookupNomenclature("1234", request) }
+        verify(exactly = 1) { service.lookupNomenclature(PIN, request()) }
     }
 
+    /** Каталог ответил, и позиции в нём нет: это и есть «нет такого штрихкода». */
     @Test
-    fun `lookupNomenclature throws NotFoundException when not found`() {
+    fun `lookupNomenclature throws NotFoundException when catalogue has no such item`() {
         val lookupResult = NomenclatureLookupResponse(
             found = false,
             item = null,
-            resultCode = 1,
-            resultText = "Not Found"
+            resultCode = 0,
+            resultText = "No items found in nomenclature response"
         )
-        val request = NomenclatureLookupRequest("kkm-1", "5449000176431")
-        every { service.lookupNomenclature("1234", request) } returns lookupResult
+        active()
+        every { service.lookupNomenclature(PIN, request()) } returns lookupResult
 
         val exception = assertFailsWith<NotFoundException> {
-            controller.lookupNomenclature("kkm-1", "Bearer 1234", "5449000176431")
+            controller.lookupNomenclature(KKM, "Bearer $PIN", BARCODE)
         }
-        assertEquals(CoreStrings.nomenclatureNotFound("5449000176431"), exception.trilingualMessage)
-
-        verify(exactly = 1) { service.lookupNomenclature("1234", request) }
+        assertEquals(CoreStrings.nomenclatureNotFound(BARCODE), exception.trilingualMessage)
+        assertEquals("NOMENCLATURE_NOT_FOUND", exception.code)
     }
+
+    /** Спросить не удалось: ненулевой код результата каталогом не отвечен. */
+    @Test
+    fun `lookupNomenclature tells catalogue silence apart from missing item`() {
+        val lookupResult = NomenclatureLookupResponse(
+            found = false,
+            item = null,
+            resultCode = 254,
+            resultText = "ServiceTemporarilyUnavailable"
+        )
+        active()
+        every { service.lookupNomenclature(PIN, request()) } returns lookupResult
+
+        val exception = assertFailsWith<NomenclatureUnavailableException> {
+            controller.lookupNomenclature(KKM, "Bearer $PIN", BARCODE)
+        }
+        assertEquals("NOMENCLATURE_UNAVAILABLE", exception.code)
+        assertEquals(SERVICE_UNAVAILABLE, exception.status)
+    }
+
+    /** Заблокированная касса называется блокировкой, а не отсутствием товара. */
+    @Test
+    fun `lookupNomenclature refuses on blocked kkm with its block reason`() {
+        every { service.getKkm(KKM) } returns kkm(state = "BLOCKED", reason = INVALID_TOKEN)
+
+        val exception = assertFailsWith<ValidationException> {
+            controller.lookupNomenclature(KKM, "Bearer $PIN", BARCODE)
+        }
+        assertEquals("KKM_BLOCKED", exception.code)
+        assertEquals(CoreStrings.kkmBlocked(INVALID_TOKEN), exception.trilingualMessage)
+
+        verify(exactly = 0) { service.lookupNomenclature(any(), any()) }
+    }
+
+    private fun active() {
+        every { service.getKkm(KKM) } returns kkm(state = "ACTIVE", reason = null)
+    }
+
+    private fun request() = NomenclatureLookupRequest(KKM, BARCODE)
+
+    private fun kkm(state: String, reason: Int?) = KkmResponse(
+        kkmId = KKM,
+        createdAt = 0L,
+        updatedAt = 0L,
+        mode = "REGISTRATION",
+        state = state,
+        blockReasonCode = reason
+    )
 }
+
+private const val KKM = "kkm-1"
+private const val PIN = "1234"
+private const val BARCODE = "5449000176431"
+
+/** Отказ БФД «неверный токен», перенесённый узлом в свой диапазон. */
+private const val INVALID_TOKEN = 1002
+private const val SERVICE_UNAVAILABLE = 503
