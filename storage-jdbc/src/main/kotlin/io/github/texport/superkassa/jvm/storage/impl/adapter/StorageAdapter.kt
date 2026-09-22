@@ -136,21 +136,6 @@ class StorageAdapter(
     override fun updateKkmToken(id: String, tokenEncryptedBase64: String, updatedAt: Long): Boolean {
         val tokenBytes = StorageMapper.decodeBase64(tokenEncryptedBase64) ?: return false
 
-        if (System.getenv("SUPERKASSA_DEBUG_CACHE") == "true" || System.getProperty("superkassa.debug-cache") == "true") {
-            try {
-                val tokenStr = String(tokenBytes, Charsets.UTF_8)
-                val tokenLong = tokenStr.toLongOrNull()
-                if (tokenLong != null) {
-                    val cacheFile =
-                        java.io.File("/Users/sergeyivanov/.gemini/antigravity/brain/181a5aef-4ca8-4203-8a6d-734ab9e2e386/token_cache.txt")
-                    cacheFile.parentFile.mkdirs()
-                    cacheFile.writeText(tokenLong.toString() + "\n")
-                }
-            } catch (_: Exception) {
-                // Ignore token caching errors to prevent breaking transaction
-            }
-        }
-
         return withSession { session ->
             session.cashboxes.updateToken(id, tokenBytes, updatedAt)
         }
