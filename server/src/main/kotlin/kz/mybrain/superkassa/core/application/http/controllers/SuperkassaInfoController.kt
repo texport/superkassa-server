@@ -134,7 +134,7 @@ class SuperkassaInfoController(
             **features** (object): Дополнительные возможности системы:
             - allowSettingsChanges (boolean): Разрешены ли изменения настроек через API
             - deliveryChannels (array<string>): Список каналов доставки документов (например, ["PRINT"])
-            - ofdTimeoutSeconds (number): Общее время на обработку транзакции ОФД (сек., не менее 5)
+            - ofdTimeoutSeconds (number): Сколько касса ждёт ответа БФД (сек., не менее 5)
             - ofdReconnectIntervalSeconds (number): Интервал между попытками восстановления связи (сек., не менее 60)
 
             Используется для мониторинга и диагностики системы.
@@ -211,7 +211,7 @@ data class SystemFeaturesResponse(
     val allowSettingsChanges: Boolean,
     @io.swagger.v3.oas.annotations.media.Schema(description = "Список каналов доставки документов", example = "[\"PRINT\"]")
     val deliveryChannels: List<String>,
-    @io.swagger.v3.oas.annotations.media.Schema(description = "Общее время на обработку транзакции ОФД в секундах", example = "15")
+    @io.swagger.v3.oas.annotations.media.Schema(description = "Сколько касса ждёт ответа БФД в секундах", example = "7")
     val ofdTimeoutSeconds: Int,
     @io.swagger.v3.oas.annotations.media.Schema(description = "Интервал между попытками восстановления связи в секундах", example = "60")
     val ofdReconnectIntervalSeconds: Int

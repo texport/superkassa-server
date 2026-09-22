@@ -83,7 +83,7 @@ data class CoreSettingsDto(
     val nodeId: String = "node-1",
     val ofdProtocolVersion: String = "203",
     val deliveryChannels: List<String> = listOf("PRINT"),
-    val ofdTimeoutSeconds: Long = 30L,
+    val ofdTimeoutSeconds: Long = 7L,
     val ofdReconnectIntervalSeconds: Long = 60L,
     val delivery: DeliverySettingsDto? = null,
     val defaultAdminPin: String = "0000",

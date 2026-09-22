@@ -16,6 +16,7 @@ import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettin
 import io.github.texport.superkassa.core.domain.api.model.settings.TelegramProviderSettings
 import io.github.texport.superkassa.core.domain.api.model.settings.WhatsAppProviderSettings
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class CoreSettingsValidatorTest {
@@ -225,6 +226,26 @@ class CoreSettingsValidatorTest {
             }
         """
         )
+    }
+
+    /**
+     * Умолчание в семь секунд проходит проверку: иначе узел не поднялся бы
+     * с настройками, которые сам же и записал при первом запуске.
+     */
+    @Test
+    fun `validateSettings accepts default ofd response wait`() {
+        val settings = json.decodeFromString(
+            CoreSettingsDto.serializer(),
+            """
+            {
+                "mode": "DESKTOP",
+                "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:db.sqlite" },
+                "ofdProtocolVersion": "203"
+            }
+        """
+        ).toDomain()
+        assertEquals(7L, settings.ofdTimeoutSeconds)
+        validator.validateSettings(settings)
     }
 
     @Test
