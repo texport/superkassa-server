@@ -26,19 +26,19 @@ class DefaultErrorResolver : ErrorResolver {
             kk = "Деректер қорының параметрлері қоймасын тек сервер режимінде пайдалануға болады."
         ),
         SettingsErrorKey.OFD_PROTOCOL_VERSION to TrilingualString(
-            en = "OFD protocol version must be a non-empty numeric string.",
-            ru = "Версия протокола ОФД должна быть непустой числовой строкой.",
-            kk = "СЖД (ОФД) хаттамасының нұсқасы бос емес сандық жол болуы керек."
+            en = "BFD protocol version must be a non-empty numeric string.",
+            ru = "Версия протокола БФД должна быть непустой числовой строкой.",
+            kk = "БФД хаттамасының нұсқасы бос емес сандық жол болуы керек."
         ),
         SettingsErrorKey.OFD_TIMEOUT to TrilingualString(
-            en = "OFD timeout must be at least 5 seconds.",
-            ru = "Таймаут ОФД должен быть не менее 5 секунд.",
-            kk = "СЖД (ОФД) күту уақыты кемінде 5 секунд болуы керек."
+            en = "BFD timeout must be at least 5 seconds.",
+            ru = "Таймаут БФД должен быть не менее 5 секунд.",
+            kk = "БФД күту уақыты кемінде 5 секунд болуы керек."
         ),
         SettingsErrorKey.OFD_RECONNECT_INTERVAL to TrilingualString(
-            en = "OFD reconnect interval must be at least 60 seconds.",
-            ru = "Интервал переподключения ОФД должен быть не менее 60 секунд.",
-            kk = "СЖД (ОФД) қайта қосылу аралығы кемінде 60 секунд болуы керек."
+            en = "BFD reconnect interval must be at least 60 seconds.",
+            ru = "Интервал переподключения БФД должен быть не менее 60 секунд.",
+            kk = "БФД қайта қосылу аралығы кемінде 60 секунд болуы керек."
         ),
         SettingsErrorKey.STORAGE_ENGINE_BLANK to TrilingualString(
             en = "Storage engine cannot be blank.",
@@ -76,9 +76,9 @@ class DefaultErrorResolver : ErrorResolver {
             kk = "Сервер режимінде деректер қорының құпия сөзі бос болмауы керек."
         ),
         SettingsErrorKey.OFD_PROVIDER_KEY_BLANK to TrilingualString(
-            en = "OFD provider key cannot be blank.",
-            ru = "Ключ провайдера ОФД не может быть пустым.",
-            kk = "СЖД (ОФД) провайдерінің кілті бос болмауы керек."
+            en = "BFD provider key cannot be blank.",
+            ru = "Ключ провайдера БФД не может быть пустым.",
+            kk = "БФД провайдерінің кілті бос болмауы керек."
         ),
         SettingsErrorKey.CHANNEL_NAME_BLANK to TrilingualString(
             en = "Channel name cannot be blank.",
