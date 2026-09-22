@@ -38,6 +38,8 @@ class StorageAdapter(
     private val logger = LoggerFactory.getLogger(StorageAdapter::class.java)
     private val sessionHolder = ThreadLocal<StorageSession?>()
 
+    private val reqNumCache = OfdReqNumCache()
+
     private val sessionProvider: () -> StorageSession = {
         sessionHolder.get() ?: error("No active transaction or session")
     }
@@ -210,7 +212,7 @@ class StorageAdapter(
             System.getenv("SUPERKASSA_DEBUG_CACHE") == "true" || System.getProperty("superkassa.debug-cache") == "true"
         val isGlobalNoShift = scope == "GLOBAL" && shiftId == null
         if (isDebugCache && isGlobalNoShift && !dbCounters.containsKey("ofd.req_num")) {
-            val cachedVal = getCachedOfdReqNum()
+            val cachedVal = reqNumCache.read()
             if (cachedVal != null) {
                 val mutable = dbCounters.toMutableMap()
                 mutable["ofd.req_num"] = cachedVal
@@ -227,7 +229,7 @@ class StorageAdapter(
             System.getenv("SUPERKASSA_DEBUG_CACHE") == "true" || System.getProperty("superkassa.debug-cache") == "true"
         val isGlobalOfdReqNum = scope == "GLOBAL" && shiftId == null && key == "ofd.req_num"
         if (isDebugCache && isGlobalOfdReqNum) {
-            writeCachedOfdReqNum(value)
+            reqNumCache.write(value)
         }
         return withSession { shiftDelegate.upsertCounter(kkmId, scope, shiftId, key, value) }
     }
@@ -416,28 +418,6 @@ class StorageAdapter(
             }
         }
         throw lastEx ?: error("openSessionWithRetry failed")
-    }
-
-    private fun getCachedOfdReqNum(): Long? {
-        try {
-            val cacheFile =
-                java.io.File("/Users/sergeyivanov/.gemini/antigravity/brain/181a5aef-4ca8-4203-8a6d-734ab9e2e386/req_num_cache.txt")
-            if (cacheFile.exists()) {
-                return cacheFile.readText().trim().toLongOrNull()
-            }
-        } catch (_: Exception) {
-        }
-        return null
-    }
-
-    private fun writeCachedOfdReqNum(value: Long) {
-        try {
-            val cacheFile =
-                java.io.File("/Users/sergeyivanov/.gemini/antigravity/brain/181a5aef-4ca8-4203-8a6d-734ab9e2e386/req_num_cache.txt")
-            cacheFile.parentFile.mkdirs()
-            cacheFile.writeText(value.toString() + "\n")
-        } catch (_: Exception) {
-        }
     }
 
     private fun isTransientDbFailure(e: Exception): Boolean {
