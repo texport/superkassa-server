@@ -32,7 +32,9 @@ abstract class BaseHttpDeliveryAdapter(
             DeliveryResult(true)
         } else {
             val status = response.statusCode()
-            val body = response.body()
+            // Ответ провайдера умеет повторить адрес запроса, а в адресе лежит
+            // ключ канала: и в журнал, и наружу он идёт уже без ключа.
+            val body = Secrets.mask(response.body().orEmpty())
             logger.error(
                 "{} failed for document {} to {}: {} {}",
                 channelName,
@@ -56,15 +58,36 @@ abstract class BaseHttpDeliveryAdapter(
         documentId: String,
         channelName: String
     ): DeliveryResult {
-        logger.error("{} exception for document {}: {}", channelName, documentId, e.message, e)
-        val msg = e.message ?: "Unknown error"
+        // Наружу уходит род отказа, а не текст исключения: HTTP-клиент
+        // вкладывает в сообщение адрес запроса вместе с ключом канала.
+        // Для разбора остаётся журнал, где и сообщение, и стек — без ключа.
+        val reason = reasonOf(e)
+        logger.error(
+            "{} exception for document {}: {} {}",
+            channelName,
+            documentId,
+            reason,
+            Secrets.mask(e.stackTraceToString())
+        )
         val msgStr = errorResolver.resolve(
             DeliveryErrorKey.HTTP_DELIVERY_ERROR
-        ).formatArgs(channelName, msg).toString()
+        ).formatArgs(channelName, reason).toString()
         return DeliveryResult(
             ok = false,
             message = msgStr
         )
+    }
+
+    /**
+     * Род отказа: класс ошибки и, если он известен, класс её причины.
+     *
+     * Кода у исключений `java.net.http` нет — код отказа приходит статусом
+     * ответа и уходит наружу отдельной веткой [handleHttpResponse].
+     */
+    private fun reasonOf(e: Exception): String {
+        val failure = e::class.simpleName ?: DEFAULT_REASON
+        val cause = e.cause?.let { it::class.simpleName }
+        return if (cause == null) failure else "$failure ($cause)"
     }
 
     protected fun normalizePhoneNumber(phone: String): String {
@@ -76,5 +99,9 @@ abstract class BaseHttpDeliveryAdapter(
             .replace("\"", "\\\"")
             .replace("\n", "\\n")
             .replace("\r", "\\r") + "\""
+    }
+
+    private companion object {
+        const val DEFAULT_REASON = "Exception"
     }
 }

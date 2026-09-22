@@ -43,8 +43,14 @@ class PrintDeliveryAdapter(
             logger.debug("Printed document {} to {}:{}", request.documentId, host, port)
             DeliveryResult(true)
         } catch (e: Exception) {
-            logger.error("Print failed for document {}: {}", request.documentId, e.message, e)
-            val msg = e.message ?: "Unknown error"
+            val reason = Secrets.mask(e.message ?: "Unknown error")
+            logger.error(
+                "Print failed for document {}: {} {}",
+                request.documentId,
+                reason,
+                Secrets.mask(e.stackTraceToString())
+            )
+            val msg = reason
             val msgStr = errorResolver.resolve(
                 DeliveryErrorKey.PRINT_FAILED
             ).formatArgs(msg).toString()
