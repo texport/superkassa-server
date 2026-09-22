@@ -113,6 +113,11 @@ class DocumentConvertAdapter : DocumentConvertPort {
                     pageFile.absolutePath
                 )
             )
+            // Браузер выходит с нулём и тогда, когда печатать ему было
+            // нечем: пустой файл уходил кассе под видом чека, та докладывала
+            // «Сохранено», а покупателю доставался файл, который ничем
+            // не открывается. Несостоявшийся документ — это отказ.
+            check(pdfFile.length() > 0) { "Chromium produced an empty PDF at ${pdfFile.absolutePath}" }
             pdfFile.readBytes()
         }
     }

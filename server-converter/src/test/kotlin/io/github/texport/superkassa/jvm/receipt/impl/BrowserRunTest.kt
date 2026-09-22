@@ -4,6 +4,7 @@ import java.io.File
 import java.time.Duration
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Assertions.assertTimeoutPreemptively
 import org.junit.jupiter.api.function.ThrowingSupplier
@@ -62,6 +63,30 @@ class BrowserRunTest {
     }
 
     private val page = """<html><head></head><body>чек</body></html>"""
+
+    /**
+     * Пустой PDF — это несостоявшийся документ, а не документ.
+     *
+     * Браузер выходит с нулём и тогда, когда печатать ему было нечем:
+     * узел отдавал кассе файл в ноль байт под видом чека, касса
+     * докладывала «Сохранено», а покупатель получал файл, который
+     * не открывается ничем.
+     */
+    @Test
+    fun `пустой файл браузера не выдаётся за печатную форму`() {
+        browser(noise = 1, bytes = 0)
+
+        val refusal = assertFailsWith<IllegalStateException> { DocumentConvertAdapter().htmlToPdf(page) }
+        assertTrue(refusal.message.orEmpty().contains("PDF"), "отказ не называет, чего не вышло: ${refusal.message}")
+    }
+
+    /** То же для снимка: пустой PNG не картинка. */
+    @Test
+    fun `пустой снимок не выдаётся за печатную форму`() {
+        browser(noise = 1, bytes = 0)
+
+        assertFailsWith<IllegalStateException> { DocumentConvertAdapter().htmlToImage(page) }
+    }
 
     /**
      * Разговорчивый браузер не подвешивает узел.
