@@ -182,7 +182,11 @@ class AdaptersConfig {
             }
         }
         if (adapters.isEmpty()) {
-            adapters.add(stubAdapter(DeliveryChannel.PRINT))
+            // Ни одного канала не собралось: все выключены или ни один
+            // не настроен. Узел поднимается, но доставка отвечает отказом,
+            // а не молчаливым успехом.
+            logger.warn("No delivery channel is configured: receipt delivery will be refused")
+            adapters.add(unconfiguredChannelAdapter(DeliveryChannel.PRINT))
         }
         return ServerDeliveryServiceAdapter(createDeliveryServiceApi(adapters))
     }
@@ -205,17 +209,17 @@ class AdaptersConfig {
     }
 
     private fun createPrintAdapter(print: io.github.texport.superkassa.core.domain.api.model.settings.PrintDeliverySettings?): KmpDeliveryPort {
-        val connection = print?.connection ?: return stubAdapter(DeliveryChannel.PRINT)
+        val connection = print?.connection ?: return unconfiguredChannelAdapter(DeliveryChannel.PRINT)
         val host = connection.host
         val port = connection.port
         if (host != null && port != null) {
             return PrintDeliveryAdapter(host, port)
         }
-        return stubAdapter(DeliveryChannel.PRINT)
+        return unconfiguredChannelAdapter(DeliveryChannel.PRINT)
     }
 
     private fun createEmailAdapter(email: io.github.texport.superkassa.core.domain.api.model.settings.EmailProviderSettings?): KmpDeliveryPort {
-        if (email == null) return stubAdapter(DeliveryChannel.EMAIL)
+        if (email == null) return unconfiguredChannelAdapter(DeliveryChannel.EMAIL)
         return EmailDeliveryAdapter(
             email.host,
             email.port,
@@ -226,28 +230,38 @@ class AdaptersConfig {
     }
 
     private fun createSmsAdapter(sms: io.github.texport.superkassa.core.domain.api.model.settings.SmsProviderSettings?): KmpDeliveryPort {
-        val url = sms?.providerUrl ?: return stubAdapter(DeliveryChannel.SMS)
+        val url = sms?.providerUrl ?: return unconfiguredChannelAdapter(DeliveryChannel.SMS)
         return SmsDeliveryAdapter(url, sms.apiKey)
     }
 
     private fun createTelegramAdapter(tg: io.github.texport.superkassa.core.domain.api.model.settings.TelegramProviderSettings?): KmpDeliveryPort {
-        val token = tg?.botToken ?: return stubAdapter(DeliveryChannel.TELEGRAM)
+        val token = tg?.botToken ?: return unconfiguredChannelAdapter(DeliveryChannel.TELEGRAM)
         return TelegramDeliveryAdapter(token)
     }
 
     private fun createWhatsAppAdapter(wa: io.github.texport.superkassa.core.domain.api.model.settings.WhatsAppProviderSettings?): KmpDeliveryPort {
-        val token = wa?.accessToken ?: return stubAdapter(DeliveryChannel.WHATSAPP)
-        val phoneId = wa.phoneNumberId ?: return stubAdapter(DeliveryChannel.WHATSAPP)
+        val token = wa?.accessToken ?: return unconfiguredChannelAdapter(DeliveryChannel.WHATSAPP)
+        val phoneId = wa.phoneNumberId ?: return unconfiguredChannelAdapter(DeliveryChannel.WHATSAPP)
         return WhatsAppDeliveryAdapter(token, phoneId)
     }
 
-    private fun stubAdapter(channel: DeliveryChannel): KmpDeliveryPort = object : KmpDeliveryPort {
-        override val channel: DeliveryChannel = channel
-        override fun send(request: DeliveryRequest): DeliveryResult {
-            logger.debug("Delivery stub for channel: {}", channel)
-            return DeliveryResult(true)
+    /**
+     * Адаптер канала, который выбран, но не настроен.
+     *
+     * Он отвечает отказом с причиной. Прежде на его месте стояла заглушка,
+     * возвращавшая успех: чек покупателю не уходил ни по одному каналу,
+     * а касса записывала его доставленным и говорила об этом кассиру.
+     * Отказ, открывающийся наружу успехом, в фискальной программе
+     * недопустим — лучше видимый отказ, чем незаметная потеря чека.
+     */
+    private fun unconfiguredChannelAdapter(channel: DeliveryChannel): KmpDeliveryPort =
+        object : KmpDeliveryPort {
+            override val channel: DeliveryChannel = channel
+            override fun send(request: DeliveryRequest): DeliveryResult {
+                logger.warn("Delivery channel {} is selected but not configured", channel)
+                return DeliveryResult(false, "Delivery channel $channel is not configured")
+            }
         }
-    }
 
     @Bean
     fun qrCodeGeneratorPort(): QrCodeGeneratorPort = QrCodeDataUriGenerator

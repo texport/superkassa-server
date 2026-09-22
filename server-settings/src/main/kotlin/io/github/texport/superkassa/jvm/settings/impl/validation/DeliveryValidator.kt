@@ -1,6 +1,7 @@
 package io.github.texport.superkassa.jvm.settings.impl.validation
 
 import io.github.texport.superkassa.core.domain.api.model.settings.DeliverySettings
+import io.github.texport.superkassa.delivery.api.model.DeliveryChannel
 import io.github.texport.superkassa.jvm.settings.api.IllegalServerConfigurationException
 import io.github.texport.superkassa.jvm.shared.strings.api.key.SettingsErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver
@@ -8,6 +9,30 @@ import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver
 internal object DeliveryValidator {
 
     private val resolver = DefaultErrorResolver()
+
+    /** Имена каналов берутся у самого перечисления, а не переписываются списком. */
+    private val knownChannels: Set<String> = DeliveryChannel.entries.map { it.name }.toSet()
+
+    /**
+     * Проверяет имена каналов в списке `deliveryChannels`.
+     *
+     * Список задаёт, чем узел доставляет документы, когда подробных настроек
+     * каналов нет. Имени вне перечисления здесь быть не может: узел не смог бы
+     * собрать по нему ни одного адаптера и остался бы вовсе без доставки,
+     * продолжая отвечать кассиру, что чек ушёл.
+     */
+    fun validateChannelNames(channels: List<String>) {
+        for (channel in channels) {
+            if (channel.isBlank()) {
+                throw IllegalServerConfigurationException(resolver.resolve(SettingsErrorKey.CHANNEL_NAME_BLANK).toString())
+            }
+            if (channel.uppercase() !in knownChannels) {
+                throw IllegalServerConfigurationException(
+                    resolver.resolve(SettingsErrorKey.UNKNOWN_DELIVERY_CHANNEL).formatArgs(channel).toString()
+                )
+            }
+        }
+    }
 
     fun validateDeliveryChannels(delivery: DeliverySettings) {
         for (ch in delivery.channels) {
@@ -17,7 +42,7 @@ internal object DeliveryValidator {
                     throw IllegalServerConfigurationException(resolver.resolve(SettingsErrorKey.CHANNEL_NAME_BLANK).toString())
                 }
                 val upperChannel = channel.uppercase()
-                if (upperChannel !in listOf("PRINT", "EMAIL", "SMS", "TELEGRAM", "WHATSAPP")) {
+                if (upperChannel !in knownChannels) {
                     throw IllegalServerConfigurationException(
                         resolver.resolve(SettingsErrorKey.UNKNOWN_DELIVERY_CHANNEL).formatArgs(channel).toString()
                     )
