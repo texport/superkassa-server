@@ -30,6 +30,7 @@ class FileCoreSettingsRepository(
         val text = Files.readString(path)
         val settings = json.decodeFromString(CoreSettingsDto.serializer(), text).toDomain()
         validator.validateSettings(settings)
+        RetiredSettings.warnOnRetiredKeys(path, text)
         return settings
     }
 

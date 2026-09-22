@@ -19,6 +19,7 @@ import io.github.texport.superkassa.delivery.api.model.DeliveryChannel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CoreSettingsValidatorTest {
@@ -258,8 +259,6 @@ class CoreSettingsValidatorTest {
         assertEquals(coreDefaults.ofdReconnectIntervalSeconds, settings.ofdReconnectIntervalSeconds)
         assertEquals(coreDefaults.deliveryChannels, settings.deliveryChannels)
         assertEquals(coreDefaults.nodeId, settings.nodeId)
-        assertEquals(coreDefaults.defaultAdminPin, settings.defaultAdminPin)
-        assertEquals(coreDefaults.defaultCashierPin, settings.defaultCashierPin)
         validator.validateSettings(settings)
     }
 
@@ -1221,4 +1220,5 @@ class CoreSettingsValidatorTest {
         val instance = io.github.texport.superkassa.jvm.settings.impl.DefaultCoreSettingsValidator()
         kotlin.test.assertNotNull(instance)
     }
+
 }

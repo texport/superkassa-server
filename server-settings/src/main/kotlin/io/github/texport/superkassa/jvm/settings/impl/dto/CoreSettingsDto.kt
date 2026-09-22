@@ -105,9 +105,5 @@ data class CoreSettingsDto(
     val deliveryChannels: List<String> = DOMAIN_DEFAULTS.deliveryChannels,
     val ofdTimeoutSeconds: Long = DOMAIN_DEFAULTS.ofdTimeoutSeconds,
     val ofdReconnectIntervalSeconds: Long = DOMAIN_DEFAULTS.ofdReconnectIntervalSeconds,
-    val delivery: DeliverySettingsDto? = null,
-    val defaultAdminPin: String = DOMAIN_DEFAULTS.defaultAdminPin,
-    val defaultAdminName: String = DOMAIN_DEFAULTS.defaultAdminName,
-    val defaultCashierPin: String = DOMAIN_DEFAULTS.defaultCashierPin,
-    val defaultCashierName: String = DOMAIN_DEFAULTS.defaultCashierName
+    val delivery: DeliverySettingsDto? = null
 )

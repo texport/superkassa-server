@@ -2,7 +2,6 @@
 
 package io.github.texport.superkassa.jvm.storage.impl.adapter
 
-import io.github.texport.superkassa.core.domain.api.exception.StorageException
 import io.github.texport.superkassa.core.domain.api.exception.SuperkassaException
 import io.github.texport.superkassa.core.domain.api.model.auth.*
 import io.github.texport.superkassa.core.domain.api.model.common.*
@@ -11,9 +10,6 @@ import io.github.texport.superkassa.core.domain.api.model.queue.*
 import io.github.texport.superkassa.core.domain.api.model.receipt.*
 import io.github.texport.superkassa.core.domain.api.model.shift.*
 import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
-import io.github.texport.superkassa.core.string.api.TrilingualMessage
-import io.github.texport.superkassa.jvm.shared.strings.api.key.StorageErrorKey
-import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver
 import io.github.texport.superkassa.jvm.storage.impl.application.bootstrap.StorageBootstrap
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
 import io.github.texport.superkassa.jvm.storage.impl.data.jdbc.JdbcStorageSession
@@ -40,8 +36,9 @@ class StorageAdapter(
     }
 
     private val logger = LoggerFactory.getLogger(StorageAdapter::class.java)
-    private val resolver = DefaultErrorResolver()
     private val sessionHolder = ThreadLocal<StorageSession?>()
+
+    private val reqNumCache = OfdReqNumCache()
 
     private val sessionProvider: () -> StorageSession = {
         sessionHolder.get() ?: error("No active transaction or session")
@@ -139,21 +136,6 @@ class StorageAdapter(
     override fun updateKkmToken(id: String, tokenEncryptedBase64: String, updatedAt: Long): Boolean {
         val tokenBytes = StorageMapper.decodeBase64(tokenEncryptedBase64) ?: return false
 
-        if (System.getenv("SUPERKASSA_DEBUG_CACHE") == "true" || System.getProperty("superkassa.debug-cache") == "true") {
-            try {
-                val tokenStr = String(tokenBytes, Charsets.UTF_8)
-                val tokenLong = tokenStr.toLongOrNull()
-                if (tokenLong != null) {
-                    val cacheFile =
-                        java.io.File("/Users/sergeyivanov/.gemini/antigravity/brain/181a5aef-4ca8-4203-8a6d-734ab9e2e386/token_cache.txt")
-                    cacheFile.parentFile.mkdirs()
-                    cacheFile.writeText(tokenLong.toString() + "\n")
-                }
-            } catch (_: Exception) {
-                // Ignore token caching errors to prevent breaking transaction
-            }
-        }
-
         return withSession { session ->
             session.cashboxes.updateToken(id, tokenBytes, updatedAt)
         }
@@ -215,7 +197,7 @@ class StorageAdapter(
             System.getenv("SUPERKASSA_DEBUG_CACHE") == "true" || System.getProperty("superkassa.debug-cache") == "true"
         val isGlobalNoShift = scope == "GLOBAL" && shiftId == null
         if (isDebugCache && isGlobalNoShift && !dbCounters.containsKey("ofd.req_num")) {
-            val cachedVal = getCachedOfdReqNum()
+            val cachedVal = reqNumCache.read()
             if (cachedVal != null) {
                 val mutable = dbCounters.toMutableMap()
                 mutable["ofd.req_num"] = cachedVal
@@ -232,7 +214,7 @@ class StorageAdapter(
             System.getenv("SUPERKASSA_DEBUG_CACHE") == "true" || System.getProperty("superkassa.debug-cache") == "true"
         val isGlobalOfdReqNum = scope == "GLOBAL" && shiftId == null && key == "ofd.req_num"
         if (isDebugCache && isGlobalOfdReqNum) {
-            writeCachedOfdReqNum(value)
+            reqNumCache.write(value)
         }
         return withSession { shiftDelegate.upsertCounter(kkmId, scope, shiftId, key, value) }
     }
@@ -392,15 +374,11 @@ class StorageAdapter(
         } catch (e: SuperkassaException) {
             throw e
         } catch (e: Exception) {
-            val msg = resolver.resolve(StorageErrorKey.DATABASE_ERROR).formatArgs(e.message ?: "")
-            throw StorageException(
-                TrilingualMessage(
-                    ru = msg.ru,
-                    kk = msg.kk,
-                    en = msg.en
-                ),
-                cause = e
-            )
+            logger.error("Storage operation failed: {}", StorageFailures.describe(e))
+            if (StorageFailures.isUniqueViolation(e)) {
+                throw StorageFailures.duplicateRecord()
+            }
+            throw StorageFailures.storageFailure(e)
         }
     }
 
@@ -419,34 +397,12 @@ class StorageAdapter(
                     attempt,
                     maxAttempts,
                     delayMs,
-                    e.message
+                    StorageFailures.describe(e)
                 )
                 Thread.sleep(delayMs)
             }
         }
         throw lastEx ?: error("openSessionWithRetry failed")
-    }
-
-    private fun getCachedOfdReqNum(): Long? {
-        try {
-            val cacheFile =
-                java.io.File("/Users/sergeyivanov/.gemini/antigravity/brain/181a5aef-4ca8-4203-8a6d-734ab9e2e386/req_num_cache.txt")
-            if (cacheFile.exists()) {
-                return cacheFile.readText().trim().toLongOrNull()
-            }
-        } catch (_: Exception) {
-        }
-        return null
-    }
-
-    private fun writeCachedOfdReqNum(value: Long) {
-        try {
-            val cacheFile =
-                java.io.File("/Users/sergeyivanov/.gemini/antigravity/brain/181a5aef-4ca8-4203-8a6d-734ab9e2e386/req_num_cache.txt")
-            cacheFile.parentFile.mkdirs()
-            cacheFile.writeText(value.toString() + "\n")
-        } catch (_: Exception) {
-        }
     }
 
     private fun isTransientDbFailure(e: Exception): Boolean {
