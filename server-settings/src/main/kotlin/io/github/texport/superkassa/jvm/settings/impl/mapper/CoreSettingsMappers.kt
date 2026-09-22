@@ -38,11 +38,7 @@ fun CoreSettings.toDto() = CoreSettingsDto(
     deliveryChannels = deliveryChannels,
     ofdTimeoutSeconds = ofdTimeoutSeconds,
     ofdReconnectIntervalSeconds = ofdReconnectIntervalSeconds,
-    delivery = delivery?.toDto(),
-    defaultAdminPin = defaultAdminPin,
-    defaultAdminName = defaultAdminName,
-    defaultCashierPin = defaultCashierPin,
-    defaultCashierName = defaultCashierName
+    delivery = delivery?.toDto()
 )
 
 fun CoreSettingsDto.toDomain() = CoreSettings(
@@ -54,9 +50,5 @@ fun CoreSettingsDto.toDomain() = CoreSettings(
     deliveryChannels = deliveryChannels,
     ofdTimeoutSeconds = ofdTimeoutSeconds,
     ofdReconnectIntervalSeconds = ofdReconnectIntervalSeconds,
-    delivery = delivery?.toDomain(),
-    defaultAdminPin = defaultAdminPin,
-    defaultAdminName = defaultAdminName,
-    defaultCashierPin = defaultCashierPin,
-    defaultCashierName = defaultCashierName
+    delivery = delivery?.toDomain()
 )

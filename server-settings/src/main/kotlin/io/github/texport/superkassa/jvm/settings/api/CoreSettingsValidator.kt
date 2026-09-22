@@ -38,30 +38,6 @@ interface CoreSettingsValidator {
      */
     fun validateSettings(settings: CoreSettings, requireServerMode: Boolean)
 
-    /**
-     * Выполняет валидацию настроек, которые узел собирается записать.
-     *
-     * Записывать заведомо неверную настройку нельзя, поэтому здесь правил
-     * строго больше, чем при чтении уже сохранённого файла: тот узел обязан
-     * поднять, иначе касса останавливается из-за настройки, которую никто
-     * не читает.
-     *
-     * @param settings Конфигурация ядра для проверки.
-     * @param requireServerMode Если true, требует режим сервера.
-     * @throws IllegalServerConfigurationException если нарушены правила валидации.
-     */
-    fun validateSettingsToStore(settings: CoreSettings, requireServerMode: Boolean = false)
-
-    /**
-     * Осматривает уже сохранённые настройки и пишет замечания в журнал.
-     *
-     * Ничего не выбрасывает: узел с неверной настройкой поднимается,
-     * а сама настройка остаётся видна тому, кто читает журнал.
-     *
-     * @param settings Загруженная конфигурация ядра.
-     */
-    fun reviewStoredSettings(settings: CoreSettings)
-
     companion object {
         private val resolver = DefaultErrorResolver()
 

@@ -277,11 +277,7 @@ class CoreSettingsDtoTest {
                 sms = SmsProviderSettings("url", "key"),
                 telegram = TelegramProviderSettings("token"),
                 whatsapp = WhatsAppProviderSettings("token", "phoneId")
-            ),
-            defaultAdminPin = "1111",
-            defaultAdminName = "Admin",
-            defaultCashierPin = "2222",
-            defaultCashierName = "Cashier"
+            )
         )
         val mapped = domain.toDto().toDomain()
         assertEquals(domain.mode, mapped.mode)

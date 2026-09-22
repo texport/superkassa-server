@@ -97,7 +97,6 @@ class DatabaseCoreSettingsRepository(
                             val dto = json.decodeFromString(CoreSettingsDto.serializer(), jsonText)
                             val settings = dto.toDomain()
                             validator.validateSettings(settings, requireServerMode = true)
-                            validator.reviewStoredSettings(settings)
                             settings
                         } else {
                             null
@@ -122,7 +121,7 @@ class DatabaseCoreSettingsRepository(
      */
     override fun save(settings: CoreSettings): Boolean {
         return runCatching {
-            validator.validateSettingsToStore(settings, requireServerMode = true)
+            validator.validateSettings(settings, requireServerMode = true)
             val dto = settings.toDto()
             val text = json.encodeToString(CoreSettingsDto.serializer(), dto)
             use(getConnection()) { conn ->
@@ -161,7 +160,7 @@ class DatabaseCoreSettingsRepository(
     }
 
     override fun loadOrCreate(defaults: CoreSettings): CoreSettings {
-        validator.validateSettingsToStore(defaults, requireServerMode = true)
+        validator.validateSettings(defaults, requireServerMode = true)
         return load() ?: defaults.also { save(it) }
     }
 

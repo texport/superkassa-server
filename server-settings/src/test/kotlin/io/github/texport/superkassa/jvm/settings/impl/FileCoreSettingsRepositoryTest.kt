@@ -220,14 +220,14 @@ class FileCoreSettingsRepositoryTest {
     }
 
     /**
-     * Файл владельца с одинаковыми умолчаниями пинов узел поднимает.
+     * Файл владельца с отменёнными умолчаниями пинов узел поднимает.
      *
-     * Умолчания мертвы: узел их не читает. Ронять из-за них запуск —
-     * останавливать кассу из-за настройки, которая ни на что не влияет.
-     * Записать такую настройку по-прежнему нельзя.
+     * Ключи в файле остаются, узел их не читает, а разбор неизвестные
+     * ключи пропускает молча. Поэтому каждый оставшийся ключ называется
+     * в журнале: иначе задавший пины считает, что задал их.
      */
     @Test
-    fun `existing file with identical default pins loads, but is not saved back`() {
+    fun `existing file with retired pin settings loads and the keys are named`() {
         val tempFile = Files.createTempFile("core-settings-pins", ".json")
         try {
             Files.writeString(
@@ -246,10 +246,51 @@ class FileCoreSettingsRepositoryTest {
 
             val loaded = repository.load()
 
-            assertEquals("4821", loaded?.defaultAdminPin)
-            assertFailsWith<IllegalServerConfigurationException> { repository.save(loaded!!) }
+            assertEquals(CoreMode.DESKTOP, loaded?.mode)
+            assertEquals(
+                listOf("defaultAdminPin", "defaultCashierPin"),
+                RetiredSettings.retiredKeysIn(Files.readString(tempFile))
+            )
         } finally {
             Files.deleteIfExists(tempFile)
         }
+    }
+
+    /**
+     * Переписанный узлом файл отменённых настроек больше не содержит.
+     *
+     * Прежде значение возвращалось в файл при каждой записи, и настройка
+     * выглядела действующей: она сохранялась и переживала перезапуск,
+     * не делая при этом ничего.
+     */
+    @Test
+    fun `rewriting the file drops the retired keys`() {
+        val tempFile = Files.createTempFile("core-settings-rewrite", ".json")
+        try {
+            Files.writeString(
+                tempFile,
+                """
+                {
+                    "mode": "DESKTOP",
+                    "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:build/test.db" },
+                    "ofdProtocolVersion": "203",
+                    "defaultAdminPin": "4821",
+                    "defaultCashierPin": "5930"
+                }
+                """.trimIndent()
+            )
+            val repository = FileCoreSettingsRepository(tempFile)
+
+            repository.save(repository.load()!!)
+
+            assertTrue(RetiredSettings.retiredKeysIn(Files.readString(tempFile)).isEmpty())
+        } finally {
+            Files.deleteIfExists(tempFile)
+        }
+    }
+
+    @Test
+    fun `a settings file without retired keys draws no remark`() {
+        assertTrue(RetiredSettings.retiredKeysIn("""{"mode": "DESKTOP"}""").isEmpty())
     }
 }
