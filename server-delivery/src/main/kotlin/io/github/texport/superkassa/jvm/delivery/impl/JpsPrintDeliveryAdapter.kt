@@ -52,14 +52,15 @@ class JpsPrintDeliveryAdapter(
             logger.debug("Printed document {} to local OS printer '{}'", request.documentId, printerName)
             DeliveryResult(true)
         } catch (e: Exception) {
+            val reason = Secrets.mask(e.message ?: "Unknown error")
             logger.error(
-                "Local JPS print failed for document {} on printer '{}': {}",
+                "Local JPS print failed for document {} on printer '{}': {} {}",
                 request.documentId,
                 printerName,
-                e.message,
-                e
+                reason,
+                Secrets.mask(e.stackTraceToString())
             )
-            val msg = e.message ?: "Unknown error"
+            val msg = reason
             val msgStr = errorResolver.resolve(
                 DeliveryErrorKey.LOCAL_PRINT_FAILED
             ).formatArgs(msg).toString()

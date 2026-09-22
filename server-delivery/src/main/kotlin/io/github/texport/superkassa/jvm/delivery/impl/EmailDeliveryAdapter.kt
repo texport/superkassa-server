@@ -103,8 +103,14 @@ class EmailDeliveryAdapter(
             logger.debug("Email sent for document {} to {}", request.documentId, to)
             DeliveryResult(true)
         } catch (e: Exception) {
-            logger.error("Email failed for document {}: {}", request.documentId, e.message, e)
-            val msg = e.message ?: "Unknown error"
+            val reason = Secrets.mask(e.message ?: "Unknown error")
+            logger.error(
+                "Email failed for document {}: {} {}",
+                request.documentId,
+                reason,
+                Secrets.mask(e.stackTraceToString())
+            )
+            val msg = reason
             val msgStr = errorResolver.resolve(
                 DeliveryErrorKey.EMAIL_SEND_FAILED
             ).formatArgs(msg).toString()
