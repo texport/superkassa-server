@@ -8,8 +8,6 @@ import javax.imageio.ImageIO
 /**
  * Адаптер конвертации HTML в PDF и Image (делегирует ESC/POS в EscPosConverter).
  */
-/** Логическая ширина ленты 80 мм в точках CSS. */
-private const val CANVAS_WIDTH_PX = 380
 
 /**
  * Высота окна, когда высоту страницы измерить не удалось.
@@ -39,10 +37,6 @@ private const val RENDER_SCALE = 3
 
 /** Миллиметров в одной точке CSS: 96 точек на дюйм. */
 private const val MM_PER_CSS_PX = 25.4 / 96
-
-/** Ширина ленты, миллиметров. */
-private const val TAPE_80_MM = 80.0
-private const val TAPE_58_MM = 58.0
 
 /** Запас снизу страницы PDF: последняя строка не должна лечь на обрез. */
 private const val PDF_BOTTOM_MARGIN_MM = 2.0
@@ -75,9 +69,6 @@ class DocumentConvertAdapter : DocumentConvertPort {
             </script>
         """.trimIndent()
 
-        /** Узкая лента: класс стоит на самой форме, а не только в стилях. */
-        private val NARROW_TAPE = Regex("""class="[^"]*\btape-58mm\b""")
-
         /** Чем страница сообщает свою высоту: подменённым заголовком окна. */
         private val HEIGHT_MARK = Regex("""superkassa-height:(\d+)""")
 
@@ -97,7 +88,7 @@ class DocumentConvertAdapter : DocumentConvertPort {
      *
      * Лента и в PDF, и на экране одна и та же разметка, но страница PDF
      * прежде считалась по снимку экрана: там тело зафиксировано на ширине
-     * [CANVAS_WIDTH_PX], а в печати Chromium верстал под ширину бумаги —
+     * [FormGeometry.TAPE_CANVAS_PX], а в печати Chromium верстал под ширину бумаги —
      * строки переносились, документ становился выше, и QR-код уезжал
      * на вторую, почти пустую страницу.
      *
@@ -113,7 +104,7 @@ class DocumentConvertAdapter : DocumentConvertPort {
         val tempHtmlFile = java.io.File.createTempFile("receipt-", ".html")
         val tempPdfFile = java.io.File.createTempFile("receipt-", ".pdf")
         try {
-            val paperWidth = if (NARROW_TAPE.containsMatchIn(html)) TAPE_58_MM else TAPE_80_MM
+            val paperWidth = FormGeometry.paperWidthMm(html)
             val widthPx = (paperWidth / MM_PER_CSS_PX).toInt()
             val tapeCss = """
                 $HEIGHT_PROBE
@@ -203,6 +194,7 @@ class DocumentConvertAdapter : DocumentConvertPort {
     override fun htmlToImage(html: String): ByteArray {
         val tempHtmlFile = java.io.File.createTempFile("receipt-", ".html")
         val tempPngFile = java.io.File.createTempFile("receipt-", ".png")
+        val canvas = FormGeometry.canvasWidthPx(html)
         try {
             // Ширина холста задаётся в самой странице, а не только окном
             // браузера: окно уже своего минимума браузер не отдаёт, вёрстка
@@ -216,9 +208,9 @@ class DocumentConvertAdapter : DocumentConvertPort {
                     print-color-adjust: exact !important;
                 }
                 html, body {
-                    width: ${CANVAS_WIDTH_PX}px !important;
-                    min-width: ${CANVAS_WIDTH_PX}px !important;
-                    max-width: ${CANVAS_WIDTH_PX}px !important;
+                    width: ${canvas}px !important;
+                    min-width: ${canvas}px !important;
+                    max-width: ${canvas}px !important;
                     margin: 0 !important;
                     padding: 0 !important;
                     overflow-x: hidden !important;
@@ -238,14 +230,14 @@ class DocumentConvertAdapter : DocumentConvertPort {
 
             tempHtmlFile.writeText(wrapHtml(modifiedHtml))
 
-            val windowHeight = pageHeight(tempHtmlFile)
+            val windowHeight = pageHeight(tempHtmlFile, canvas)
             val process = ProcessBuilder(
                 BrowserLocator.local.path(),
                 "--headless",
                 "--disable-gpu",
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
-                "--window-size=$CANVAS_WIDTH_PX,$windowHeight",
+                "--window-size=$canvas,$windowHeight",
                 "--force-device-scale-factor=$RENDER_SCALE",
                 "--screenshot=${tempPngFile.absolutePath}",
                 tempHtmlFile.absolutePath
@@ -308,8 +300,8 @@ class DocumentConvertAdapter : DocumentConvertPort {
      * запасного значения и не выше предела. Лишний низ снимка срезается
      * потом по цвету, поэтому запас безвреден.
      */
-    private fun pageHeight(htmlFile: java.io.File): Int {
-        val height = measuredHeight(htmlFile, CANVAS_WIDTH_PX) ?: return CANVAS_HEIGHT_PX
+    private fun pageHeight(htmlFile: java.io.File, widthPx: Int): Int {
+        val height = measuredHeight(htmlFile, widthPx) ?: return CANVAS_HEIGHT_PX
         return (height + CANVAS_HEIGHT_MARGIN_PX).coerceIn(CANVAS_HEIGHT_PX, CANVAS_HEIGHT_LIMIT_PX)
     }
 
