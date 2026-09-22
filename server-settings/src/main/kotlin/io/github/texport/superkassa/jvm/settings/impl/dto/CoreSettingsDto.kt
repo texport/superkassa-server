@@ -1,5 +1,8 @@
 package io.github.texport.superkassa.jvm.settings.impl.dto
 
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreMode
+import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettings
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -75,19 +78,36 @@ data class DeliverySettingsDto(
     val whatsapp: WhatsAppProviderSettingsDto? = null
 )
 
+/**
+ * Умолчания предметной области, прочитанные у ядра.
+ *
+ * Представление настроек узла не повторяет их числами и строками.
+ * Отсутствующее в записи поле должно означать у узла ровно то же,
+ * что у ядра, а два независимо объявленных умолчания рано или поздно
+ * расходятся: так срок ожидания БФД оказался тридцатью секундами
+ * в ядре и семью в узле, и одна и та же запись читалась по-разному.
+ *
+ * Режим и хранилище обязательны для экземпляра и здесь ни на что
+ * не влияют: у него читаются только умолчания остальных полей.
+ */
+private val DOMAIN_DEFAULTS = CoreSettings(
+    mode = CoreMode.DESKTOP,
+    storage = StorageSettings(engine = "", jdbcUrl = "")
+)
+
 @Serializable
 data class CoreSettingsDto(
     val mode: CoreModeDto,
     val storage: StorageSettingsDto,
-    val allowChanges: Boolean = false,
-    val nodeId: String = "node-1",
-    val ofdProtocolVersion: String = "203",
-    val deliveryChannels: List<String> = listOf("PRINT"),
-    val ofdTimeoutSeconds: Long = 30L,
-    val ofdReconnectIntervalSeconds: Long = 60L,
+    val allowChanges: Boolean = DOMAIN_DEFAULTS.allowChanges,
+    val nodeId: String = DOMAIN_DEFAULTS.nodeId,
+    val ofdProtocolVersion: String = DOMAIN_DEFAULTS.ofdProtocolVersion,
+    val deliveryChannels: List<String> = DOMAIN_DEFAULTS.deliveryChannels,
+    val ofdTimeoutSeconds: Long = DOMAIN_DEFAULTS.ofdTimeoutSeconds,
+    val ofdReconnectIntervalSeconds: Long = DOMAIN_DEFAULTS.ofdReconnectIntervalSeconds,
     val delivery: DeliverySettingsDto? = null,
-    val defaultAdminPin: String = "0000",
-    val defaultAdminName: String = "Администратор",
-    val defaultCashierPin: String = "1111",
-    val defaultCashierName: String = "Кассир"
+    val defaultAdminPin: String = DOMAIN_DEFAULTS.defaultAdminPin,
+    val defaultAdminName: String = DOMAIN_DEFAULTS.defaultAdminName,
+    val defaultCashierPin: String = DOMAIN_DEFAULTS.defaultCashierPin,
+    val defaultCashierName: String = DOMAIN_DEFAULTS.defaultCashierName
 )

@@ -9,7 +9,6 @@
     "deliveryChannels": [
         "OFD"
     ],
-    "ofdTimeoutSeconds": 15,
     "defaultAdminPin": "4821",
     "defaultCashierPin": "4821"
 }

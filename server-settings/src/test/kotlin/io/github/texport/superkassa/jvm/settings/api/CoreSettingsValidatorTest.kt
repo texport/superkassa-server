@@ -16,6 +16,7 @@ import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettin
 import io.github.texport.superkassa.core.domain.api.model.settings.TelegramProviderSettings
 import io.github.texport.superkassa.core.domain.api.model.settings.WhatsAppProviderSettings
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class CoreSettingsValidatorTest {
@@ -225,6 +226,39 @@ class CoreSettingsValidatorTest {
             }
         """
         )
+    }
+
+    /**
+     * Запись без срока ожидания читается ровно тем же умолчанием, какое
+     * объявлено в ядре, и проходит проверку.
+     *
+     * Умолчание здесь одно на оба места. Пока их было два, одна и та же
+     * запись означала у ядра тридцать секунд, а у узла семь: узел писал
+     * при первом запуске одно значение, а читал потом другое.
+     */
+    @Test
+    fun `settings record without response wait reads the core default`() {
+        val settings = json.decodeFromString(
+            CoreSettingsDto.serializer(),
+            """
+            {
+                "mode": "DESKTOP",
+                "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:db.sqlite" },
+                "ofdProtocolVersion": "203"
+            }
+        """
+        ).toDomain()
+        val coreDefaults = CoreSettings(
+            mode = CoreMode.DESKTOP,
+            storage = StorageSettings(engine = "SQLITE", jdbcUrl = "jdbc:sqlite:db.sqlite")
+        )
+        assertEquals(coreDefaults.ofdTimeoutSeconds, settings.ofdTimeoutSeconds)
+        assertEquals(coreDefaults.ofdReconnectIntervalSeconds, settings.ofdReconnectIntervalSeconds)
+        assertEquals(coreDefaults.deliveryChannels, settings.deliveryChannels)
+        assertEquals(coreDefaults.nodeId, settings.nodeId)
+        assertEquals(coreDefaults.defaultAdminPin, settings.defaultAdminPin)
+        assertEquals(coreDefaults.defaultCashierPin, settings.defaultCashierPin)
+        validator.validateSettings(settings)
     }
 
     @Test

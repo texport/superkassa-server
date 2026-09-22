@@ -35,6 +35,10 @@ class DatabaseCoreSettingsRepositoryTest {
         ),
         nodeId = "node-1",
         ofdProtocolVersion = "203",
+        // Срок ожидания ответа БФД записан в образце явно: он объявлен
+        // и в ядре, и в представлении настроек узла, и сверять здесь
+        // надо прочитанное с сохранённым, а не два умолчания между собой.
+        ofdTimeoutSeconds = 7L,
         allowChanges = true
     )
 
@@ -129,6 +133,7 @@ class DatabaseCoreSettingsRepositoryTest {
                 },
                 "nodeId": "node-1",
                 "ofdProtocolVersion": "203",
+                "ofdTimeoutSeconds": 7,
                 "allowChanges": true
             }
         """.trimIndent()
@@ -429,6 +434,7 @@ class DatabaseCoreSettingsRepositoryTest {
                 },
                 "nodeId": "node-1",
                 "ofdProtocolVersion": "203",
+                "ofdTimeoutSeconds": 7,
                 "allowChanges": true
             }
         """.trimIndent()
