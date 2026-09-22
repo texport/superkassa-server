@@ -18,8 +18,14 @@ import io.github.texport.superkassa.core.domain.api.model.settings.WhatsAppProvi
 import io.github.texport.superkassa.delivery.api.model.DeliveryChannel
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import io.github.texport.superkassa.jvm.shared.strings.api.key.SettingsErrorKey
+import io.github.texport.superkassa.jvm.shared.strings.impl.DefaultErrorResolver
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+
+private const val ASCII_LIMIT = 128
 
 class CoreSettingsValidatorTest {
 
@@ -1220,5 +1226,77 @@ class CoreSettingsValidatorTest {
     fun `cover constructor`() {
         val instance = io.github.texport.superkassa.jvm.settings.impl.DefaultCoreSettingsValidator()
         kotlin.test.assertNotNull(instance)
+    }
+
+    /**
+     * Одинаковые умолчания пинов не попадают в записываемые настройки.
+     *
+     * Пин уникален в пределах кассы: со совпадающими умолчаниями второй
+     * пользователь новой кассы не заводится, и владелец узнавал об этом
+     * по кассе с одним пользователем вместо двух.
+     */
+    @Test
+    fun `identical default pins are refused when settings are stored`() {
+        val failure = assertFailsWith<IllegalServerConfigurationException> {
+            validator.validateSettingsToStore(settingsWithDefaultPins(adminPin = "4821", cashierPin = "4821"))
+        }
+
+        assertEquals(
+            DefaultErrorResolver().resolve(SettingsErrorKey.DEFAULT_PINS_IDENTICAL).toString(),
+            failure.message
+        )
+        assertFalse(failure.message.orEmpty().contains("4821"), "в отказе виден пин")
+    }
+
+    @Test
+    fun `different default pins are stored`() {
+        validator.validateSettingsToStore(settingsWithDefaultPins(adminPin = "4821", cashierPin = "5930"))
+    }
+
+    /**
+     * Уже сохранённый файл с одинаковыми умолчаниями узел принимает.
+     *
+     * Умолчания мертвы: ронять из-за них запуск — останавливать кассу
+     * из-за настройки, которую никто не читает. Замечание уходит в журнал.
+     */
+    @Test
+    fun `existing settings with identical default pins still load`() {
+        val settings = settingsWithDefaultPins(adminPin = "4821", cashierPin = "4821")
+
+        validator.validateSettings(settings)
+        validator.reviewStoredSettings(settings)
+    }
+
+    @Test
+    fun `review of settings without the fault says nothing`() {
+        validator.reviewStoredSettings(settingsWithDefaultPins(adminPin = "4821", cashierPin = "5930"))
+    }
+
+    /** Замечание в журнале — на английском, называет настройки и молчит о значениях. */
+    @Test
+    fun `the logged remark names both settings and no value`() {
+        assertTrue(IDENTICAL_DEFAULT_PINS_WARNING.contains("defaultAdminPin"))
+        assertTrue(IDENTICAL_DEFAULT_PINS_WARNING.contains("defaultCashierPin"))
+        assertFalse(IDENTICAL_DEFAULT_PINS_WARNING.any { it.isDigit() }, IDENTICAL_DEFAULT_PINS_WARNING)
+        assertTrue(IDENTICAL_DEFAULT_PINS_WARNING.all { it.code < ASCII_LIMIT }, IDENTICAL_DEFAULT_PINS_WARNING)
+    }
+
+    /** Умолчания самого кода тоже обязаны различаться. */
+    @Test
+    fun `code defaults for administrator and cashier pins differ`() {
+        val defaults = settingsWithDefaultPins()
+
+        assertNotEquals(defaults.defaultAdminPin, defaults.defaultCashierPin)
+    }
+
+    private fun settingsWithDefaultPins(adminPin: String? = null, cashierPin: String? = null): CoreSettings {
+        val defaults = CoreSettings(
+            mode = CoreMode.DESKTOP,
+            storage = StorageSettings(engine = "SQLITE", jdbcUrl = "jdbc:sqlite:db.sqlite")
+        )
+        return defaults.copy(
+            defaultAdminPin = adminPin ?: defaults.defaultAdminPin,
+            defaultCashierPin = cashierPin ?: defaults.defaultCashierPin
+        )
     }
 }

@@ -218,4 +218,38 @@ class FileCoreSettingsRepositoryTest {
 
         unmockkStatic(Files::class)
     }
+
+    /**
+     * Файл владельца с одинаковыми умолчаниями пинов узел поднимает.
+     *
+     * Умолчания мертвы: узел их не читает. Ронять из-за них запуск —
+     * останавливать кассу из-за настройки, которая ни на что не влияет.
+     * Записать такую настройку по-прежнему нельзя.
+     */
+    @Test
+    fun `existing file with identical default pins loads, but is not saved back`() {
+        val tempFile = Files.createTempFile("core-settings-pins", ".json")
+        try {
+            Files.writeString(
+                tempFile,
+                """
+                {
+                    "mode": "DESKTOP",
+                    "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:build/test.db" },
+                    "ofdProtocolVersion": "203",
+                    "defaultAdminPin": "4821",
+                    "defaultCashierPin": "4821"
+                }
+                """.trimIndent()
+            )
+            val repository = FileCoreSettingsRepository(tempFile)
+
+            val loaded = repository.load()
+
+            assertEquals("4821", loaded?.defaultAdminPin)
+            assertFailsWith<IllegalServerConfigurationException> { repository.save(loaded!!) }
+        } finally {
+            Files.deleteIfExists(tempFile)
+        }
+    }
 }

@@ -57,4 +57,13 @@ class DefaultCoreSettingsValidator(
             DeliveryValidator.validateDeliveryChannels(delivery)
         }
     }
+
+    override fun validateSettingsToStore(settings: CoreSettings, requireServerMode: Boolean) {
+        validateSettings(settings, requireServerMode)
+        DefaultUsersValidator.validateDefaultPins(settings)
+    }
+
+    override fun reviewStoredSettings(settings: CoreSettings) {
+        DefaultUsersValidator.warnOnIdenticalDefaultPins(settings)
+    }
 }

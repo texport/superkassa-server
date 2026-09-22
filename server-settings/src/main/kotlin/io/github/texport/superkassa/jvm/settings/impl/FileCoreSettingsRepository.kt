@@ -30,11 +30,12 @@ class FileCoreSettingsRepository(
         val text = Files.readString(path)
         val settings = json.decodeFromString(CoreSettingsDto.serializer(), text).toDomain()
         validator.validateSettings(settings)
+        validator.reviewStoredSettings(settings)
         return settings
     }
 
     override fun save(settings: CoreSettings): Boolean = synchronized(lock) {
-        validator.validateSettings(settings)
+        validator.validateSettingsToStore(settings)
         val text = json.encodeToString(CoreSettingsDto.serializer(), settings.toDto())
         val absolutePath = path.toAbsolutePath()
         val parentDir = absolutePath.parent

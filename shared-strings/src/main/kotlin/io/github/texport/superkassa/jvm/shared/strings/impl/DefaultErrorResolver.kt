@@ -39,6 +39,14 @@ class DefaultErrorResolver : ErrorResolver {
             ru = "Интервал переподключения БФД должен быть не менее 60 секунд.",
             kk = "БФД қайта қосылу аралығы кемінде 60 секунд болуы керек."
         ),
+        SettingsErrorKey.DEFAULT_PINS_IDENTICAL to TrilingualString(
+            en = "Default administrator and cashier PINs must differ. " +
+                "With equal PINs a cash register gets one user instead of two.",
+            ru = "Умолчания пинов администратора и кассира должны различаться. " +
+                "С одинаковыми касса получает одного пользователя вместо двух.",
+            kk = "Әкімші мен кассирдің әдепкі пиндері әртүрлі болуы керек. " +
+                "Бірдей болса, касса екі пайдаланушының орнына біреуін алады."
+        ),
         SettingsErrorKey.STORAGE_ENGINE_BLANK to TrilingualString(
             en = "Storage engine cannot be blank.",
             ru = "Движок хранилища не может быть пустым.",
