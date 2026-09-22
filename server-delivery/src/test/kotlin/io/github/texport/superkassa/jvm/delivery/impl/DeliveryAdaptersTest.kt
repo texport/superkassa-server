@@ -4,12 +4,18 @@ import io.github.texport.superkassa.delivery.api.model.DeliveryChannel
 import io.github.texport.superkassa.delivery.api.model.DeliveryRequest
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.slf4j.Marker
+import org.slf4j.event.Level
+import org.slf4j.helpers.LegacyAbstractLogger
+import org.slf4j.helpers.MessageFormatter
+import java.io.IOException
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpHeaders
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.util.Optional
+import javax.net.ssl.SSLHandshakeException
 import javax.net.ssl.SSLSession
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -17,8 +23,9 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class DeliveryAdaptersTest {
-    private class ExposedHttpDeliveryAdapter : BaseHttpDeliveryAdapter() {
+    private class ExposedHttpDeliveryAdapter(
         override val logger: Logger = LoggerFactory.getLogger(ExposedHttpDeliveryAdapter::class.java)
+    ) : BaseHttpDeliveryAdapter() {
 
         fun handle(response: HttpResponse<String>) = handleHttpResponse(
             response = response,
@@ -128,8 +135,72 @@ class DeliveryAdaptersTest {
 
         assertFalse(result.ok)
         val message = result.message ?: ""
-        assertTrue(message.contains("connection refused"))
+        assertTrue(message.contains("IllegalStateException"))
         assertTrue(message.contains("Ошибка доставки через sms"))
+        assertFalse(message.contains("connection refused"))
+    }
+
+    @Test
+    fun `base http delivery names the cause of the failure`() {
+        val adapter = ExposedHttpDeliveryAdapter()
+
+        val failure = IOException("handshake failed", SSLHandshakeException("bad certificate"))
+        val result = adapter.exceptionResult(failure)
+
+        assertTrue((result.message ?: "").contains("IOException (SSLHandshakeException)"))
+    }
+
+    @Test
+    fun `secret in the address leaks neither outside nor to the log`() {
+        val log = RecordingLogger()
+        val adapter = ExposedHttpDeliveryAdapter(log)
+        val address = "https://api.telegram.org/bot$BOT_SECRET/sendMessage?chat_id=1"
+
+        val result = adapter.exceptionResult(IOException("too many redirects: $address"))
+
+        assertFalse(result.ok)
+        val message = result.message ?: ""
+        assertTrue(message.contains("IOException"))
+        assertFalse(message.contains(BOT_SECRET))
+        assertFalse(message.contains("too many redirects"))
+
+        val written = log.written()
+        assertTrue(written.contains("/bot***"))
+        assertTrue(written.contains("too many redirects"))
+        assertFalse(written.contains(BOT_SECRET))
+    }
+
+    @Test
+    fun `provider key in the answer leaks neither outside nor to the log`() {
+        val log = RecordingLogger()
+        val adapter = ExposedHttpDeliveryAdapter(log)
+        val answer = "rejected: https://sms.test/send?api_key=$QUERY_SECRET&phone=777"
+
+        val result = adapter.handle(StringHttpResponse(403, answer))
+
+        assertFalse(result.ok)
+        val message = result.message ?: ""
+        assertTrue(message.contains("api_key=***"))
+        assertFalse(message.contains(QUERY_SECRET))
+
+        val written = log.written()
+        assertTrue(written.contains("api_key=***"))
+        assertFalse(written.contains(QUERY_SECRET))
+    }
+
+    @Test
+    fun `masking covers path, query and authorization header`() {
+        assertEquals(
+            "https://api.telegram.org/bot***/sendMessage",
+            Secrets.mask("https://api.telegram.org/bot$BOT_SECRET/sendMessage")
+        )
+        assertEquals(
+            "https://sms.test/send?api_key=***&phone=777",
+            Secrets.mask("https://sms.test/send?api_key=$QUERY_SECRET&phone=777")
+        )
+        assertEquals("token=*** key=*** access_token=***", Secrets.mask("token=a1 key=b2 access_token=c3"))
+        assertEquals("Authorization: Bearer ***", Secrets.mask("Authorization: Bearer $QUERY_SECRET"))
+        assertEquals("nothing to hide", Secrets.mask("nothing to hide"))
     }
 
     @Test
@@ -216,6 +287,35 @@ class DeliveryAdaptersTest {
         assertTrue((result.message ?: "").contains("Email destination required"))
     }
 
+    private class RecordingLogger : LegacyAbstractLogger() {
+        private val records = mutableListOf<String>()
+
+        fun written(): String = records.joinToString("\n")
+
+        override fun getFullyQualifiedCallerName(): String? = null
+
+        override fun handleNormalizedLoggingCall(
+            level: Level?,
+            marker: Marker?,
+            messagePattern: String?,
+            arguments: Array<out Any>?,
+            throwable: Throwable?
+        ) {
+            val rendered = MessageFormatter.arrayFormat(messagePattern, arguments).message
+            records += rendered + (throwable?.stackTraceToString() ?: "")
+        }
+
+        override fun isTraceEnabled(): Boolean = true
+
+        override fun isDebugEnabled(): Boolean = true
+
+        override fun isInfoEnabled(): Boolean = true
+
+        override fun isWarnEnabled(): Boolean = true
+
+        override fun isErrorEnabled(): Boolean = true
+    }
+
     private fun sampleRequest(
         channel: DeliveryChannel,
         destination: String? = "+7 (777) 000-11-22",
@@ -229,4 +329,9 @@ class DeliveryAdaptersTest {
         payloadBytes = payloadBytes,
         payloadUrl = payloadUrl
     )
+
+    private companion object {
+        const val BOT_SECRET = "123456:AAH-do-not-print-me"
+        const val QUERY_SECRET = "do-not-print-me-either"
+    }
 }
