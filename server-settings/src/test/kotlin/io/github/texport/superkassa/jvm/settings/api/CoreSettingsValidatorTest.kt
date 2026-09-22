@@ -229,11 +229,15 @@ class CoreSettingsValidatorTest {
     }
 
     /**
-     * Умолчание в семь секунд проходит проверку: иначе узел не поднялся бы
-     * с настройками, которые сам же и записал при первом запуске.
+     * Запись без срока ожидания читается ровно тем же умолчанием, какое
+     * объявлено в ядре, и проходит проверку.
+     *
+     * Умолчание здесь одно на оба места. Пока их было два, одна и та же
+     * запись означала у ядра тридцать секунд, а у узла семь: узел писал
+     * при первом запуске одно значение, а читал потом другое.
      */
     @Test
-    fun `validateSettings accepts default ofd response wait`() {
+    fun `settings record without response wait reads the core default`() {
         val settings = json.decodeFromString(
             CoreSettingsDto.serializer(),
             """
@@ -244,7 +248,16 @@ class CoreSettingsValidatorTest {
             }
         """
         ).toDomain()
-        assertEquals(7L, settings.ofdTimeoutSeconds)
+        val coreDefaults = CoreSettings(
+            mode = CoreMode.DESKTOP,
+            storage = StorageSettings(engine = "SQLITE", jdbcUrl = "jdbc:sqlite:db.sqlite")
+        )
+        assertEquals(coreDefaults.ofdTimeoutSeconds, settings.ofdTimeoutSeconds)
+        assertEquals(coreDefaults.ofdReconnectIntervalSeconds, settings.ofdReconnectIntervalSeconds)
+        assertEquals(coreDefaults.deliveryChannels, settings.deliveryChannels)
+        assertEquals(coreDefaults.nodeId, settings.nodeId)
+        assertEquals(coreDefaults.defaultAdminPin, settings.defaultAdminPin)
+        assertEquals(coreDefaults.defaultCashierPin, settings.defaultCashierPin)
         validator.validateSettings(settings)
     }
 
