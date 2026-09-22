@@ -13,12 +13,17 @@ import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 
 class DocumentConvertAdapterTest {
     private val adapter = DocumentConvertAdapter()
 
+    /** Образы рисует браузер: без него проверка пропускается, а не падает. */
+    private fun withBrowser() = assumeTrue(BrowserLocator.local.find() != null, "браузера для образов на машине нет")
+
     @Test
     fun `htmlToPdf renders Cyrillic text without exception`() {
+        withBrowser()
         val html = """
             <div style="font-family: 'DejaVu Sans Mono'">Привет, как дела? Қазақстан! 123</div>
         """.trimIndent()
@@ -29,6 +34,7 @@ class DocumentConvertAdapterTest {
 
     @Test
     fun `htmlToImage renders first pdf page as png`() {
+        withBrowser()
         val html = """
             <div style="font-family: 'DejaVu Sans Mono'">
                 <strong>Superkassa</strong><br/>
@@ -65,6 +71,7 @@ class DocumentConvertAdapterTest {
 
     @Test
     fun `reproduce pdf conversion failure with exact receipt data`() {
+        withBrowser()
         val receipt = ReceiptRequest(
             kkmId = "945583f1-6723-4664-8afa-81e3937b7ceb",
             pin = "0000",
