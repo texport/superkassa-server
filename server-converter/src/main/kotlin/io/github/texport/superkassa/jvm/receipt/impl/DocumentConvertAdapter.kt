@@ -39,6 +39,9 @@ private const val RENDER_SCALE = 3
 /** Запас снизу страницы PDF: последняя строка не должна лечь на обрез. */
 private const val PDF_BOTTOM_MARGIN_MM = 2.0
 
+/** Сколько последних знаков вывода браузера идёт в сообщение об отказе. */
+private const val BROWSER_LOG_TAIL = 2000
+
 class DocumentConvertAdapter : DocumentConvertPort {
 
     companion object {
@@ -162,18 +165,46 @@ class DocumentConvertAdapter : DocumentConvertPort {
         }
     }
 
-    /** Запускает браузер и падает с его же выводом, если тот не справился. */
+    /**
+     * Запускает браузер и падает с его же выводом, если тот не справился.
+     *
+     * Вывод браузера уходит в файл, а не в трубу. Труба вмещает десятки
+     * килобайт, и дальше пишущий в неё останавливается, пока не прочитают;
+     * узел же читал её только после конца процесса. На машине, где браузер
+     * ругается на каждое недоступное устройство, это встречалось: узел
+     * ждал конца браузера, браузер ждал чтения — и печать вставала
+     * до самого предела ожидания. Файл не ждёт никого.
+     */
     private fun runBrowser(what: String, keys: List<String>) {
-        val process = ProcessBuilder(listOf(BrowserLocator.local.path()) + keys).start()
-        if (!process.waitFor(RENDER_TIMEOUT_S, TimeUnit.SECONDS)) {
-            process.destroyForcibly()
-            error("$what timed out")
-        }
-        if (process.exitValue() != 0) {
-            val error = process.errorStream.bufferedReader().readText()
-            error("$what failed with exit code ${process.exitValue()}: $error")
+        withLog { log ->
+            val process = ProcessBuilder(listOf(BrowserLocator.local.path()) + keys)
+                .redirectErrorStream(true)
+                .redirectOutput(log)
+                .start()
+            if (!process.waitFor(RENDER_TIMEOUT_S, TimeUnit.SECONDS)) {
+                process.destroyForcibly()
+                error("$what timed out")
+            }
+            if (process.exitValue() != 0) {
+                error("$what failed with exit code ${process.exitValue()}: ${log.tail()}")
+            }
         }
     }
+
+    /** Вывод одного запуска браузера живёт во временном файле ровно на время запуска. */
+    private fun <T> withLog(use: (File) -> T): T {
+        val log = File.createTempFile("browser-", ".log")
+        try {
+            return use(log)
+        } finally {
+            log.delete()
+        }
+    }
+
+    /** Конец вывода браузера: в сообщение об отказе идут последние строки, а не весь журнал. */
+    private fun File.tail(): String = runCatching {
+        readText().takeLast(BROWSER_LOG_TAIL)
+    }.getOrDefault("")
 
     /**
      * Высота окна для снимка: измеренная страница с запасом, не ниже
@@ -191,20 +222,28 @@ class DocumentConvertAdapter : DocumentConvertPort {
      * `null` — измерить не удалось: браузер не ответил или не подставил
      * заголовок. Вёрстка идёт при заданной ширине окна: у ленты на бумаге
      * она своя, и высота при другой ширине была бы чужой.
+     *
+     * Разметка читается из файла, а не из трубы: чтение трубы до конца
+     * шло раньше всякого ожидания, и браузер, заполнивший поток ошибок,
+     * оставался ждать чтения насовсем — мерка не кончалась ни через
+     * пятнадцать секунд, ни через час. Поток ошибок здесь не нужен:
+     * неудачная мерка и так заменяется запасной высотой.
      */
     private fun measuredHeight(htmlFile: File, widthPx: Int): Int? = runCatching {
-        val process = ProcessBuilder(
-            listOf(BrowserLocator.local.path()) + COMMON_KEYS + listOf(
-                "--window-size=$widthPx,$MEASURE_WINDOW_HEIGHT_PX",
-                "--dump-dom",
-                htmlFile.absolutePath
-            )
-        ).redirectErrorStream(false).start()
-        val dom = process.inputStream.bufferedReader().readText()
-        if (!process.waitFor(RENDER_TIMEOUT_S, TimeUnit.SECONDS)) {
-            process.destroyForcibly()
+        withLog { dom ->
+            val process = ProcessBuilder(
+                listOf(BrowserLocator.local.path()) + COMMON_KEYS + listOf(
+                    "--window-size=$widthPx,$MEASURE_WINDOW_HEIGHT_PX",
+                    "--dump-dom",
+                    htmlFile.absolutePath
+                )
+            ).redirectOutput(dom).redirectError(ProcessBuilder.Redirect.DISCARD).start()
+            if (!process.waitFor(RENDER_TIMEOUT_S, TimeUnit.SECONDS)) {
+                process.destroyForcibly()
+                return@withLog null
+            }
+            FormMarkup.HEIGHT_MARK.find(dom.readText())?.groupValues?.get(1)?.toIntOrNull()
         }
-        FormMarkup.HEIGHT_MARK.find(dom)?.groupValues?.get(1)?.toIntOrNull()
     }.getOrNull()
 
     /**
