@@ -55,7 +55,9 @@ class ProtocolDocumentPrinterTest {
     fun `отчёт и кассовый ордер рисуются тем же рисовальщиком`() {
         assertContains(printer.html(KKM, PIN, ProtocolPackets.report(), null), "NZ7700123456")
         assertContains(printer.html(KKM, PIN, ProtocolPackets.closeShift(), null), "NZ7700123456")
-        assertContains(printer.html(KKM, PIN, ProtocolPackets.placement(), null), "1000.50")
+        // Сумма на форме набрана так же, как на экране кассы: разряды
+        // разделены неразрывным пробелом, дробная часть запятой, знак тенге.
+        assertContains(printer.html(KKM, PIN, ProtocolPackets.placement(), null), "1\u00A0000,50\u00A0₸")
     }
 
     @Test
