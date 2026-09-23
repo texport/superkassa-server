@@ -283,6 +283,21 @@ class CoreSettingsValidatorTest {
         )
     }
 
+    /** Пустое имя канала — такой же отказ, как неизвестное: адаптера по нему нет. */
+    @Test
+    fun `validateSettings blank delivery channel name`() {
+        assertValidationFails(
+            """
+            {
+                "mode": "DESKTOP",
+                "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:db.sqlite" },
+                "ofdProtocolVersion": "203",
+                "deliveryChannels": [" "]
+            }
+        """
+        )
+    }
+
     /** Отказ называет имена каналов, которые узел знает. */
     @Test
     fun `unknown delivery channel names the supported ones`() {

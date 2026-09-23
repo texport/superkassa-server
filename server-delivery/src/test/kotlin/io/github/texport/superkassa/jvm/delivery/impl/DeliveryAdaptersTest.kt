@@ -201,6 +201,7 @@ class DeliveryAdaptersTest {
         assertEquals("token=*** key=*** access_token=***", Secrets.mask("token=a1 key=b2 access_token=c3"))
         assertEquals("Authorization: Bearer ***", Secrets.mask("Authorization: Bearer $QUERY_SECRET"))
         assertEquals("nothing to hide", Secrets.mask("nothing to hide"))
+        assertEquals("", Secrets.mask(""))
     }
 
     @Test
