@@ -15,13 +15,20 @@ class JdbcQueueTaskRepository(
 ) : QueueTaskRepository {
     private val logger = LoggerFactory.getLogger(JdbcQueueTaskRepository::class.java)
 
+    /**
+     * Задача ставится один раз: повторная постановка того же документа
+     * её не трогает и отвечает `false`, как очередь кассы на Room.
+     * Прежде повтор падал на ключе, а в PostgreSQL это обрывало всю
+     * транзакцию операции кассы.
+     */
     override fun enqueue(record: QueueTaskRecord): Boolean {
-        val sql = """
+        val insert = """
             INSERT INTO queue_task (
                 id, cashbox_id, lane, type, payload_ref, created_at,
                 status, attempt, next_attempt_at, last_error
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
+        val sql = SqlDialect(connection).insertIfAbsent(insert, "id")
         return try {
             connection.prepareStatement(sql).use { stmt ->
                 stmt.setString(1, record.id)

@@ -13,15 +13,15 @@ import java.sql.Connection
  * PostgreSQL и MySQL — строку, а чтение `FOR UPDATE` держит её до конца.
  */
 class JdbcPinAttemptRepository(private val connection: Connection) : PinAttemptRepository {
-    private val product = connection.metaData.databaseProductName.lowercase()
+    private val dialect = SqlDialect(connection)
 
     override fun lock(cashboxId: String): PinAttempts {
-        connection.prepareStatement(insertIfAbsent()).use { stmt ->
+        val insert = "INSERT INTO pin_attempts (cashbox_id, failures, locked_until) VALUES (?, 0, 0)"
+        connection.prepareStatement(dialect.insertIfAbsent(insert, "cashbox_id")).use { stmt ->
             stmt.setString(1, cashboxId)
             stmt.executeUpdate()
         }
-        val lockClause = if (product.contains(SQLITE)) "" else " FOR UPDATE"
-        val sql = "SELECT failures, locked_until FROM pin_attempts WHERE cashbox_id = ?$lockClause"
+        val sql = "SELECT failures, locked_until FROM pin_attempts WHERE cashbox_id = ?" + dialect.lockingRead()
         connection.prepareStatement(sql).use { stmt ->
             stmt.setString(1, cashboxId)
             stmt.executeQuery().use { rs ->
@@ -46,19 +46,5 @@ class JdbcPinAttemptRepository(private val connection: Connection) : PinAttemptR
             stmt.setString(1, cashboxId)
             stmt.executeUpdate()
         }
-    }
-
-    private fun insertIfAbsent(): String {
-        val columns = "pin_attempts (cashbox_id, failures, locked_until) VALUES (?, 0, 0)"
-        return if (product.contains(MYSQL)) {
-            "INSERT IGNORE INTO $columns"
-        } else {
-            "INSERT INTO $columns ON CONFLICT (cashbox_id) DO NOTHING"
-        }
-    }
-
-    private companion object {
-        const val SQLITE = "sqlite"
-        const val MYSQL = "mysql"
     }
 }
