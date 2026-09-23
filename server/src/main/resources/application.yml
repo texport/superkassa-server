@@ -20,6 +20,12 @@ offline-queue:
   worker:
     interval-ms: 5000
 
+# Как часто узел проверяет, не пора ли закрыть смены касс с автозакрытием (мс).
+# Ядро закрывает смену за полчаса до предела суток, и минуты хватает с запасом.
+shift:
+  auto-close:
+    interval-ms: 60000
+
 springdoc:
   api-docs:
     enabled: true

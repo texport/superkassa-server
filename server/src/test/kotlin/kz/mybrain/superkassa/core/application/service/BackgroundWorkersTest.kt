@@ -4,6 +4,8 @@ import io.github.texport.superkassa.core.domain.api.model.kkm.KkmInfo
 import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
 import io.github.texport.superkassa.core.presentation.api.OfflineQueueApi
 import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.ofd.DeliveryStatus
+import io.github.texport.superkassa.core.presentation.api.model.shift.ReportResponse
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -54,6 +56,19 @@ class BackgroundWorkersTest {
         verify(exactly = KkmPages.PAGE_SIZE + 1) { queue.processOfflineBatch(any(), 5) }
     }
 
+    @Test
+    fun `автозакрытие спрашивает ядро о каждой кассе и переживает отказ одной`() {
+        registered(3)
+        every { api.autoCloseShift(any()) } returns null
+        every { api.autoCloseShift("kkm-0") } throws IllegalStateException("storage failure")
+        every { api.autoCloseShift("kkm-1") } returns report()
+
+        ShiftAutoCloser(api, pages).closeDueShifts()
+
+        verify(exactly = 1) { api.autoCloseShift("kkm-2") }
+        verify(exactly = 3) { api.autoCloseShift(any()) }
+    }
+
     private fun registered(total: Int) {
         val all = (0 until total).map { KkmInfo(id = "kkm-$it", createdAt = it.toLong(), updatedAt = 0L, mode = "", state = "ACTIVE") }
         every { storage.listKkms(any(), any(), null, null, "createdAt", "ASC") } answers {
@@ -63,4 +78,5 @@ class BackgroundWorkersTest {
         }
     }
 
+    private fun report() = mockk<ReportResponse> { every { deliveryStatus } returns DeliveryStatus.ONLINE_OK }
 }
