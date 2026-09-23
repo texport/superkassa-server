@@ -25,9 +25,10 @@ object NomenclatureHelper {
      *
      * Различие берётся из ответа каталога: нулевой код результата означает,
      * что каталог ответил и позиции у него нет, а ненулевой — что спросить
-     * не удалось. Блокировка кассы видна ещё до обращения.
+     * не удалось. Заблокированной кассе отказывает само ядро, до обращения
+     * к каталогу, и этот отказ проходит к кассе как есть.
      *
-     * @throws ValidationException касса заблокирована.
+     * @throws ValidationException касса заблокирована (отказ ядра `KKM_BLOCKED`).
      * @throws NomenclatureUnavailableException справочник спросить не удалось.
      * @throws NotFoundException каталог ответил, и позиции в нём нет.
      */
@@ -36,10 +37,6 @@ object NomenclatureHelper {
         pin: String,
         request: NomenclatureLookupRequest
     ): NomenclatureLookupResponse {
-        val kkm = service.getKkm(request.kkmId)
-        if (kkm.state == BLOCKED_STATE) {
-            throw ValidationException(CoreStrings.kkmBlocked(kkm.blockReasonCode), KKM_BLOCKED)
-        }
         val response = service.lookupNomenclature(pin, request)
         if (response.found) {
             return response
@@ -73,8 +70,6 @@ private val CATALOGUE_SILENT = TrilingualMessage(
 /** Каталог ответил по существу: код результата нулевой. */
 private const val CATALOGUE_ANSWERED = 0
 
-private const val BLOCKED_STATE = "BLOCKED"
-private const val KKM_BLOCKED = "KKM_BLOCKED"
 private const val NOMENCLATURE_NOT_FOUND = "NOMENCLATURE_NOT_FOUND"
 private const val NOMENCLATURE_UNAVAILABLE = "NOMENCLATURE_UNAVAILABLE"
 private const val SERVICE_UNAVAILABLE = 503

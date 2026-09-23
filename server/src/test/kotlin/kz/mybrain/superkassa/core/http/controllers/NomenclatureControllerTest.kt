@@ -4,7 +4,6 @@ import io.github.texport.superkassa.core.domain.api.exception.NotFoundException
 import io.github.texport.superkassa.core.domain.api.exception.ValidationException
 import io.github.texport.superkassa.core.domain.api.model.common.Decimal
 import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
-import io.github.texport.superkassa.core.presentation.api.model.kkm.KkmResponse
 import io.github.texport.superkassa.core.presentation.api.model.ofd.NomenclatureItemResponse
 import io.github.texport.superkassa.core.presentation.api.model.ofd.NomenclatureLookupRequest
 import io.github.texport.superkassa.core.presentation.api.model.ofd.NomenclatureLookupResponse
@@ -43,7 +42,6 @@ class NomenclatureControllerTest {
             vatGroup = "VAT_16"
         )
         val lookupResult = NomenclatureLookupResponse(found = true, item = dto, resultCode = 0, resultText = "OK")
-        active()
         every { service.lookupNomenclature(PIN, request()) } returns lookupResult
 
         val response = controller.lookupNomenclature(KKM, "Bearer $PIN", BARCODE)
@@ -61,7 +59,6 @@ class NomenclatureControllerTest {
             resultCode = 0,
             resultText = "No items found in nomenclature response"
         )
-        active()
         every { service.lookupNomenclature(PIN, request()) } returns lookupResult
 
         val exception = assertFailsWith<NotFoundException> {
@@ -80,7 +77,6 @@ class NomenclatureControllerTest {
             resultCode = 254,
             resultText = "ServiceTemporarilyUnavailable"
         )
-        active()
         every { service.lookupNomenclature(PIN, request()) } returns lookupResult
 
         val exception = assertFailsWith<NomenclatureUnavailableException> {
@@ -93,31 +89,17 @@ class NomenclatureControllerTest {
     /** Заблокированная касса называется блокировкой, а не отсутствием товара. */
     @Test
     fun `lookupNomenclature refuses on blocked kkm with its block reason`() {
-        every { service.getKkm(KKM) } returns kkm(state = "BLOCKED", reason = INVALID_TOKEN)
+        every { service.lookupNomenclature(PIN, request()) } throws
+            ValidationException(CoreStrings.kkmBlocked(INVALID_TOKEN), "KKM_BLOCKED")
 
         val exception = assertFailsWith<ValidationException> {
             controller.lookupNomenclature(KKM, "Bearer $PIN", BARCODE)
         }
         assertEquals("KKM_BLOCKED", exception.code)
         assertEquals(CoreStrings.kkmBlocked(INVALID_TOKEN), exception.trilingualMessage)
-
-        verify(exactly = 0) { service.lookupNomenclature(any(), any()) }
-    }
-
-    private fun active() {
-        every { service.getKkm(KKM) } returns kkm(state = "ACTIVE", reason = null)
     }
 
     private fun request() = NomenclatureLookupRequest(KKM, BARCODE)
-
-    private fun kkm(state: String, reason: Int?) = KkmResponse(
-        kkmId = KKM,
-        createdAt = 0L,
-        updatedAt = 0L,
-        mode = "REGISTRATION",
-        state = state,
-        blockReasonCode = reason
-    )
 }
 
 private const val KKM = "kkm-1"
