@@ -20,8 +20,11 @@ inputs:
     description: Ветка или метка texport/ofd-proto-codec
     default: main
   core-ref:
-    description: Ветка или метка texport/superkassa-core
-    default: main
+    # Ядро 1.4.4 — последний коммит main ядра до перехода на 1.5.0: на новом
+    # ядре узел не собирается, пока его не переведут. Снимается вместе
+    # с переходом узла на 1.5.0.
+    description: Ветка, метка или коммит texport/superkassa-core
+    default: 96dc729511803e34778ab0d1883a29437a9d817c
 
 runs:
   using: composite
