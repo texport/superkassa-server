@@ -81,7 +81,7 @@ object SampleForms {
 
     private fun ticket(operation: ReceiptOperationType) = ReceiptRequest(
         kkmId = KKM_ID,
-        pin = "0000",
+        pin = "7391",
         operation = operation,
         items = listOf(
             ReceiptItem("Хлеб бородинский", "001", ONE_PIECE, Money(180, 0), Money(180, 0)),

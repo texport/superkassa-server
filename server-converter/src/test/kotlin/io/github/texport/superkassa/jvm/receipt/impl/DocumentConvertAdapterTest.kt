@@ -74,7 +74,7 @@ class DocumentConvertAdapterTest {
         withBrowser()
         val receipt = ReceiptRequest(
             kkmId = "945583f1-6723-4664-8afa-81e3937b7ceb",
-            pin = "0000",
+            pin = "7391",
             operation = ReceiptOperationType.SELL,
             items = listOf(
                 ReceiptItem(

@@ -8,7 +8,5 @@
     "ofdProtocolVersion": "204",
     "deliveryChannels": [
         "PRINT"
-    ],
-    "defaultAdminPin": "4821",
-    "defaultCashierPin": "4821"
+    ]
 }

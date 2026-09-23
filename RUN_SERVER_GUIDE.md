@@ -213,4 +213,4 @@ kubectl apply -f superkassa-k8s.yaml
 1. Документация API (Swagger UI) доступна по адресу: `http://<load-balancer-ip>/swagger-ui/index.html`
 2. Спецификация OpenAPI доступна в формате JSON: `http://<load-balancer-ip>/v3/api-docs`
 3. Авторизация всех методов осуществляется путем передачи ПИН-кода в HTTP-заголовке:
-   `Authorization: Bearer <PIN>` (например, `Authorization: Bearer 8888`).
+   `Authorization: Bearer <PIN>`. Пинов по умолчанию нет: пин администратора задаётся полем `adminPin` при инициализации кассы (`POST /kkm/init`, без заголовка), пины кассиров — при их заведении.
