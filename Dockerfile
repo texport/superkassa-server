@@ -8,7 +8,8 @@ RUN apk add --no-cache font-dejavu chromium harfbuzz nss freetype ttf-freefont t
 WORKDIR /app
 
 # Копируем скомпилированный исполняемый JAR-файл
-COPY server/build/libs/server-1.0.6.jar app.jar
+# Версия узла назначается при выпуске; простой jar не собирается, файл один
+COPY server/build/libs/server-*.jar app.jar
 
 # Создаем директорию для базы данных SQLite, чтобы ее можно было монтировать как volume
 RUN mkdir -p /app/data

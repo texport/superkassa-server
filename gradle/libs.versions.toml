@@ -14,7 +14,6 @@ superkassaCore = "1.5.0-SNAPSHOT"
 # Протокол CPCR той же версии, что у ядра: проверки хранилища разбирают
 # запросы кассы к БФД его классами.
 ofdKtProto = "2.0.3-2"
-serverVersion = "1.0.6"
 openhtmltopdf = "1.1.40"
 zxing = "3.5.4"
 jakartaMail = "2.0.2"

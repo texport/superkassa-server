@@ -1,8 +1,14 @@
-# Выпуск узла по метке v<версия>; метка обязана совпасть с serverVersion
-# в libs.versions.toml.
+# Выпуск узла на GitHub.
 #
-# Порядок: проверки (ci.yml) и сборка jar → выпуск на GitHub. Узел — не
-# библиотека, в Maven Central он не публикуется.
+# Сам: после зелёного CI на main каждый ещё не выпущенный коммит выпускается
+# под следующим номером своей линии (val versionLine в server/build.gradle.kts):
+# v1.0.6, v1.0.7, … Метку ставит сам выпуск. Переменная репозитория
+# AUTO_RELEASE=false это выключает.
+#
+# Руками: метка v<линия>.<номер> выпускает помеченный коммит.
+#
+# Порядок: jar → выпуск на GitHub; упала ступень — следующая не запускается.
+# Узел — приложение, в Maven Central он не публикуется.
 #
 # Файл выпуска — server-<версия>.jar (Spring Boot, всё внутри). Настройки
 # узла (config/core-settings.json) в него не входят: их создаёт сам узел
@@ -12,22 +18,64 @@ name: Release
 on:
   push:
     tags: [ 'v*' ]
+  workflow_run:
+    workflows: [ 'CI Build' ]
+    types: [ completed ]
+    branches: [ main ]
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 jobs:
+  plan:
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.plan.outputs.release }}
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
+      sha: ${{ steps.plan.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          AUTO_RELEASE: ${{ vars.AUTO_RELEASE || 'true' }}
+          LINE_FILE: server/build.gradle.kts
+        run: |
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          bash .github/scripts/release-plan.sh
+
+  # По ручной метке проверка ещё не шла; после CI на main она уже зелёная.
   checks:
+    needs: plan
+    if: github.event_name == 'push' && needs.plan.outputs.release == 'true'
     uses: ./.github/workflows/ci.yml
 
   artifacts:
+    needs: [ plan, checks ]
+    if: >-
+      !cancelled() && needs.plan.outputs.release == 'true' &&
+      (needs.checks.result == 'success' || needs.checks.result == 'skipped')
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
 
       - uses: actions/setup-java@v4
         with:
@@ -38,24 +86,13 @@ jobs:
 
       - uses: ./.github/actions/siblings
 
-      # Узел сообщает КГД свою версию из сборки; метка с другим номером
-      # выложила бы jar, который называет себя иначе, чем выпуск.
-      - name: Метка совпадает с версией
-        run: |
-          version=$(./gradlew -q :server:properties --property version | sed -n 's/^version: //p')
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Метка $GITHUB_REF_NAME, а версия узла в сборке $version"
-            exit 1
-          fi
-
       - name: Собрать узел
-        run: ./gradlew :server:bootJar
+        run: ./gradlew :server:bootJar -PreleaseVersion="$VERSION"
 
       - name: Сложить файлы выпуска
         run: |
-          version="${GITHUB_REF_NAME#v}"
           mkdir -p dist
-          jar="server/build/libs/server-$version.jar"
+          jar="server/build/libs/server-$VERSION.jar"
           test -s "$jar" || { echo "::error::Узел не собрался: $jar"; exit 1; }
           cp "$jar" dist/
           ls -l dist
@@ -67,14 +104,19 @@ jobs:
           if-no-files-found: error
 
   github-release:
-    needs: [ checks, artifacts ]
+    needs: [ plan, artifacts ]
+    if: ${{ !cancelled() && needs.artifacts.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      TAG: ${{ needs.plan.outputs.tag }}
+      SHA: ${{ needs.plan.outputs.sha }}
     steps:
       # Вся история с метками — для заметок о выпуске.
       - uses: actions/checkout@v4
         with:
+          ref: ${{ needs.plan.outputs.sha }}
           fetch-depth: 0
 
       - uses: actions/download-artifact@v4
@@ -82,31 +124,22 @@ jobs:
           name: release-files
           path: dist
 
-      # Заметки: файл RELEASE_NOTES.md в метке, а без него — сообщения
-      # коммитов от предыдущей метки v*.
       - name: Заметки о выпуске
         run: |
-          if [ -f RELEASE_NOTES.md ]; then
-            cp RELEASE_NOTES.md notes.md
-          else
-            prev=$(git describe --tags --abbrev=0 --match 'v*' "${GITHUB_REF_NAME}^" 2>/dev/null || true)
-            {
-              if [ -n "$prev" ]; then echo "Изменения с $prev:"; else echo "Изменения:"; fi
-              echo
-              git log --no-merges --format='- %s' "${prev:+$prev..}${GITHUB_REF_NAME}"
-            } > notes.md
-          fi
+          bash .github/scripts/release-notes.sh
           cat notes.md
 
-      # Выпуск мог быть заведён руками до сборки — тогда файлы докладываются
-      # в него поверх прежних, а заметки остаются те, что написаны руками.
+      # Выпуск мог быть заведён руками — тогда файлы докладываются в него
+      # поверх прежних, а заметки остаются те, что написаны руками. Иначе
+      # выпуск создаётся вместе с меткой на выпускаемом коммите.
       - name: Выпуск на GitHub
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber dist/*
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber dist/*
           else
-            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
-              --title "superkassa-server $GITHUB_REF_NAME" --notes-file notes.md dist/*
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$SHA" \
+              --title "superkassa-server $TAG" --notes-file notes.md dist/*
           fi
+          echo "- Выпуск на GitHub: $TAG" >> "$GITHUB_STEP_SUMMARY"

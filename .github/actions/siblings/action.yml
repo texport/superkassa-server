@@ -1,14 +1,15 @@
 # Ядро кассы и его соседи из исходников.
 #
-# Узел берёт ядро той версии, что в libs.versions.toml (superkassaCore), а в
-# Maven Central её нет; нет там и кодека 1.3.1 с протоколом 2.0.4, на которых
-# стоит ядро. Все три собираются из исходников и кладутся в локальное
-# хранилище раннера — публиковать ради сборки ничего не требуется.
+# Узел берёт ядро той версии, что в gradle/libs.versions.toml (superkassaCore),
+# ядро — кодек из своего libs.versions.toml (ofdProtoCodec), кодек — протокол
+# 2.0.4 из своего (ofdKtProtoV204). В Maven Central их нет; все три собираются
+# из исходников и кладутся в локальное хранилище раннера под этими версиями —
+# публиковать ради сборки ничего не требуется.
 #
-# Ветки или метки задаются здесь и только здесь; их берут и проверка, и
-# выпуск. Переходя на другое ядро, узел меняет superkassaCore в
-# libs.versions.toml и core-ref ниже — версия в сборке ядра по этой ветке
-# должна совпасть с superkassaCore, иначе сборка узла его не найдёт.
+# Ветки задаются здесь и только здесь; их берут и проверка, и выпуск. Ядро
+# закреплено коммитом: его main ушёл на линию 1.5, а узел стоит на 1.4.4.
+# Переходя на другое ядро, узел меняет superkassaCore в libs.versions.toml
+# и core-ref ниже вместе.
 name: Ядро и соседи из исходников
 description: Собирает ofd-kt-proto, ofd-proto-codec и superkassa-core из исходников в локальное хранилище Maven.
 
@@ -49,17 +50,13 @@ runs:
 
     # На Linux iOS-цели соседей отключены (kotlin.native.ignoreDisabledTargets),
     # и в хранилище ложатся только JVM и Android — узлу больше не нужно.
-    - name: Протокол в локальное хранилище
+    - name: Протокол, кодек и ядро в локальное хранилище
       shell: bash
-      working-directory: .siblings/ofd-kt-proto
-      run: ./gradlew publishToMavenLocal
-
-    - name: Кодек в локальное хранилище
-      shell: bash
-      working-directory: .siblings/ofd-proto-codec
-      run: ./gradlew publishToMavenLocal
-
-    - name: Ядро в локальное хранилище
-      shell: bash
-      working-directory: .siblings/superkassa-core
-      run: ./gradlew publishToMavenLocal
+      run: |
+        core=$(sed -n 's/^superkassaCore = "\(.*\)"$/\1/p' gradle/libs.versions.toml)
+        codec=$(sed -n 's/^ofdProtoCodec = "\(.*\)"$/\1/p' .siblings/superkassa-core/gradle/libs.versions.toml)
+        proto=$(sed -n 's/^ofdKtProtoV204 = "\(.*\)"$/\1/p' .siblings/ofd-proto-codec/gradle/libs.versions.toml)
+        test -n "$core" && test -n "$codec" && test -n "$proto" || { echo "::error::Нет версии ядра, кодека или протокола в libs.versions.toml"; exit 1; }
+        (cd .siblings/ofd-kt-proto && ./gradlew publishToMavenLocal -PreleaseVersion="$proto")
+        (cd .siblings/ofd-proto-codec && ./gradlew publishToMavenLocal -PreleaseVersion="$codec")
+        (cd .siblings/superkassa-core && ./gradlew publishToMavenLocal -PreleaseVersion="$core")

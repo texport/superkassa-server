@@ -8,7 +8,10 @@ plugins {
 }
 
 group = "io.github.texport"
-version = libs.versions.serverVersion.get()
+// Линия версии; номер выпуска (1.0.6, 1.0.7, …) назначает выпуск по меткам git
+// и передаёт свойством -PreleaseVersion. Без него — <линия>.0-SNAPSHOT.
+val versionLine = "1.0"
+version = providers.gradleProperty("releaseVersion").orNull ?: "$versionLine.0-SNAPSHOT"
 
 repositories {
     mavenLocal()
@@ -69,6 +72,12 @@ tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
 
 jacoco {
     toolVersion = libs.versions.jacocoVersion.get()
+}
+
+// Узел поставляется одним исполняемым jar (bootJar); простой jar рядом с ним
+// никому не нужен и только мешал взять узел по шаблону server-*.jar.
+tasks.named<Jar>("jar") {
+    enabled = false
 }
 
 tasks.test {
