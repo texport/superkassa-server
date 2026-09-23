@@ -25,7 +25,6 @@ import io.github.texport.superkassa.core.presentation.api.model.user.UserCreateR
 import io.github.texport.superkassa.core.presentation.api.model.user.UserResponse
 import io.github.texport.superkassa.core.presentation.api.model.user.UserRole
 import io.github.texport.superkassa.core.presentation.api.model.user.UserUpdateRequest
-import io.github.texport.superkassa.core.presentation.api.model.receipt.PrintDocumentType
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptLayoutType
 import io.mockk.every
 import io.mockk.mockk
@@ -37,6 +36,7 @@ import kz.mybrain.superkassa.core.application.http.controllers.KkmDiagnosticsCon
 import kz.mybrain.superkassa.core.application.http.controllers.KkmManagementController
 import kz.mybrain.superkassa.core.application.http.controllers.KkmProgrammingController
 import kz.mybrain.superkassa.core.application.http.controllers.KkmUsersController
+import kz.mybrain.superkassa.core.application.http.controllers.ProtocolDocumentController
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -95,32 +95,37 @@ class KkmApiControllersTest {
     }
 
     @Test
-    fun `kkm print endpoints build proper response entities`() {
-        every {
-            service.getPrintHtml("kkm-2", PrintDocumentType.DOCUMENT, "doc-2", null, "2222", ReceiptLayoutType.TAPE_58MM)
-        } returns "<html>ok 58mm</html>"
-        every {
-            service.getPrintPdf("kkm-2", PrintDocumentType.DOCUMENT, "doc-2", null, "2222", ReceiptLayoutType.FULLSCREEN)
-        } returns byteArrayOf(1, 2, 3, 4)
+    fun `kkm print endpoints ask the core by document id`() {
+        every { service.getDocumentPrintHtml("kkm-2", "doc-2", "2222", ReceiptLayoutType.TAPE_58MM) } returns "<html>ok 58mm</html>"
+        every { service.getDocumentPrintPdf("kkm-2", "doc-2", "2222", ReceiptLayoutType.FULLSCREEN) } returns byteArrayOf(1, 2, 3, 4)
+        every { service.getDocumentPrintPng("kkm-2", "doc-2", "2222", null) } returns byteArrayOf(9)
 
-        val htmlResponse = kkmController.getDocumentPrintHtml(
-            "kkm-2",
-            "doc-2",
-            ReceiptLayoutType.TAPE_58MM,
-            "Bearer 2222"
-        )
-        val pdfResponse = kkmController.getDocumentPrintPdf(
-            "kkm-2",
-            "doc-2",
-            ReceiptLayoutType.FULLSCREEN,
-            "Bearer 2222"
-        )
+        val htmlResponse = kkmController.getDocumentPrintHtml("kkm-2", "doc-2", ReceiptLayoutType.TAPE_58MM, "Bearer 2222")
+        val pdfResponse = kkmController.getDocumentPrintPdf("kkm-2", "doc-2", ReceiptLayoutType.FULLSCREEN, "Bearer 2222")
+        val pngResponse = kkmController.getDocumentPrintPng("kkm-2", "doc-2", null, "Bearer 2222")
 
         assertEquals("<html>ok 58mm</html>", htmlResponse.body)
         assertEquals("text/html;charset=UTF-8", htmlResponse.headers.contentType!!.toString())
         assertEquals(4, pdfResponse.body!!.size)
         assertEquals("application/pdf", pdfResponse.headers.contentType!!.toString())
         assertTrue((pdfResponse.headers["Content-Disposition"] ?: emptyList()).first().contains("document-doc-2.pdf"))
+        assertEquals("image/png", pngResponse.headers.contentType!!.toString())
+    }
+
+    @Test
+    fun `protocol packet print endpoints ask the core with the packet`() {
+        val protocolController = ProtocolDocumentController(service)
+        every { service.getProtocolPrintHtml("kkm-2", "2222", PACKET, null) } returns "<html>packet</html>"
+        every { service.getProtocolPrintPng("kkm-2", "2222", PACKET, null) } returns byteArrayOf(7)
+        every { service.getProtocolPrintPdf("kkm-2", "2222", PACKET, ReceiptLayoutType.TAPE_80MM) } returns byteArrayOf(5, 6)
+
+        val html = protocolController.printHtml("kkm-2", null, "Bearer 2222", PACKET)
+        val png = protocolController.printPng("kkm-2", null, "Bearer 2222", PACKET)
+        val pdf = protocolController.printPdf("kkm-2", ReceiptLayoutType.TAPE_80MM, "Bearer 2222", PACKET)
+
+        assertEquals("<html>packet</html>", html.body)
+        assertEquals("image/png", png.headers.contentType!!.toString())
+        assertEquals("application/pdf", pdf.headers.contentType!!.toString())
     }
 
     @Test
@@ -342,4 +347,8 @@ class KkmApiControllersTest {
             taxRegime = "NO_VAT",
             defaultVatGroup = "NO_VAT"
         )
+
+    private companion object {
+        const val PACKET = """{"request":{},"response":{}}"""
+    }
 }

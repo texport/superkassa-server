@@ -1,5 +1,6 @@
 package kz.mybrain.superkassa.core.application.http.controllers
 
+import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptLayoutType
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -9,7 +10,6 @@ import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_403_F
 import kz.mybrain.superkassa.core.application.http.ApiResponseMessages.MSG_404_KKM_NOT_FOUND
 import kz.mybrain.superkassa.core.application.http.annotation.KkmApiResponses
 import kz.mybrain.superkassa.core.application.http.utils.AuthHeaderUtils
-import kz.mybrain.superkassa.core.application.protocol.ProtocolDocumentPrinter
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -22,13 +22,13 @@ import org.springframework.web.bind.annotation.*
  * протокола — запросом кассы и ответом ОФД, — и это всё, что о нём знают
  * снаружи: так его хранит и отдаёт сервер приёма данных.
  *
- * Вид документа при этом один: рисует его тот же рисовальщик, что и свои
- * чеки, и в том же оформлении этой кассы.
+ * Вид документа при этом один: рисует его ядро тем же рисовальщиком, что
+ * и свои чеки, и в том же оформлении этой кассы.
  */
 @RestController
 @RequestMapping("/kkm")
 @Tag(name = "Печатная форма по данным", description = "Документ рисуется по переданному пакету протокола")
-class ProtocolDocumentController(private val printer: ProtocolDocumentPrinter) {
+class ProtocolDocumentController(private val kkmService: SuperkassaApi) {
 
     @PostMapping(
         "/{kkmId}/documents/print.html",
@@ -56,7 +56,7 @@ class ProtocolDocumentController(private val printer: ProtocolDocumentPrinter) {
         @RequestBody packet: String
     ): ResponseEntity<String> = ResponseEntity.ok()
         .contentType(MediaType.valueOf("text/html;charset=UTF-8"))
-        .body(printer.html(kkmId, AuthHeaderUtils.extractPin(authHeader), packet, layout))
+        .body(kkmService.getProtocolPrintHtml(kkmId, AuthHeaderUtils.extractPin(authHeader), packet, layout))
 
     @PostMapping(
         "/{kkmId}/documents/print.png",
@@ -75,7 +75,7 @@ class ProtocolDocumentController(private val printer: ProtocolDocumentPrinter) {
         @RequestBody packet: String
     ): ResponseEntity<ByteArray> = ResponseEntity.ok()
         .contentType(MediaType.IMAGE_PNG)
-        .body(printer.image(kkmId, AuthHeaderUtils.extractPin(authHeader), packet, layout))
+        .body(kkmService.getProtocolPrintPng(kkmId, AuthHeaderUtils.extractPin(authHeader), packet, layout))
 
     @PostMapping(
         "/{kkmId}/documents/print.pdf",
@@ -94,5 +94,5 @@ class ProtocolDocumentController(private val printer: ProtocolDocumentPrinter) {
         @RequestBody packet: String
     ): ResponseEntity<ByteArray> = ResponseEntity.ok()
         .contentType(MediaType.APPLICATION_PDF)
-        .body(printer.pdf(kkmId, AuthHeaderUtils.extractPin(authHeader), packet, layout))
+        .body(kkmService.getProtocolPrintPdf(kkmId, AuthHeaderUtils.extractPin(authHeader), packet, layout))
 }

@@ -115,9 +115,7 @@ tasks.jacocoTestCoverageVerification {
                 "*Controller*",
                 "*TraceIdFilter*",
                 "*Dto*",
-                "*InterceptorsOfdManager*",
                 "*TrilingualLogConverter*",
-                "*ServerPinHasherAdapter*",
                 "*ServerDeliveryServiceAdapter*"
             )
             limit {

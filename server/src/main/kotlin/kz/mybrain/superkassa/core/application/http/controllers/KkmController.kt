@@ -6,7 +6,6 @@ import io.github.texport.superkassa.core.presentation.api.model.kkm.DocumentDeta
 import io.github.texport.superkassa.core.presentation.api.model.kkm.FiscalDocumentResponse
 import io.github.texport.superkassa.core.presentation.api.model.ofd.DeliveryRetryItemResponse
 import io.github.texport.superkassa.core.presentation.api.model.ofd.DeliveryRetryResponse
-import io.github.texport.superkassa.core.presentation.api.model.receipt.PrintDocumentType
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptLayoutType
 import io.github.texport.superkassa.core.presentation.api.model.shift.ReportResponse
 import io.github.texport.superkassa.core.presentation.api.model.shift.ShiftResponse
@@ -263,25 +262,7 @@ class KkmController(
         @RequestHeader("Authorization") authHeader: String?
     ): ResponseEntity<String> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val shifts = try {
-            kkmService.listShifts(kkmId, 100, 0, pin)
-        } catch (_: Exception) {
-            emptyList()
-        }
-        val matchingShift = shifts.firstOrNull {
-            it.id == documentId || it.openDocumentId == documentId || it.closeDocumentId == documentId
-        }
-
-        val html = if (matchingShift != null) {
-            val type = if (matchingShift.closeDocumentId == documentId || matchingShift.id == documentId) {
-                PrintDocumentType.CLOSE_SHIFT
-            } else {
-                PrintDocumentType.OPEN_SHIFT
-            }
-            kkmService.getPrintHtml(kkmId, type, null, matchingShift.id, pin, layout)
-        } else {
-            kkmService.getPrintHtml(kkmId, PrintDocumentType.DOCUMENT, documentId, null, pin, layout)
-        }
+        val html = kkmService.getDocumentPrintHtml(kkmId, documentId, pin, layout)
 
         return ResponseEntity.ok()
             .contentType(MediaType.valueOf("text/html;charset=UTF-8"))
@@ -313,25 +294,7 @@ class KkmController(
         @RequestHeader("Authorization") authHeader: String?
     ): ResponseEntity<ByteArray> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val shifts = try {
-            kkmService.listShifts(kkmId, 100, 0, pin)
-        } catch (_: Exception) {
-            emptyList()
-        }
-        val matchingShift = shifts.firstOrNull {
-            it.id == documentId || it.openDocumentId == documentId || it.closeDocumentId == documentId
-        }
-
-        val bytes = if (matchingShift != null) {
-            val type = if (matchingShift.closeDocumentId == documentId || matchingShift.id == documentId) {
-                PrintDocumentType.CLOSE_SHIFT
-            } else {
-                PrintDocumentType.OPEN_SHIFT
-            }
-            kkmService.getPrintPdf(kkmId, type, null, matchingShift.id, pin, layout)
-        } else {
-            kkmService.getPrintPdf(kkmId, PrintDocumentType.DOCUMENT, documentId, null, pin, layout)
-        }
+        val bytes = kkmService.getDocumentPrintPdf(kkmId, documentId, pin, layout)
 
         return ResponseEntity.ok()
             .contentType(MediaType.APPLICATION_PDF)
@@ -361,25 +324,7 @@ class KkmController(
         @RequestHeader("Authorization") authHeader: String?
     ): ResponseEntity<ByteArray> {
         val pin = AuthHeaderUtils.extractPin(authHeader)
-        val shifts = try {
-            kkmService.listShifts(kkmId, 100, 0, pin)
-        } catch (_: Exception) {
-            emptyList()
-        }
-        val matchingShift = shifts.firstOrNull {
-            it.id == documentId || it.openDocumentId == documentId || it.closeDocumentId == documentId
-        }
-
-        val imageBytes = if (matchingShift != null) {
-            val type = if (matchingShift.closeDocumentId == documentId || matchingShift.id == documentId) {
-                PrintDocumentType.CLOSE_SHIFT
-            } else {
-                PrintDocumentType.OPEN_SHIFT
-            }
-            kkmService.getPrintPng(kkmId, type, null, matchingShift.id, pin, layout)
-        } else {
-            kkmService.getPrintPng(kkmId, PrintDocumentType.DOCUMENT, documentId, null, pin, layout)
-        }
+        val imageBytes = kkmService.getDocumentPrintPng(kkmId, documentId, pin, layout)
 
         return ResponseEntity.ok()
             .contentType(MediaType.IMAGE_PNG)

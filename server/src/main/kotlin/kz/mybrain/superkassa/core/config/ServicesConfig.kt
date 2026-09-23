@@ -8,7 +8,6 @@ import io.github.texport.superkassa.core.domain.api.port.integration.DeliveryPor
 import io.github.texport.superkassa.core.domain.api.port.integration.DocumentConvertPort
 import io.github.texport.superkassa.core.domain.api.port.integration.QrCodeGeneratorPort
 import io.github.texport.superkassa.core.domain.api.port.integration.TimeValidatorPort
-import io.github.texport.superkassa.core.domain.api.port.internal.ReceiptRenderPort
 import io.github.texport.superkassa.core.presentation.api.DeliveryApi
 import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
 import io.github.texport.superkassa.jvm.settings.impl.SettingsApplicationService
@@ -76,10 +75,6 @@ class ServicesConfig {
         updateSettingsUseCase: UpdateSettingsUseCase
     ): SettingsApplicationService =
         SettingsApplicationService(settingsRepository, coreSettings, updateSettingsUseCase)
-
-    /** Рисовальщик печатных форм ядра: тот же, которым рисует фасад. */
-    @Bean
-    fun receiptRenderPort(engine: SuperkassaCoreEngine): ReceiptRenderPort = engine.receiptRenderer
 
     /**
      * Повтор доставки чека: пин проверяется тем же счётом неверных пинов,
