@@ -27,7 +27,9 @@ detekt {
     config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
     buildUponDefaultConfig = true
     allRules = true
-    autoCorrect = true
+    // Автоправка переписывает исходники на месте; на CI её правки пропадают
+    // вместе с раннером, а исправленное нарушение проверку не роняет.
+    autoCorrect = System.getenv("CI") == null
 }
 
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
