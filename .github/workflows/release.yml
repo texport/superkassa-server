@@ -1,0 +1,112 @@
+# Выпуск узла по метке v<версия>; метка обязана совпасть с serverVersion
+# в libs.versions.toml.
+#
+# Порядок: проверки (ci.yml) и сборка jar → выпуск на GitHub. Узел — не
+# библиотека, в Maven Central он не публикуется.
+#
+# Файл выпуска — server-<версия>.jar (Spring Boot, всё внутри). Настройки
+# узла (config/core-settings.json) в него не входят: их создаёт сам узел
+# в своём рабочем месте.
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: ./.github/actions/siblings
+
+      # Узел сообщает КГД свою версию из сборки; метка с другим номером
+      # выложила бы jar, который называет себя иначе, чем выпуск.
+      - name: Метка совпадает с версией
+        run: |
+          version=$(./gradlew -q :server:properties --property version | sed -n 's/^version: //p')
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Метка $GITHUB_REF_NAME, а версия узла в сборке $version"
+            exit 1
+          fi
+
+      - name: Собрать узел
+        run: ./gradlew :server:bootJar
+
+      - name: Сложить файлы выпуска
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          jar="server/build/libs/server-$version.jar"
+          test -s "$jar" || { echo "::error::Узел не собрался: $jar"; exit 1; }
+          cp "$jar" dist/
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: dist/*
+          if-no-files-found: error
+
+  github-release:
+    needs: [ checks, artifacts ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Вся история с метками — для заметок о выпуске.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-files
+          path: dist
+
+      # Заметки: файл RELEASE_NOTES.md в метке, а без него — сообщения
+      # коммитов от предыдущей метки v*.
+      - name: Заметки о выпуске
+        run: |
+          if [ -f RELEASE_NOTES.md ]; then
+            cp RELEASE_NOTES.md notes.md
+          else
+            prev=$(git describe --tags --abbrev=0 --match 'v*' "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+            {
+              if [ -n "$prev" ]; then echo "Изменения с $prev:"; else echo "Изменения:"; fi
+              echo
+              git log --no-merges --format='- %s' "${prev:+$prev..}${GITHUB_REF_NAME}"
+            } > notes.md
+          fi
+          cat notes.md
+
+      # Выпуск мог быть заведён руками до сборки — тогда файлы докладываются
+      # в него поверх прежних, а заметки остаются те, что написаны руками.
+      - name: Выпуск на GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber dist/*
+          else
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
+              --title "superkassa-server $GITHUB_REF_NAME" --notes-file notes.md dist/*
+          fi
