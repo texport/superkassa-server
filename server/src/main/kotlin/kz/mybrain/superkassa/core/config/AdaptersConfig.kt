@@ -3,6 +3,7 @@ package kz.mybrain.superkassa.core.config
 import io.github.texport.superkassa.core.domain.api.model.settings.CoreMode
 import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
 import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.withDeploymentOwned
 import io.github.texport.superkassa.core.domain.api.port.integration.ClockPort
 import io.github.texport.superkassa.core.domain.api.port.integration.CoreSettingsRepositoryPort
 import io.github.texport.superkassa.core.domain.api.port.integration.DeliveryPort
@@ -24,7 +25,6 @@ import io.github.texport.superkassa.jvm.receipt.impl.QrCodeDataUriGenerator
 import io.github.texport.superkassa.jvm.settings.impl.FileCoreSettingsRepository
 import io.github.texport.superkassa.jvm.settings.impl.dto.CoreSettingsDto
 import io.github.texport.superkassa.jvm.settings.impl.mapper.toDto
-import io.github.texport.superkassa.jvm.settings.impl.withDeploymentOwned
 import io.github.texport.superkassa.jvm.storage.impl.adapter.DatabaseCoreSettingsRepository
 import io.github.texport.superkassa.jvm.storage.impl.adapter.StorageAdapter
 import io.github.texport.superkassa.jvm.storage.impl.application.health.StorageHealthChecker

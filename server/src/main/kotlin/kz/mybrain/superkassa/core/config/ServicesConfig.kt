@@ -11,7 +11,6 @@ import io.github.texport.superkassa.core.domain.api.port.integration.TimeValidat
 import io.github.texport.superkassa.core.presentation.api.DeliveryApi
 import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
 import io.github.texport.superkassa.jvm.settings.impl.SettingsApplicationService
-import io.github.texport.superkassa.jvm.settings.impl.UpdateSettingsUseCase
 import io.github.texport.superkassa.jvm.storage.impl.adapter.StorageAdapter
 import kz.mybrain.superkassa.core.application.time.ValidateSystemTimeOnStartupUseCase
 import org.springframework.context.annotation.Bean
@@ -61,20 +60,15 @@ class ServicesConfig {
     ): ValidateSystemTimeOnStartupUseCase =
         ValidateSystemTimeOnStartupUseCase(timeValidator, clock)
 
+    /** Настройки узла по правилам ядра; ОФД и версию протокола задаёт запуск. */
     @Bean
-    fun updateSettingsUseCase(
-        settingsRepository: CoreSettingsRepositoryPort,
-        coreSettings: CoreSettings
-    ): UpdateSettingsUseCase =
-        UpdateSettingsUseCase(settingsRepository, coreSettings)
-
-    @Bean
-    fun settingsApplicationService(
-        settingsRepository: CoreSettingsRepositoryPort,
-        coreSettings: CoreSettings,
-        updateSettingsUseCase: UpdateSettingsUseCase
-    ): SettingsApplicationService =
-        SettingsApplicationService(settingsRepository, coreSettings, updateSettingsUseCase)
+    fun settingsApplicationService(engine: SuperkassaCoreEngine, coreSettings: CoreSettings): SettingsApplicationService =
+        SettingsApplicationService(
+            engine.buildSettingsApi(
+                ofdProviderId = coreSettings.ofdProviderId,
+                ofdProtocolVersion = coreSettings.ofdProtocolVersion
+            )
+        )
 
     /**
      * Повтор доставки чека: пин проверяется тем же счётом неверных пинов,

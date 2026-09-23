@@ -192,21 +192,6 @@ class DefaultErrorResolver : ErrorResolver {
             ru = "Идентификатор телефона WhatsApp должен состоять только из цифр.",
             kk = "WhatsApp телефон идентификаторы тек сандардан тұруы керек."
         ),
-        SettingsErrorKey.OFD_PROTOCOL_VERSION_FIXED_AT_STARTUP to TrilingualString(
-            en = "Protocol version is set at node startup and cannot be changed through the API.",
-            ru = "Версия протокола задаётся при запуске узла и через API не меняется.",
-            kk = "Хаттама нұсқасы түйінді іске қосу кезінде беріледі және API арқылы өзгермейді."
-        ),
-        SettingsErrorKey.SETTINGS_FROZEN_SERVER_MODE to TrilingualString(
-            en = "Settings cannot be modified via API in SERVER mode.",
-            ru = "Настройки не могут быть изменены через API в режиме SERVER.",
-            kk = "Параметрлерді SERVER режимінде API арқылы өзгерту мүмкін емес."
-        ),
-        SettingsErrorKey.SETTINGS_FROZEN_DISALLOWED to TrilingualString(
-            en = "Settings changes are frozen. Allow changes in configuration file first.",
-            ru = "Изменение настроек заморожено. Разрешите изменения в файле конфигурации.",
-            kk = "Параметрлерді өзгерту бұғатталған. Алдымен конфигурация файлында рұқсат етіңіз."
-        ),
         // Delivery Translations
         DeliveryErrorKey.SMS_DESTINATION_REQUIRED to TrilingualString(
             en = "SMS destination (phone) required",

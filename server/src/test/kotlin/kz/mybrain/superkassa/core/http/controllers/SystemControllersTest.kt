@@ -12,7 +12,8 @@ import kz.mybrain.superkassa.core.application.http.controllers.QueueController
 import kz.mybrain.superkassa.core.application.http.controllers.SuperkassaInfoController
 import kz.mybrain.superkassa.core.application.http.controllers.SuperkassaSettingsController
 import kz.mybrain.superkassa.core.application.http.controllers.UnitsOfMeasurementController
-import io.github.texport.superkassa.jvm.settings.impl.UpdateSettingsUseCase
+import io.github.texport.superkassa.core.data.api.SuperkassaCoreEngine
+import io.github.texport.superkassa.core.presentation.api.SettingsApi
 import io.github.texport.superkassa.jvm.settings.impl.SettingsApplicationService
 import io.github.texport.superkassa.core.domain.api.exception.SettingsFrozenException
 import io.github.texport.superkassa.core.domain.api.model.settings.CoreMode
@@ -144,11 +145,10 @@ class SystemControllersTest {
                 allowChanges = true
             )
         val repo = mockk<CoreSettingsRepositoryPort>()
-        every { repo.loadOrCreate(initial) } returns initial
+        every { repo.loadOrCreate(any()) } returns initial
         every { repo.save(any()) } returns true
 
-        val settingsService = SettingsApplicationService(repo, initial, UpdateSettingsUseCase(repo, initial))
-        val controller = SuperkassaSettingsController(settingsService)
+        val controller = SuperkassaSettingsController(SettingsApplicationService(settingsApi(repo)))
         val loaded = controller.getSettings()
         val updated =
             loaded.copy(
@@ -159,7 +159,6 @@ class SystemControllersTest {
         val result = controller.updateSettings(updated)
 
         assertEquals(45L, result.ofdTimeoutSeconds)
-        verify(exactly = 1) { repo.loadOrCreate(initial) }
         verify(exactly = 1) { repo.save(match { it.ofdTimeoutSeconds == 45L && it.ofdReconnectIntervalSeconds == 90L }) }
     }
 
@@ -172,8 +171,8 @@ class SystemControllersTest {
                 allowChanges = false
             )
         val repo = mockk<CoreSettingsRepositoryPort>()
-        val settingsService = SettingsApplicationService(repo, frozen, UpdateSettingsUseCase(repo, frozen))
-        val controller = SuperkassaSettingsController(settingsService)
+        every { repo.loadOrCreate(any()) } returns frozen
+        val controller = SuperkassaSettingsController(SettingsApplicationService(settingsApi(repo)))
 
         assertFailsWith<SettingsFrozenException> {
             controller.updateSettings(frozen.toDto())
@@ -189,9 +188,8 @@ class SystemControllersTest {
                 allowChanges = true
             )
         val repo = mockk<CoreSettingsRepositoryPort>()
-        val settingsService =
-            SettingsApplicationService(repo, serverModeSettings, UpdateSettingsUseCase(repo, serverModeSettings))
-        val controller = SuperkassaSettingsController(settingsService)
+        every { repo.loadOrCreate(any()) } returns serverModeSettings
+        val controller = SuperkassaSettingsController(SettingsApplicationService(settingsApi(repo)))
 
         assertFailsWith<SettingsFrozenException> {
             controller.updateSettings(serverModeSettings.toDto())
@@ -293,3 +291,15 @@ private fun buildOf(version: String, coreVersion: String): BuildProperties =
             setProperty("coreVersion", coreVersion)
         }
     )
+
+/** Настройки по правилам ядра поверх хранилища [repo]: запуск на протоколе 2.0.3, как у записей проверок. */
+private fun settingsApi(repo: CoreSettingsRepositoryPort): SettingsApi = SuperkassaCoreEngine(
+    storage = mockk(relaxed = true),
+    pinAttempts = mockk(relaxed = true),
+    settings = repo,
+    delivery = mockk(relaxed = true),
+    clock = mockk(relaxed = true),
+    timeValidator = mockk(relaxed = true),
+    qrCode = mockk(relaxed = true),
+    pdfConverter = mockk(relaxed = true)
+).buildSettingsApi()
