@@ -272,7 +272,7 @@ class JdbcCashboxRepository(
         val sql = """
             SELECT * FROM cashbox
             $whereClause
-            ORDER BY $orderField $sortOrder
+            ORDER BY $orderField $sortOrder, id ASC
             LIMIT ? OFFSET ?
         """.trimIndent()
 

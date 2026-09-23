@@ -108,7 +108,6 @@ tasks.jacocoTestCoverageVerification {
                 "*OpenApiConfig*",
                 "*GlobalExceptionHandler*",
                 "*KkmPathBodyValidator*",
-                "*QueueWorker*",
                 "*Mappers*",
                 "*AuthHeaderUtils*",
                 "*ApiResponseMessages*",
