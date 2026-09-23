@@ -20,14 +20,16 @@ import java.io.File
  * настройка есть слово обслуживания, и найденный раньше браузер его
  * не перекрывает.
  *
- * Система, домашний каталог и окружение подставляются: так каждая
- * ветка поиска проверяется на одной машине.
+ * Система, домашний каталог, окружение и корень файловой системы
+ * подставляются: так каждая ветка поиска проверяется на одной машине,
+ * и браузер, стоящий на машине проверки, в неё не попадает.
  */
 class BrowserLocator(
     private val os: String = System.getProperty("os.name", ""),
     private val home: String = System.getProperty("user.home", ""),
     private val env: (String) -> String? = System::getenv,
-    private val setting: () -> String? = { System.getProperty(PROPERTY) }
+    private val setting: () -> String? = { System.getProperty(PROPERTY) },
+    private val root: String = ""
 ) {
     @Volatile
     private var found: File? = null
@@ -52,12 +54,12 @@ class BrowserLocator(
         val name = os.lowercase()
         return when {
             name.contains("mac") -> MAC_APPS.flatMap { app ->
-                listOf(File("/Applications", app), File(home, "Applications/$app"))
+                listOf(File("$root/Applications", app), File(home, "Applications/$app"))
             }
             name.contains("win") -> WINDOWS_ROOTS.mapNotNull(env).flatMap { root ->
                 WINDOWS_APPS.map { File(root, it) }
             }
-            else -> LINUX_FILES.map(::File) + onPath()
+            else -> LINUX_FILES.map { File(root + it) } + onPath()
         }
     }
 

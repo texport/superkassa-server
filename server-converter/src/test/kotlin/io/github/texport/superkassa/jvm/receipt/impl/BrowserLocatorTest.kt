@@ -20,16 +20,19 @@ class BrowserLocatorTest {
 
     private val home = Files.createTempDirectory("home").toFile()
 
+    /** Корень файловой системы поиска: браузер машины проверки в неё не попадает. */
+    private val root = Files.createTempDirectory("root").toFile()
+
     private fun locator(
         os: String,
         env: Map<String, String> = emptyMap(),
         setting: String? = null
-    ) = BrowserLocator(os = os, home = home.absolutePath, env = { env[it] }, setting = { setting })
+    ) = BrowserLocator(os = os, home = home.absolutePath, env = { env[it] }, setting = { setting }, root = root.absolutePath)
 
     @Test
     fun `на macOS ищется в Applications системы и владельца`() {
         val places = locator("Mac OS X").candidates().map { it.path }
-        assertTrue(places.any { it == "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" }, places.toString())
+        assertTrue(places.any { it == "${root.absolutePath}/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" }, places.toString())
         assertTrue(places.any { it.startsWith(home.absolutePath) && it.endsWith("Microsoft Edge") }, places.toString())
     }
 
@@ -45,7 +48,7 @@ class BrowserLocatorTest {
     fun `на Linux ищется и по известным файлам, и по командам из PATH`() {
         val env = mapOf("PATH" to "/usr/bin${File.pathSeparator}/usr/local/bin")
         val places = locator("Linux", env).candidates().map { it.path }
-        assertTrue("/snap/bin/chromium" in places, places.toString())
+        assertTrue("${root.absolutePath}/snap/bin/chromium" in places, places.toString())
         assertTrue("/usr/bin/chromium" in places, places.toString())
         assertTrue("/usr/local/bin/google-chrome" in places, places.toString())
     }
