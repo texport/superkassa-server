@@ -23,39 +23,24 @@ class JdbcQueueDelegate(private val sessionProvider: () -> StorageSession) {
         )
     }
 
-    fun listQueueTasksByCashbox(cashboxId: String, lane: String, limit: Int, offset: Int): List<QueueTask> {
-        return sessionProvider().queueTask.listByCashbox(cashboxId, lane, limit, offset).map {
-            QueueTask(
-                id = it.id,
-                cashboxId = it.cashboxId,
-                lane = it.lane,
-                type = it.type,
-                payloadRef = it.payloadRef,
-                createdAt = it.createdAt,
-                status = it.status,
-                attempt = it.attempt,
-                nextAttemptAt = it.nextAttemptAt,
-                lastError = it.lastError
-            )
-        }
-    }
+    fun listQueueTasksByCashbox(cashboxId: String, lane: String, limit: Int, offset: Int): List<QueueTask> =
+        sessionProvider().queueTask.listByCashbox(cashboxId, lane, limit, offset).map { it.toTask() }
 
-    fun nextPendingQueueTask(cashboxId: String, lane: String, now: Long): QueueTask? {
-        return sessionProvider().queueTask.nextPending(cashboxId, lane, now)?.let {
-            QueueTask(
-                id = it.id,
-                cashboxId = it.cashboxId,
-                lane = it.lane,
-                type = it.type,
-                payloadRef = it.payloadRef,
-                createdAt = it.createdAt,
-                status = it.status,
-                attempt = it.attempt,
-                nextAttemptAt = it.nextAttemptAt,
-                lastError = it.lastError
-            )
-        }
-    }
+    fun listQueueTasksByStatus(cashboxId: String, lane: String, statuses: Set<String>): List<QueueTask> =
+        sessionProvider().queueTask.listByStatus(cashboxId, lane, statuses).map { it.toTask() }
+
+    private fun QueueTaskRecord.toTask() = QueueTask(
+        id = id,
+        cashboxId = cashboxId,
+        lane = lane,
+        type = type,
+        payloadRef = payloadRef,
+        createdAt = createdAt,
+        status = status,
+        attempt = attempt,
+        nextAttemptAt = nextAttemptAt,
+        lastError = lastError
+    )
 
     fun updateQueueTaskStatus(
         id: String,

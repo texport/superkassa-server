@@ -8,7 +8,6 @@ import io.github.texport.superkassa.core.domain.api.port.integration.CoreSetting
 import io.github.texport.superkassa.core.domain.api.port.integration.DeliveryPort
 import io.github.texport.superkassa.core.domain.api.port.integration.DocumentConvertPort
 import io.github.texport.superkassa.core.domain.api.port.integration.QrCodeGeneratorPort
-import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
 import io.github.texport.superkassa.core.domain.api.port.integration.TimeValidatorPort
 import io.github.texport.superkassa.delivery.api.DeliveryServiceApi
 import io.github.texport.superkassa.delivery.api.createDeliveryServiceApi
@@ -158,8 +157,9 @@ class AdaptersConfig {
         return StorageHealthChecker(DefaultStorageConnectorRegistry())
     }
 
+    /** Хранилище узла; оно же ведёт счёт неверных пинов в своей базе. */
     @Bean
-    fun storagePort(config: StorageConfig): StoragePort {
+    fun storagePort(config: StorageConfig): StorageAdapter {
         val storageBootstrap = DefaultStorageBootstrap()
         logger.info("Connecting to storage: ${config.jdbcUrl}")
         storageBootstrap.migrate(config)

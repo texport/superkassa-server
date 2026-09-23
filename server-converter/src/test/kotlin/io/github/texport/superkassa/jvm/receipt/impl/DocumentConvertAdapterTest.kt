@@ -137,8 +137,8 @@ class DocumentConvertAdapterTest {
                 orgTitle = doc.taxpayerName ?: "ИП МИЧКА ПАВЕЛ АНДРЕЕВИЧ",
                 orgAddress = doc.taxpayerAddress ?: "обл. Павлодарская, Республика 1, 2",
                 orgAddressKz = "обл. Павлодарская, Республика 1, 2",
-                orgInn = doc.taxpayerBin ?: "960624350642",
-                orgOkved = "62010",
+                orgIinOrBin = doc.taxpayerBin ?: "960624350642",
+                orgOked = "62010",
                 geoLatitude = 0,
                 geoLongitude = 0,
                 geoSource = "GPS"

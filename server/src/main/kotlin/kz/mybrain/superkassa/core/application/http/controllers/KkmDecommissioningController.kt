@@ -48,40 +48,35 @@ class KkmDecommissioningController(private val kkmService: SuperkassaApi) {
                - Заводской номер и год выпуска
                - Сервисные данные (название организации налогоплательщика, БИН/ИИН, юридический адрес)
             4. Сохраняет кассовый аппарат в базе данных со статусом `ACTIVE`.
-            5. Регистрирует первого пользователя (администратора кассы) с правами доступа.
+            5. Заводит первого пользователя — администратора кассы — с пином из поля `adminPin`.
 
             **Требования:**
             - Касса с указанным системным ID должна быть зарегистрирована в ОФД.
             - Переданный токен ОФД должен быть активным.
-            - Запрос требует авторизации по ПИН-коду (передается в заголовке Authorization).
+            - Пина по умолчанию у кассы нет: администратор задаёт свой пин в теле запроса.
+              Заголовок Authorization этому методу не нужен — пользователей у новой кассы ещё нет.
 
             **Параметры:**
-            - **Authorization** (заголовок): ПИН-код первого администратора (например, `0000`).
             - **RequestBody**: Объект `KkmInitSimpleRequest` с полями:
               - `ofdId`: Код провайдера ОФД (например, `KAZAKHTELECOM`).
               - `ofdEnvironment`: Окружение ОФД (`TEST` или `PROD`).
               - `ofdSystemId`: Уникальный числовой ID кассы в системе ОФД.
               - `ofdToken`: Токен авторизации подключения к ОФД.
                 Адрес ОФД не передаётся: его задаёт узел по провайдеру и контуру.
+              - `adminPin`: Пин администратора новой кассы, от 4 до 10 символов. Обязателен.
 
             **Возвращаемые коды:**
             - 200 OK: Касса успешно инициализирована, возвращен объект `KkmResponse`.
-            - 400 Bad Request: Ошибка валидации параметров запроса.
-            - 403 Forbidden: Неверный ПИН-код администратора.
+            - 400 Bad Request: Ошибка валидации параметров запроса, в том числе
+              `KKM_ADMIN_PIN_REQUIRED` — пин администратора не задан,
+              `USER_PIN_LENGTH` — пин короче 4 или длиннее 10 символов.
         """
     )
     @KkmApiResponses(
         ok = MSG_200_KKM_INIT,
-        badRequest = MSG_400_VALIDATION,
-        forbidden = MSG_403_FORBIDDEN
+        badRequest = MSG_400_VALIDATION
     )
-    fun initKkm(
-        @RequestHeader("Authorization") authHeader: String?,
-        @RequestBody @Valid request: KkmInitSimpleRequest
-    ): KkmResponse {
-        val pin = AuthHeaderUtils.extractPin(authHeader)
-        return kkmService.initKkmSimple(pin, request)
-    }
+    fun initKkm(@RequestBody @Valid request: KkmInitSimpleRequest): KkmResponse = kkmService.initKkmSimple(request)
 
     /**
      * Сгенерировать заводской номер и год выпуска для регистрации ККМ в ОФД.

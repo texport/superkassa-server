@@ -135,6 +135,11 @@ class DefaultMigrationCatalog : MigrationCatalog {
                 version = "25",
                 resourcePath = "$prefix/V25__cashbox_auto_cashout.sql",
                 checksum = "v25"
+            ),
+            MigrationScript(
+                version = "26",
+                resourcePath = "$prefix/V26__pin_attempts.sql",
+                checksum = "v26"
             )
         )
     }

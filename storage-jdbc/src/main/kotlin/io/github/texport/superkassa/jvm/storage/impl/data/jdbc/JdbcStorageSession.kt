@@ -12,6 +12,7 @@ import io.github.texport.superkassa.jvm.storage.impl.domain.repository.KkmUserRe
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.OfdMessageRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.OfflineQueueRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.OutboxEventRepository
+import io.github.texport.superkassa.jvm.storage.impl.domain.repository.PinAttemptRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.QueueLockRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.QueueTaskRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.ShiftRepository
@@ -37,21 +38,7 @@ class JdbcStorageSession(
     override val counters: CounterRepository = JdbcCounterRepository(connection)
     override val errors: ErrorMessageRepository = JdbcErrorMessageRepository(connection)
     override val outbox: OutboxEventRepository = JdbcOutboxEventRepository(connection)
-
-    override fun <T> inTransaction(block: () -> T): T {
-        val originalAutoCommit = connection.autoCommit
-        connection.autoCommit = false
-        return try {
-            val result = block()
-            connection.commit()
-            result
-        } catch (ex: Exception) {
-            connection.rollback()
-            throw ex
-        } finally {
-            connection.autoCommit = originalAutoCommit
-        }
-    }
+    override val pinAttempts: PinAttemptRepository = JdbcPinAttemptRepository(connection)
 
     override fun close() {
         connection.close()

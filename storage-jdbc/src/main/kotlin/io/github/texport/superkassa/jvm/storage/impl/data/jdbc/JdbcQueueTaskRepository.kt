@@ -42,28 +42,6 @@ class JdbcQueueTaskRepository(
         }
     }
 
-    override fun nextPending(cashboxId: String, lane: String, now: Long): QueueTaskRecord? {
-        val sql = """
-            SELECT * FROM queue_task
-            WHERE cashbox_id = ? AND lane = ?
-                AND status IN ('PENDING', 'FAILED')
-                AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
-            ORDER BY created_at ASC
-            LIMIT 1
-        """.trimIndent()
-        return try {
-            connection.prepareStatement(sql).use { stmt ->
-                stmt.setString(1, cashboxId)
-                stmt.setString(2, lane)
-                stmt.setLong(3, now)
-                fetchSingle(stmt)
-            }
-        } catch (ex: SQLException) {
-            logger.error("Failed to get next pending for cashbox: $cashboxId", ex)
-            null
-        }
-    }
-
     override fun updateStatus(
         id: String,
         status: String,
@@ -136,6 +114,21 @@ class JdbcQueueTaskRepository(
         }
     }
 
+    override fun listByStatus(cashboxId: String, lane: String, statuses: Set<String>): List<QueueTaskRecord> {
+        if (statuses.isEmpty()) return emptyList()
+        val sql = """
+            SELECT * FROM queue_task
+            WHERE cashbox_id = ? AND lane = ? AND status IN (${statuses.joinToString(", ") { "?" }})
+            ORDER BY created_at ASC
+        """.trimIndent()
+        connection.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, cashboxId)
+            stmt.setString(2, lane)
+            statuses.forEachIndexed { index, status -> stmt.setString(index + FIRST_STATUS_PARAMETER, status) }
+            return fetchList(stmt)
+        }
+    }
+
     override fun deleteByCashbox(cashboxId: String): Boolean {
         val sql = "DELETE FROM queue_task WHERE cashbox_id = ?"
         return try {
@@ -178,12 +171,6 @@ class JdbcQueueTaskRepository(
         )
     }
 
-    private fun fetchSingle(stmt: java.sql.PreparedStatement): QueueTaskRecord? {
-        return stmt.executeQuery().use { rs ->
-            if (rs.next()) mapRecord(rs) else null
-        }
-    }
-
     private fun fetchList(stmt: java.sql.PreparedStatement): List<QueueTaskRecord> {
         return stmt.executeQuery().use { rs ->
             val result = mutableListOf<QueueTaskRecord>()
@@ -198,5 +185,10 @@ class JdbcQueueTaskRepository(
         return stmt.executeQuery().use { rs ->
             if (rs.next()) rs.getLong(1) else 0L
         }
+    }
+
+    private companion object {
+        /** Статусы связываются после кассы и полосы. */
+        const val FIRST_STATUS_PARAMETER = 3
     }
 }

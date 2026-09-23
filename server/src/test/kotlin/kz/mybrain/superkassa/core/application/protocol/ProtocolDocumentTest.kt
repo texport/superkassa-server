@@ -205,7 +205,7 @@ class ProtocolDocumentTest {
         assertEquals("NZ7700123456", drawnBy.registrationNumber)
         assertEquals("SW7700987654", drawnBy.factoryNumber)
         assertEquals("ТОО Пример", drawnBy.ofdServiceInfo?.orgTitle)
-        assertEquals("123456789012", drawnBy.ofdServiceInfo?.orgInn)
+        assertEquals("123456789012", drawnBy.ofdServiceInfo?.orgIinOrBin)
         assertEquals("Алматы қ., Абай даңғылы, 1", drawnBy.ofdServiceInfo?.orgAddressKz)
     }
 

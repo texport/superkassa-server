@@ -35,8 +35,8 @@ private fun KkmInfo.taxpayerOf(owner: JsonObject): OfdServiceInfo {
         orgTitle = owner.text("title") ?: known?.orgTitle.orEmpty(),
         orgAddress = owner.text("address") ?: known?.orgAddress.orEmpty(),
         orgAddressKz = owner.text("addressKz") ?: known?.orgAddressKz.orEmpty(),
-        orgInn = owner.text("iin") ?: known?.orgInn.orEmpty(),
-        orgOkved = owner.text("oked") ?: known?.orgOkved.orEmpty(),
+        orgIinOrBin = owner.text("iin") ?: known?.orgIinOrBin.orEmpty(),
+        orgOked = owner.text("oked") ?: known?.orgOked.orEmpty(),
         geoLatitude = known?.geoLatitude ?: 0,
         geoLongitude = known?.geoLongitude ?: 0,
         geoSource = known?.geoSource.orEmpty()

@@ -83,6 +83,14 @@ class JdbcFiscalDocumentRepository(
         }
     }
 
+    override fun updateReceiptUrl(id: String, receiptUrl: String): Boolean {
+        connection.prepareStatement("UPDATE fiscal_document SET receipt_url = ? WHERE id = ?").use { stmt ->
+            stmt.setString(1, receiptUrl)
+            stmt.setString(2, id)
+            return stmt.executeUpdate() > 0
+        }
+    }
+
     override fun updateStatus(
         id: String,
         ofdStatus: String,
@@ -91,13 +99,12 @@ class JdbcFiscalDocumentRepository(
         deliveredAt: Long?,
         ofdErrorCode: Int?,
         isAutonomous: Boolean?,
-        receiptUrl: String?,
         ofdErrorText: String?
     ): Boolean {
-        // Колонки собираются списком, а не четырьмя вариантами запроса
-        // на два необязательных поля. Признак автономности и ссылку на чек
-        // трогаем, только если вызывающий их передал: null у них означает
-        // «оставить как было», а не «стереть».
+        // Колонки собираются списком, а не двумя вариантами запроса
+        // на необязательное поле. Признак автономности трогаем, только если
+        // вызывающий его передал: null у него означает «оставить как было»,
+        // а не «стереть». Ссылка на чек пишется отдельно — updateReceiptUrl.
         val columns = mutableListOf(
             "ofd_status", "fiscal_sign", "autonomous_sign", "delivered_at", "ofd_error_code", "ofd_error_text"
         )
@@ -112,10 +119,6 @@ class JdbcFiscalDocumentRepository(
         if (isAutonomous != null) {
             columns += "is_autonomous"
             binders += { stmt, i -> stmt.setInt(i, if (isAutonomous) 1 else 0) }
-        }
-        if (receiptUrl != null) {
-            columns += "receipt_url"
-            binders += { stmt, i -> stmt.setString(i, receiptUrl) }
         }
 
         val sql = "UPDATE fiscal_document SET " +

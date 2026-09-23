@@ -48,8 +48,8 @@ object SampleForms {
             orgTitle = "ИП ИВАНОВ С. П.",
             orgAddress = "Алматы, Абай даңғылы, 10",
             orgAddressKz = "Алматы, Абай даңғылы, 10",
-            orgInn = "920102300400",
-            orgOkved = "62010",
+            orgIinOrBin = "920102300400",
+            orgOked = "62010",
             geoLatitude = 0,
             geoLongitude = 0,
             geoSource = "GPS"
@@ -74,7 +74,7 @@ object SampleForms {
         receiptUrl = "https://consumer.oofd.kz/r/101",
         registrationNumber = kkm.registrationNumber,
         taxpayerName = kkm.ofdServiceInfo?.orgTitle,
-        taxpayerBin = kkm.ofdServiceInfo?.orgInn,
+        taxpayerBin = kkm.ofdServiceInfo?.orgIinOrBin,
         taxpayerAddress = kkm.ofdServiceInfo?.orgAddress,
         factoryNumber = kkm.factoryNumber
     )

@@ -9,7 +9,9 @@ import io.github.texport.superkassa.core.domain.api.model.kkm.*
 import io.github.texport.superkassa.core.domain.api.model.queue.*
 import io.github.texport.superkassa.core.domain.api.model.receipt.*
 import io.github.texport.superkassa.core.domain.api.model.shift.*
+import io.github.texport.superkassa.core.domain.api.port.integration.PinAttemptsPort
 import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
+import io.github.texport.superkassa.core.domain.api.port.integration.inTransaction
 import io.github.texport.superkassa.jvm.storage.impl.application.bootstrap.StorageBootstrap
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
 import io.github.texport.superkassa.jvm.storage.impl.data.jdbc.JdbcStorageSession
@@ -22,26 +24,25 @@ import java.sql.SQLException
  * Обеспечивает выполнение транзакционных операций с сущностями ККМ, смен,
  * кассиров, чеков и очередей задач.
  *
+ * Счёт неверных пинов ([pinAttempts]) ведётся в той же базе и в той же
+ * транзакции потока: проверка пина, идущая внутри операции кассы,
+ * не открывает второе соединение и не ждёт, пока первое отпустит базу.
+ *
  * @property bootstrap компонент начальной инициализации и миграции базы данных.
  * @property config настройки подключения к базе данных.
  */
-private const val QUEUE_SCAN_LIMIT = 500
-
 class StorageAdapter(
     private val bootstrap: StorageBootstrap,
     private val config: StorageConfig
 ) : StoragePort {
-    companion object {
-        val receiptUrlMap = java.util.concurrent.ConcurrentHashMap<String, String>()
-    }
-
     private val logger = LoggerFactory.getLogger(StorageAdapter::class.java)
     private val sessionHolder = ThreadLocal<StorageSession?>()
+    private val transactions = ThreadTransactions { openSessionWithRetry() as JdbcStorageSession }
 
     private val reqNumCache = OfdReqNumCache()
 
     private val sessionProvider: () -> StorageSession = {
-        sessionHolder.get() ?: error("No active transaction or session")
+        transactions.session() ?: sessionHolder.get() ?: error("No active transaction or session")
     }
 
     private val kkmDelegate = JdbcKkmDelegate(sessionProvider)
@@ -49,46 +50,14 @@ class StorageAdapter(
     private val documentDelegate = JdbcDocumentDelegate(sessionProvider)
     private val queueDelegate = JdbcQueueDelegate(sessionProvider)
 
-    private val transactionSession = ThreadLocal<StorageSession?>()
+    override fun startTransaction() = transactions.begin()
 
-    override fun startTransaction() {
-        val session = openSessionWithRetry(maxAttempts = 3, delayMs = 200)
-        sessionHolder.set(session)
-        transactionSession.set(session)
-        if (session is JdbcStorageSession) {
-            session.connection.autoCommit = false
-        }
-    }
+    override fun commitTransaction() = transactions.commit()
 
-    override fun commitTransaction() {
-        val session = transactionSession.get()
-        if (session != null) {
-            try {
-                if (session is JdbcStorageSession) {
-                    session.connection.commit()
-                }
-            } finally {
-                sessionHolder.remove()
-                transactionSession.remove()
-                session.close()
-            }
-        }
-    }
+    override fun rollbackTransaction() = transactions.rollback()
 
-    override fun rollbackTransaction() {
-        val session = transactionSession.get()
-        if (session != null) {
-            try {
-                if (session is JdbcStorageSession) {
-                    session.connection.rollback()
-                }
-            } finally {
-                sessionHolder.remove()
-                transactionSession.remove()
-                session.close()
-            }
-        }
-    }
+    /** Счёт неверных пинов в базе этого хранилища. */
+    val pinAttempts: PinAttemptsPort = JdbcPinAttempts(this)
 
     // KKM & Users
     override fun createKkm(info: KkmInfo): Boolean = withSession { kkmDelegate.createKkm(info) }
@@ -114,8 +83,9 @@ class StorageAdapter(
     override fun deleteKkm(id: String): Boolean = withSession { kkmDelegate.deleteKkm(id) }
 
     override fun deleteKkmCompletely(kkmId: String): Boolean {
-        return withSession { session ->
-            session.inTransaction {
+        return inTransaction {
+            withSession { session ->
+                session.pinAttempts.delete(kkmId)
                 session.locks.deleteByCashbox(kkmId)
                 session.idempotency.deleteByCashbox(kkmId)
                 session.offlineQueue.deleteByCashbox(kkmId)
@@ -253,7 +223,6 @@ class StorageAdapter(
         ofdErrorText: String?
     ): Boolean =
         withSession {
-            val receiptUrl = receiptUrlMap.remove(documentId)
             documentDelegate.updateReceiptStatus(
                 documentId = documentId,
                 fiscalSign = fiscalSign,
@@ -262,10 +231,12 @@ class StorageAdapter(
                 ofdErrorCode = ofdErrorCode,
                 deliveredAt = deliveredAt,
                 isAutonomous = isAutonomous,
-                receiptUrl = receiptUrl,
                 ofdErrorText = ofdErrorText
             )
         }
+
+    override fun saveReceiptUrl(documentId: String, receiptUrl: String): Boolean =
+        withSession { it.documents.updateReceiptUrl(documentId, receiptUrl) }
 
     override fun updatePrintedDocumentNumber(documentId: String, number: Long): Boolean =
         withSession { it.documents.updatePrintedDocNo(documentId, number) }
@@ -325,11 +296,7 @@ class StorageAdapter(
         lane: String,
         statuses: Set<String>
     ): List<QueueTask> =
-        withSession {
-            queueDelegate
-                .listQueueTasksByCashbox(cashboxId, lane, QUEUE_SCAN_LIMIT, 0)
-                .filter { it.status in statuses }
-        }
+        withSession { queueDelegate.listQueueTasksByStatus(cashboxId, lane, statuses) }
 
     override fun updateQueueTaskStatus(
         id: String,
@@ -357,9 +324,9 @@ class StorageAdapter(
     override fun releaseQueueLock(cashboxId: String, ownerId: String): Boolean =
         withSession { queueDelegate.releaseQueueLock(cashboxId, ownerId) }
 
-    private fun <T> withSession(block: (StorageSession) -> T): T {
+    internal fun <T> withSession(block: (StorageSession) -> T): T {
         try {
-            val existing = sessionHolder.get()
+            val existing = transactions.session() ?: sessionHolder.get()
             if (existing != null) {
                 return block(existing)
             }

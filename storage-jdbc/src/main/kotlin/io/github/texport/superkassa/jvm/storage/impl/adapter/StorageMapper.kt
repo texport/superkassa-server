@@ -258,7 +258,7 @@ object StorageMapper {
             ofdErrorText = r.ofdErrorText,
             registrationNumber = cashbox?.registrationNumber,
             taxpayerName = serviceInfo?.orgTitle,
-            taxpayerBin = serviceInfo?.orgInn,
+            taxpayerBin = serviceInfo?.orgIinOrBin,
             taxpayerAddress = serviceInfo?.orgAddress,
             factoryNumber = cashbox?.factoryNumber,
             ofdProvider = cashbox?.ofdProvider
@@ -311,8 +311,8 @@ object StorageMapper {
         orgTitle = info.orgTitle,
         orgAddress = info.orgAddress,
         orgAddressKz = info.orgAddressKz,
-        orgInn = info.orgInn,
-        orgOkved = info.orgOkved,
+        orgIinOrBin = info.orgIinOrBin,
+        orgOked = info.orgOked,
         geoLatitude = info.geoLatitude,
         geoLongitude = info.geoLongitude,
         geoSource = info.geoSource
@@ -322,8 +322,8 @@ object StorageMapper {
         orgTitle = dto.orgTitle,
         orgAddress = dto.orgAddress,
         orgAddressKz = dto.orgAddressKz,
-        orgInn = dto.orgInn,
-        orgOkved = dto.orgOkved,
+        orgIinOrBin = dto.orgIinOrBin,
+        orgOked = dto.orgOked,
         geoLatitude = dto.geoLatitude,
         geoLongitude = dto.geoLongitude,
         geoSource = dto.geoSource

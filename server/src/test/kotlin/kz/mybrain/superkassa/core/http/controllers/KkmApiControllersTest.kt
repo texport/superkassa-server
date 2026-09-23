@@ -249,18 +249,18 @@ class KkmApiControllersTest {
     @Test
     fun `decommissioning endpoints delegate and map responses`() {
         val kkm = sampleKkm("kkm-init")
-        every { service.initKkmSimple("7777", any()) } returns kkm
+        every { service.initKkmSimple(match { it.adminPin == "7391" }) } returns kkm
         every { service.generateFactoryInfo() } returns FactoryNumberResponse(factoryNumber = "FN-123", manufactureYear = 2026)
         every { service.deleteKkm("kkm-init", "7777") } returns true
 
         val init =
             decommissioningController.initKkm(
-                "Bearer 7777",
                 KkmInitSimpleRequest(
                     ofdId = "kazakhtelecom",
                     ofdEnvironment = "test",
                     ofdSystemId = "100",
-                    ofdToken = "token"
+                    ofdToken = "token",
+                    adminPin = "7391"
                 )
             )
         val factory = decommissioningController.generateFactoryInfo()

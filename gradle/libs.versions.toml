@@ -10,7 +10,10 @@ mockk = "1.14.11"
 springdocOpenapi = "3.0.3"
 detekt = "1.23.8"
 serialization = "1.11.0"
-superkassaCore = "1.4.4"
+superkassaCore = "1.5.0-SNAPSHOT"
+# Протокол CPCR той же версии, что у ядра: проверки хранилища разбирают
+# запросы кассы к БФД его классами.
+ofdKtProto = "2.0.3-2"
 serverVersion = "1.0.6"
 openhtmltopdf = "1.1.40"
 zxing = "3.5.4"
@@ -60,6 +63,7 @@ jakarta-mail = { group = "com.sun.mail", name = "jakarta.mail", version.ref = "j
 # Testing
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 superkassa-core = { group = "io.github.texport", name = "superkassa-core-jvm", version.ref = "superkassaCore" }
+ofd-kt-proto = { group = "io.github.texport", name = "ofd-kt-proto", version.ref = "ofdKtProto" }
 detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }
 archunit = { group = "com.tngtech.archunit", name = "archunit-junit5", version.ref = "archunit" }
 

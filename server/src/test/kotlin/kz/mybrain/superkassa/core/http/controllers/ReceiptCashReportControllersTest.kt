@@ -196,7 +196,7 @@ class ReceiptCashReportControllersTest {
             idempotencyKey = idem,
             items = listOf(itemDto()),
             payments = listOf(paymentDto()),
-            defaultVatGroup = "VAT_16"
+            vatGroup = "VAT_16"
         )
 
     private fun buyRequest(idem: String) =

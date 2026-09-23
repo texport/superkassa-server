@@ -11,6 +11,7 @@ import io.github.texport.superkassa.jvm.storage.impl.domain.repository.KkmUserRe
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.OfdMessageRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.OfflineQueueRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.OutboxEventRepository
+import io.github.texport.superkassa.jvm.storage.impl.domain.repository.PinAttemptRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.QueueLockRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.QueueTaskRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.ShiftRepository
@@ -38,11 +39,6 @@ interface StorageSession : AutoCloseable {
     val counters: CounterRepository
     val errors: ErrorMessageRepository
     val outbox: OutboxEventRepository
-
-    /**
-     * Выполняет блок в транзакции.
-     * Используется для операций, которые должны быть атомарными.
-     */
-    fun <T> inTransaction(block: () -> T): T
+    val pinAttempts: PinAttemptRepository
     override fun close()
 }

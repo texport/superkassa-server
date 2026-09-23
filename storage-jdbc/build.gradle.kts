@@ -29,6 +29,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.mockk)
     testImplementation(project(":server-time"))
+    testImplementation(libs.ofd.kt.proto)
     detektPlugins(libs.detekt.formatting)
 }
 
