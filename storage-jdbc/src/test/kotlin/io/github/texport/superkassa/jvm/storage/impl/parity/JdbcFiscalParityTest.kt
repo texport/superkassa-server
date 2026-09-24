@@ -14,6 +14,7 @@ import io.github.texport.superkassa.core.presentation.api.model.kkm.ReceiptBrand
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ParentTicketRequest
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptSellRequest
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptSellReturnRequest
+import io.github.texport.superkassa.testing.api.bfd.FakeBfd
 import kz.kazakhtelecom.proto.v203.MoneyPlacementEnum
 import kz.kazakhtelecom.proto.v203.Money as BfdMoney
 import kz.kazakhtelecom.proto.v203.OperationTypeEnum

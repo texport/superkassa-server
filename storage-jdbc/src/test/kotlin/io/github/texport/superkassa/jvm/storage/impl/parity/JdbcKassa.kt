@@ -23,7 +23,8 @@ import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptP
 import io.github.texport.superkassa.jvm.storage.impl.adapter.StorageAdapter
 import io.github.texport.superkassa.jvm.storage.impl.data.bootstrap.DefaultStorageBootstrap
 import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
-import io.github.texport.superkassa.jvm.time.impl.SystemClock
+import io.github.texport.superkassa.testing.api.bfd.FakeBfd
+import io.github.texport.superkassa.testing.api.clock.MovableClock
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -32,7 +33,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Касса на ядре с хранилищем узла: сборка та же, что у узла, база — SQLite
- * во временном каталоге, сеть — [FakeBfd], доставка покупателю — [DeliveryLog].
+ * во временном каталоге, сеть — [FakeBfd] ядра, доставка покупателю — [DeliveryLog].
  * Касса зарегистрирована, у неё администратор и кассир.
  *
  * Та же касса, что проверяется в ядре на Room: сценарии здесь те же, и
@@ -45,7 +46,7 @@ internal class JdbcKassa(
     val clock: MovableClock = MovableClock(),
     register: Boolean = true
 ) {
-    val bfd = FakeBfd(TOKEN)
+    val bfd = FakeBfd(firstToken = TOKEN)
     val deliveries = DeliveryLog()
     val storage = openStorage(dir)
     val api: SuperkassaApi = SuperkassaCoreEngine(
@@ -96,7 +97,7 @@ internal class JdbcKassa(
                 id = KKM, createdAt = now, updatedAt = now,
                 mode = KkmMode.REGISTRATION.name, state = KkmState.ACTIVE.name,
                 ofdProvider = "KAZAKHTELECOM:TEST", registrationNumber = KGD_NUMBER, factoryNumber = "KZT0000001",
-                systemId = "100500", ofdServiceInfo = SERVICE_INFO,
+                systemId = SYSTEM_ID.toString(), ofdServiceInfo = SERVICE_INFO,
                 // Токен хранится так, как его пишет ядро: десятичная запись в Base64.
                 tokenEncryptedBase64 = Base64.getEncoder().encodeToString(TOKEN.toString().toByteArray()),
                 tokenUpdatedAt = now
@@ -137,6 +138,9 @@ internal class JdbcKassa(
         const val CASHIER_PIN = "4321"
         const val TOKEN = 123_456_789L
 
+        /** Номер кассы в БФД: по нему [FakeBfd] ведёт её учёт. */
+        const val SYSTEM_ID = 100_500L
+
         /** Больше интервала восстановления связи (не менее 60 с по протоколу). */
         private const val RECONNECT_MILLIS = 61_000L
 
@@ -173,17 +177,5 @@ internal class DeliveryLog : DeliveryPort {
     override fun deliver(request: DeliveryRequest): Boolean {
         delivered += request
         return true
-    }
-}
-
-/** Остановленные часы, которые проверка переводит вперёд и назад. */
-internal class MovableClock : ClockPort by SystemClock {
-    @Volatile
-    private var nowMs = System.currentTimeMillis()
-
-    override fun now(): Long = nowMs
-
-    fun move(ms: Long) {
-        nowMs += ms
     }
 }

@@ -10,6 +10,7 @@ import io.github.texport.superkassa.core.presentation.api.model.kkm.CashOperatio
 import io.github.texport.superkassa.core.presentation.api.model.ofd.DeliveryStatus
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptResponse
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptSellRequest
+import io.github.texport.superkassa.testing.api.clock.MovableClock
 import kz.kazakhtelecom.proto.v203.DateTime
 import java.time.Instant
 import java.time.ZoneId

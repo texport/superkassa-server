@@ -3,6 +3,7 @@ package io.github.texport.superkassa.jvm.storage.impl.parity
 import io.github.texport.superkassa.jvm.storage.impl.parity.JdbcKassa.Companion.ADMIN_PIN
 import io.github.texport.superkassa.jvm.storage.impl.parity.JdbcKassa.Companion.CASHIER_PIN
 import io.github.texport.superkassa.jvm.storage.impl.parity.JdbcKassa.Companion.KKM
+import io.github.texport.superkassa.jvm.storage.impl.parity.JdbcKassa.Companion.SYSTEM_ID
 import io.github.texport.superkassa.jvm.storage.impl.parity.JdbcKassa.Companion.cash
 import io.github.texport.superkassa.jvm.storage.impl.parity.JdbcKassa.Companion.item
 import io.github.texport.superkassa.core.domain.api.model.common.CounterKeyFormats
@@ -38,7 +39,7 @@ class JdbcShiftCloseTest {
         val close = kassa.bfd.closeShifts().single()
         assertEquals(true, close.withdraw_money)
         assertTrue(kassa.bfd.moneyPlacements().isEmpty(), "withdrawal is not sent on its own after the Z-report")
-        assertEquals(mapOf(1 to 350_000L), kassa.bfd.withdrawnByShift())
+        assertEquals(mapOf(1 to 350_000L), kassa.bfd.withdrawnByShift(SYSTEM_ID))
         val z = checkNotNull(close.z_report)
         assertEquals(BfdMoney(bills = 0, coins = 0), z.cash_sum)
         val withdrawal = z.money_placements.single { it.operation == MoneyPlacementEnum.MONEY_PLACEMENT_WITHDRAWAL }
@@ -78,7 +79,7 @@ class JdbcShiftCloseTest {
 
         assertEquals(DeliveryStatus.ONLINE_OK, accepted.deliveryStatus, accepted.deliveryError)
         assertNull(kassa.storage.findOpenShift(KKM))
-        assertEquals(mapOf(1 to 350_000L), kassa.bfd.withdrawnByShift())
+        assertEquals(mapOf(1 to 350_000L), kassa.bfd.withdrawnByShift(SYSTEM_ID))
         val z = checkNotNull(kassa.bfd.closeShifts().last().z_report)
         assertEquals(1, z.money_placements.single { it.operation == MoneyPlacementEnum.MONEY_PLACEMENT_WITHDRAWAL }.operations_count)
     }
