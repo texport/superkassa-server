@@ -4,7 +4,6 @@ import io.github.texport.superkassa.jvm.shared.strings.api.ErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.api.ErrorResolver
 import io.github.texport.superkassa.jvm.shared.strings.api.TrilingualString
 import io.github.texport.superkassa.jvm.shared.strings.api.key.DeliveryErrorKey
-import io.github.texport.superkassa.jvm.shared.strings.api.key.DeliveryTemplateKey
 import io.github.texport.superkassa.jvm.shared.strings.api.key.SettingsErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.api.key.TimeDebugKey
 import io.github.texport.superkassa.jvm.shared.strings.api.key.TimeErrorKey
@@ -192,32 +191,7 @@ class DefaultErrorResolver : ErrorResolver {
             ru = "Идентификатор телефона WhatsApp должен состоять только из цифр.",
             kk = "WhatsApp телефон идентификаторы тек сандардан тұруы керек."
         ),
-        // Delivery Translations
-        DeliveryErrorKey.SMS_DESTINATION_REQUIRED to TrilingualString(
-            en = "SMS destination (phone) required",
-            ru = "Требуется номер телефона получателя SMS",
-            kk = "SMS алушының телефон нөмірі қажет"
-        ),
-        DeliveryErrorKey.SMS_PROVIDER_NOT_CONFIGURED to TrilingualString(
-            en = "SMS provider URL not configured",
-            ru = "Не настроен URL-адрес провайдера SMS",
-            kk = "SMS-провайдердің URL-мекенжайы бапталмаған"
-        ),
-        DeliveryErrorKey.EMAIL_DESTINATION_REQUIRED to TrilingualString(
-            en = "Email destination required",
-            ru = "Требуется адрес электронной почты",
-            kk = "Электрондық пошта мекенжайы қажет"
-        ),
-        DeliveryErrorKey.EMAIL_PAYLOAD_MISSING to TrilingualString(
-            en = "No payload",
-            ru = "Отсутствуют данные чека",
-            kk = "Чек деректері жоқ"
-        ),
-        DeliveryErrorKey.EMAIL_SEND_FAILED to TrilingualString(
-            en = "Email sending failed: {0}",
-            ru = "Ошибка отправки почты: {0}",
-            kk = "Пошта жіберу қатесі: {0}"
-        ),
+        // Print Delivery Translations
         DeliveryErrorKey.PRINTER_NOT_FOUND to TrilingualString(
             en = "Printer '{0}' not found in the OS",
             ru = "Принтер '{0}' не найден в операционной системе",
@@ -237,26 +211,6 @@ class DefaultErrorResolver : ErrorResolver {
             en = "OS local print failed: {0}",
             ru = "Ошибка локальной печати ОС: {0}",
             kk = "Операциялық жүйенің жергілікті басып шығару қатесі: {0}"
-        ),
-        DeliveryErrorKey.TELEGRAM_CHAT_ID_REQUIRED to TrilingualString(
-            en = "Telegram chat_id required",
-            ru = "Требуется ID чата Telegram",
-            kk = "Telegram чат идентификаторы қажет"
-        ),
-        DeliveryErrorKey.WHATSAPP_PHONE_REQUIRED to TrilingualString(
-            en = "WhatsApp phone number required",
-            ru = "Требуется номер телефона WhatsApp",
-            kk = "WhatsApp телефон нөмірі қажет"
-        ),
-        DeliveryErrorKey.HTTP_DELIVERY_FAILED to TrilingualString(
-            en = "Delivery via {0} failed with status {1}. Response: {2}",
-            ru = "Доставка через {0} завершилась ошибкой с кодом {1}. Ответ: {2}",
-            kk = "{0} арқылы жеткізу {1} кодымен қате аяқталды. Жауап: {2}"
-        ),
-        DeliveryErrorKey.HTTP_DELIVERY_ERROR to TrilingualString(
-            en = "Delivery via {0} failed: {1}",
-            ru = "Ошибка доставки через {0}: {1}",
-            kk = "{0} арқылы жеткізу қатесі: {1}"
         ),
         // Time Translations
         TimeErrorKey.TIME_OUT_OF_RANGE to TrilingualString(
@@ -299,32 +253,6 @@ class DefaultErrorResolver : ErrorResolver {
             en = "Failed to parse Date header of reference time from {0}",
             ru = "Failed to parse Date header of reference time from {0}",
             kk = "Failed to parse Date header of reference time from {0}"
-        ),
-        // Delivery Templates
-        DeliveryTemplateKey.EMAIL_SUBJECT to TrilingualString(
-            en = "Receipt {0}",
-            ru = "Чек {0}",
-            kk = "Чек {0}"
-        ),
-        DeliveryTemplateKey.EMAIL_BODY_URL to TrilingualString(
-            en = "Link to receipt: {0}",
-            ru = "Ссылка на чек: {0}",
-            kk = "Чекке сілтеме: {0}"
-        ),
-        DeliveryTemplateKey.EMAIL_BODY_ATTACHMENT to TrilingualString(
-            en = "Receipt is in attachment.",
-            ru = "Чек во вложении.",
-            kk = "Чек қосымшада."
-        ),
-        DeliveryTemplateKey.SMS_BODY_URL to TrilingualString(
-            en = "Receipt: {0}",
-            ru = "Чек: {0}",
-            kk = "Чек: {0}"
-        ),
-        DeliveryTemplateKey.SMS_BODY_READY to TrilingualString(
-            en = "Receipt {0} is ready",
-            ru = "Чек {0} готов",
-            kk = "{0} чегі дайын"
         ),
         WebErrorKey.METHOD_NOT_ALLOWED to TrilingualString(
             en = "Request method not supported: {0}",

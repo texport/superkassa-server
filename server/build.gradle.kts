@@ -22,6 +22,7 @@ dependencies {
     implementation(libs.resilience4j)
     implementation(platform(libs.spring.boot.dependencies))
     implementation(libs.superkassa.core)
+    implementation(libs.superkassa.delivery.channels)
 
     implementation(project(":storage-jdbc"))
     implementation(project(":server-settings"))

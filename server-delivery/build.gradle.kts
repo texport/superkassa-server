@@ -14,7 +14,6 @@ dependencies {
     implementation(project(":shared-strings"))
     implementation(libs.superkassa.core)
     implementation(libs.slf4j.api)
-    implementation(libs.jakarta.mail)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.mockk)
@@ -61,13 +60,8 @@ tasks.jacocoTestCoverageVerification {
         rule {
             element = "CLASS"
             excludes = listOf(
-                "io.github.texport.superkassa.jvm.delivery.impl.SmsDeliveryAdapter*",
-                "io.github.texport.superkassa.jvm.delivery.impl.EmailDeliveryAdapter*",
-                "io.github.texport.superkassa.jvm.delivery.impl.WhatsAppDeliveryAdapter*",
-                "io.github.texport.superkassa.jvm.delivery.impl.TelegramDeliveryAdapter*",
                 "io.github.texport.superkassa.jvm.delivery.impl.PrintDeliveryAdapter*",
-                "io.github.texport.superkassa.jvm.delivery.impl.JpsPrintDeliveryAdapter*",
-                "io.github.texport.superkassa.jvm.delivery.impl.BaseHttpDeliveryAdapter*"
+                "io.github.texport.superkassa.jvm.delivery.impl.JpsPrintDeliveryAdapter*"
             )
             limit {
                 minimum = "1.0".toBigDecimal()

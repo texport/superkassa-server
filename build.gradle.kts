@@ -16,10 +16,24 @@ detekt {
     allRules = true
 }
 
+/*
+ * Модули ядра, чьи классы уже лежат внутри superkassa-core-jvm. Каналы доставки
+ * и тестовый БФД ядра тянут их отдельными артефактами; второй экземпляр тех же
+ * классов на пути классов лишь ждёт, когда разойдётся с первым.
+ */
+val modulesInsideCoreJar = listOf(
+    "superkassa-core-domain-jvm",
+    "superkassa-core-data-jvm",
+    "superkassa-core-presentation-jvm",
+    "superkassa-core-string-jvm",
+    "superkassa-core-database-jvm",
+    "superkassa-delivery-jvm",
+    "superkassa-offline-queue-jvm",
+    "superkassa-receipt-renderer-jvm"
+)
+
 subprojects {
     configurations.all {
-        exclude(group = "io.github.texport", module = "core-domain")
-        exclude(group = "io.github.texport", module = "core-data")
-        exclude(group = "io.github.texport", module = "core-presentation")
+        modulesInsideCoreJar.forEach { exclude(group = "io.github.texport", module = it) }
     }
 }

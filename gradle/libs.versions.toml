@@ -16,7 +16,6 @@ superkassaCore = "1.5.0-SNAPSHOT"
 ofdKtProto = "2.0.3-2"
 openhtmltopdf = "1.1.40"
 zxing = "3.5.4"
-jakartaMail = "2.0.2"
 slf4j = "2.0.18"
 jackson = "2.19.0"
 jacocoVersion = "0.8.15"
@@ -56,13 +55,11 @@ openhtmltopdf-pdfbox = { group = "io.github.openhtmltopdf", name = "openhtmltopd
 # QR Codes
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
-# Mail
-jakarta-mail = { group = "com.sun.mail", name = "jakarta.mail", version.ref = "jakartaMail" }
-
 # Testing
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 superkassa-core = { group = "io.github.texport", name = "superkassa-core-jvm", version.ref = "superkassaCore" }
 ofd-kt-proto = { group = "io.github.texport", name = "ofd-kt-proto", version.ref = "ofdKtProto" }
+superkassa-delivery-channels = { group = "io.github.texport", name = "superkassa-delivery-channels-jvm", version.ref = "superkassaCore" }
 detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }
 archunit = { group = "com.tngtech.archunit", name = "archunit-junit5", version.ref = "archunit" }
 

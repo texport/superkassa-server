@@ -6,20 +6,9 @@ import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettin
 import io.github.texport.superkassa.core.domain.api.model.settings.withDeploymentOwned
 import io.github.texport.superkassa.core.domain.api.port.integration.ClockPort
 import io.github.texport.superkassa.core.domain.api.port.integration.CoreSettingsRepositoryPort
-import io.github.texport.superkassa.core.domain.api.port.integration.DeliveryPort
 import io.github.texport.superkassa.core.domain.api.port.integration.DocumentConvertPort
 import io.github.texport.superkassa.core.domain.api.port.integration.QrCodeGeneratorPort
 import io.github.texport.superkassa.core.domain.api.port.integration.TimeValidatorPort
-import io.github.texport.superkassa.delivery.api.DeliveryServiceApi
-import io.github.texport.superkassa.delivery.api.createDeliveryServiceApi
-import io.github.texport.superkassa.delivery.api.model.DeliveryChannel
-import io.github.texport.superkassa.delivery.api.model.DeliveryRequest
-import io.github.texport.superkassa.delivery.api.model.DeliveryResult
-import io.github.texport.superkassa.jvm.delivery.impl.EmailDeliveryAdapter
-import io.github.texport.superkassa.jvm.delivery.impl.PrintDeliveryAdapter
-import io.github.texport.superkassa.jvm.delivery.impl.SmsDeliveryAdapter
-import io.github.texport.superkassa.jvm.delivery.impl.TelegramDeliveryAdapter
-import io.github.texport.superkassa.jvm.delivery.impl.WhatsAppDeliveryAdapter
 import io.github.texport.superkassa.jvm.receipt.impl.DocumentConvertAdapter
 import io.github.texport.superkassa.jvm.receipt.impl.QrCodeDataUriGenerator
 import io.github.texport.superkassa.jvm.settings.impl.FileCoreSettingsRepository
@@ -38,7 +27,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import io.github.texport.superkassa.delivery.api.port.DeliveryPort as KmpDeliveryPort
 
 @Configuration
 class AdaptersConfig {
@@ -167,103 +155,6 @@ class AdaptersConfig {
     }
 
     @Bean
-    fun deliveryPort(settings: CoreSettings): DeliveryPort {
-        val adapters = mutableListOf<KmpDeliveryPort>()
-        val delivery = settings.delivery
-        val channelsToUse = if (delivery != null && delivery.channels.isNotEmpty()) {
-            delivery.channels.filter { it.enabled }.map { it.channel.uppercase() }
-        } else {
-            settings.deliveryChannels.map { it.uppercase() }
-        }
-        channelsToUse.distinct().forEach { channelName ->
-            val adapter = createDeliveryAdapter(channelName, delivery)
-            if (adapter != null) {
-                adapters.add(adapter)
-            }
-        }
-        if (adapters.isEmpty()) {
-            // Ни одного канала не собралось: все выключены или ни один
-            // не настроен. Узел поднимается, но доставка отвечает отказом,
-            // а не молчаливым успехом.
-            logger.warn("No delivery channel is configured: receipt delivery will be refused")
-            adapters.add(unconfiguredChannelAdapter(DeliveryChannel.PRINT))
-        }
-        return ServerDeliveryServiceAdapter(createDeliveryServiceApi(adapters))
-    }
-
-    private fun createDeliveryAdapter(
-        channelName: String,
-        delivery: io.github.texport.superkassa.core.domain.api.model.settings.DeliverySettings?
-    ): KmpDeliveryPort? {
-        val channel = runCatching { DeliveryChannel.valueOf(channelName) }
-            .onFailure { logger.warn("Unknown delivery channel: $channelName", it) }
-            .getOrNull() ?: return null
-
-        return when (channel) {
-            DeliveryChannel.PRINT -> createPrintAdapter(delivery?.print)
-            DeliveryChannel.EMAIL -> createEmailAdapter(delivery?.email)
-            DeliveryChannel.SMS -> createSmsAdapter(delivery?.sms)
-            DeliveryChannel.TELEGRAM -> createTelegramAdapter(delivery?.telegram)
-            DeliveryChannel.WHATSAPP -> createWhatsAppAdapter(delivery?.whatsapp)
-        }
-    }
-
-    private fun createPrintAdapter(print: io.github.texport.superkassa.core.domain.api.model.settings.PrintDeliverySettings?): KmpDeliveryPort {
-        val connection = print?.connection ?: return unconfiguredChannelAdapter(DeliveryChannel.PRINT)
-        val host = connection.host
-        val port = connection.port
-        if (host != null && port != null) {
-            return PrintDeliveryAdapter(host, port)
-        }
-        return unconfiguredChannelAdapter(DeliveryChannel.PRINT)
-    }
-
-    private fun createEmailAdapter(email: io.github.texport.superkassa.core.domain.api.model.settings.EmailProviderSettings?): KmpDeliveryPort {
-        if (email == null) return unconfiguredChannelAdapter(DeliveryChannel.EMAIL)
-        return EmailDeliveryAdapter(
-            email.host,
-            email.port,
-            email.user ?: "",
-            email.password ?: "",
-            email.from
-        )
-    }
-
-    private fun createSmsAdapter(sms: io.github.texport.superkassa.core.domain.api.model.settings.SmsProviderSettings?): KmpDeliveryPort {
-        val url = sms?.providerUrl ?: return unconfiguredChannelAdapter(DeliveryChannel.SMS)
-        return SmsDeliveryAdapter(url, sms.apiKey)
-    }
-
-    private fun createTelegramAdapter(tg: io.github.texport.superkassa.core.domain.api.model.settings.TelegramProviderSettings?): KmpDeliveryPort {
-        val token = tg?.botToken ?: return unconfiguredChannelAdapter(DeliveryChannel.TELEGRAM)
-        return TelegramDeliveryAdapter(token)
-    }
-
-    private fun createWhatsAppAdapter(wa: io.github.texport.superkassa.core.domain.api.model.settings.WhatsAppProviderSettings?): KmpDeliveryPort {
-        val token = wa?.accessToken ?: return unconfiguredChannelAdapter(DeliveryChannel.WHATSAPP)
-        val phoneId = wa.phoneNumberId ?: return unconfiguredChannelAdapter(DeliveryChannel.WHATSAPP)
-        return WhatsAppDeliveryAdapter(token, phoneId)
-    }
-
-    /**
-     * Адаптер канала, который выбран, но не настроен.
-     *
-     * Он отвечает отказом с причиной. Прежде на его месте стояла заглушка,
-     * возвращавшая успех: чек покупателю не уходил ни по одному каналу,
-     * а касса записывала его доставленным и говорила об этом кассиру.
-     * Отказ, открывающийся наружу успехом, в фискальной программе
-     * недопустим — лучше видимый отказ, чем незаметная потеря чека.
-     */
-    private fun unconfiguredChannelAdapter(channel: DeliveryChannel): KmpDeliveryPort =
-        object : KmpDeliveryPort {
-            override val channel: DeliveryChannel = channel
-            override fun send(request: DeliveryRequest): DeliveryResult {
-                logger.warn("Delivery channel {} is selected but not configured", channel)
-                return DeliveryResult(false, "Delivery channel $channel is not configured")
-            }
-        }
-
-    @Bean
     fun qrCodeGeneratorPort(): QrCodeGeneratorPort = QrCodeDataUriGenerator
 
     @Bean
@@ -274,36 +165,4 @@ class AdaptersConfig {
 
     @Bean
     fun clockPort(): ClockPort = SystemClock
-}
-
-class ServerDeliveryServiceAdapter(
-    private val deliveryService: DeliveryServiceApi
-) : DeliveryPort {
-    private val logger = LoggerFactory.getLogger(ServerDeliveryServiceAdapter::class.java)
-
-    @Suppress("TooGenericExceptionCaught")
-    override fun deliver(request: io.github.texport.superkassa.core.domain.api.model.delivery.DeliveryRequest): Boolean {
-        return try {
-            val channel = try {
-                DeliveryChannel.valueOf(request.channel.uppercase())
-            } catch (e: IllegalArgumentException) {
-                logger.warn("Unknown delivery channel: ${request.channel}, using PRINT", e)
-                DeliveryChannel.PRINT
-            }
-            val result = deliveryService.deliver(
-                DeliveryRequest(
-                    cashboxId = request.kkmId,
-                    documentId = request.documentId,
-                    channel = channel,
-                    destination = request.destination,
-                    payloadUrl = request.payloadUrl,
-                    payloadBytes = request.payloadBytes
-                )
-            )
-            result.ok
-        } catch (ex: Exception) {
-            logger.error("Failed to deliver document: ${request.documentId} for KKM: ${request.kkmId}", ex)
-            false
-        }
-    }
 }

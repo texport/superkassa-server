@@ -13,15 +13,13 @@
 
 ## Documentation in English
 
-Infrastructure delivery adapters for the **Superkassa** fiscalization system. Implements delivery ports defined in the core to send receipts, tickets, and notifications through various channels.
+Printing adapters of the **Superkassa** node. They implement the delivery port of the core for receipt printers.
+
+SMS, Telegram, WhatsApp and email are not here: the node assembles them from the core module `superkassa-delivery-channels`, the same channels the embedded cashbox uses.
 
 ### Key Features
-- **`PrintDeliveryAdapter` & `JpsPrintDeliveryAdapter`**: Printing support for POS terminals and hardware receipt printers.
-- **`SmsDeliveryAdapter`**: Send notifications over SMS gateways.
-- **`WhatsAppDeliveryAdapter`**: Deliver receipts directly to customers via WhatsApp Business API.
-- **`TelegramDeliveryAdapter`**: Deliver notifications to Telegram chats/bots.
-- **`EmailDeliveryAdapter`**: SMTP/HTTP email dispatching.
-- **`BaseHttpDeliveryAdapter`**: Reusable base class for HTTP-based notification gateways.
+- **`PrintDeliveryAdapter`**: ESC/POS bytes to a network receipt printer over a raw TCP socket.
+- **`JpsPrintDeliveryAdapter`**: printing to a printer registered in the operating system (Java Print Service).
 
 ---
 
@@ -40,25 +38,23 @@ dependencies {
 ### Usage Example
 
 ```kotlin
-import io.github.texport.superkassa.jvm.delivery.impl.TelegramDeliveryAdapter
+import io.github.texport.superkassa.jvm.delivery.impl.PrintDeliveryAdapter
 
-val telegramAdapter = TelegramDeliveryAdapter(httpClient, config)
-telegramAdapter.send(document)
+val printer = PrintDeliveryAdapter(host = "192.168.1.50", port = 9100)
+printer.send(request)
 ```
 
 ---
 
 ## Документация на русском языке
 
-Инфраструктурные адаптеры отправки и печати для системы фискализации **Superkassa**. Реализует порты отправки, объявленные в ядре системы, для доставки чеков, билетов и уведомлений через различные каналы связи.
+Печатные адаптеры узла **Superkassa**. Реализуют порт доставки ядра для принтеров чеков.
+
+SMS, Telegram, WhatsApp и почты здесь нет: узел собирает их из модуля ядра `superkassa-delivery-channels` — те же каналы, что у встраиваемой кассы.
 
 ### Ключевые возможности
-- **`PrintDeliveryAdapter` и `JpsPrintDeliveryAdapter`**: Поддержка печати чеков на POS-терминалах и аппаратных принтерах чеков.
-- **`SmsDeliveryAdapter`**: Отправка уведомлений через SMS-шлюзы.
-- **`WhatsAppDeliveryAdapter`**: Доставка чеков клиентам через WhatsApp Business API.
-- **`TelegramDeliveryAdapter`**: Доставка уведомлений в Telegram чаты и боты.
-- **`EmailDeliveryAdapter`**: Отправка писем по электронной почте через SMTP/HTTP.
-- **`BaseHttpDeliveryAdapter`**: Базовый абстрактный класс для переиспользования логики HTTP-шлюзов доставки.
+- **`PrintDeliveryAdapter`**: байты ESC/POS на сетевой принтер чеков через TCP-сокет.
+- **`JpsPrintDeliveryAdapter`**: печать на принтер, зарегистрированный в операционной системе (Java Print Service).
 
 ---
 
@@ -77,10 +73,10 @@ dependencies {
 ### Пример использования
 
 ```kotlin
-import io.github.texport.superkassa.jvm.delivery.impl.TelegramDeliveryAdapter
+import io.github.texport.superkassa.jvm.delivery.impl.PrintDeliveryAdapter
 
-val telegramAdapter = TelegramDeliveryAdapter(httpClient, config)
-telegramAdapter.send(document)
+val printer = PrintDeliveryAdapter(host = "192.168.1.50", port = 9100)
+printer.send(request)
 ```
 
 ---

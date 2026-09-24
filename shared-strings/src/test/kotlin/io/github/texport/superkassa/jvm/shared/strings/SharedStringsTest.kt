@@ -3,7 +3,6 @@ package io.github.texport.superkassa.jvm.shared.strings
 import io.github.texport.superkassa.jvm.shared.strings.api.ErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.api.TrilingualString
 import io.github.texport.superkassa.jvm.shared.strings.api.key.DeliveryErrorKey
-import io.github.texport.superkassa.jvm.shared.strings.api.key.DeliveryTemplateKey
 import io.github.texport.superkassa.jvm.shared.strings.api.key.SettingsErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.api.key.StorageErrorKey
 import io.github.texport.superkassa.jvm.shared.strings.api.key.TimeDebugKey
@@ -95,17 +94,6 @@ class SharedStringsTest {
             val resolved = resolver.resolve(key)
             assertNotEquals("Unknown error", resolved.en)
             assertEquals(key, TimeDebugKey.valueOf(key.name))
-            assertTrue(key.code.isNotEmpty())
-        }
-    }
-
-    @Test
-    fun testDeliveryTemplateKeyEnum() {
-        assertNotNull(DeliveryTemplateKey.values())
-        for (key in DeliveryTemplateKey.entries) {
-            val resolved = resolver.resolve(key)
-            assertNotEquals("Unknown error", resolved.en)
-            assertEquals(key, DeliveryTemplateKey.valueOf(key.name))
             assertTrue(key.code.isNotEmpty())
         }
     }
