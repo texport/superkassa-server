@@ -56,7 +56,8 @@ class ReportsController(private val kkmService: SuperkassaApi) {
             - ReportResult с полями:
               * documentId: Идентификатор сгенерированного фискального документа отчета в БД.
               * deliveryStatus: Статус доставки отчета в ОФД/клиенту (ONLINE_OK, ONLINE_ERROR, OFFLINE_QUEUED, NOT_SENT).
-              * deliveryError: Текст ошибки доставки, если отправка завершилась неудачно (опционально).
+              * deliveryError: Почему БФД не принял отчёт и что делать — ru, kk, en (опционально).
+              * bfdResultCode: Код отказа БФД (ResultTypeEnum CPCR); пусто, если БФД не ответил или принял.
               * deliveryPayload: Бинарное представление сгенерированного отчета (опционально).
 
             Важно:

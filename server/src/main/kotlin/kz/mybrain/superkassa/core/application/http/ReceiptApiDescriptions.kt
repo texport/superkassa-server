@@ -40,7 +40,9 @@ private const val RECEIPT_RESULT = """
 - fiscalSign: фискальный признак БФД; null, если чек оформлен автономно
 - autonomousSign: автономный фискальный признак, если чек оформлен без связи с БФД
 - deliveryStatus: судьба чека в БФД — ONLINE_OK, ONLINE_ERROR, OFFLINE_QUEUED, NOT_SENT
-- deliveryError, deliveryPayload (опционально): причина отказа и печатная форма
+- deliveryError (опционально): почему БФД не принял чек и что делать — ru, kk, en
+- bfdResultCode (опционально): код отказа БФД (ResultTypeEnum CPCR); пусто, если БФД не ответил или принял
+- deliveryPayload (опционально): печатная форма
 
 Все суммы — в тенге точным десятичным числом, например 1234.56.
 """

@@ -25,8 +25,8 @@ class JdbcQueueTaskRepository(
         val insert = """
             INSERT INTO queue_task (
                 id, cashbox_id, lane, type, payload_ref, created_at,
-                status, attempt, next_attempt_at, last_error
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                status, attempt, next_attempt_at, last_error, last_error_code
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
         val sql = SqlDialect(connection).insertIfAbsent(insert, "id")
         return try {
@@ -41,6 +41,7 @@ class JdbcQueueTaskRepository(
                 stmt.setInt(8, record.attempt)
                 stmt.setObject(9, record.nextAttemptAt?.let { java.lang.Long.valueOf(it) })
                 stmt.setString(10, record.lastError)
+                stmt.bindInt(11, record.lastErrorCode)
                 stmt.executeUpdate() == 1
             }
         } catch (ex: SQLException) {
@@ -54,14 +55,16 @@ class JdbcQueueTaskRepository(
         status: String,
         attempt: Int,
         lastError: String?,
-        nextAttemptAt: Long?
+        nextAttemptAt: Long?,
+        lastErrorCode: Int?
     ): Boolean {
         val sql = """
             UPDATE queue_task SET
                 status = ?,
                 attempt = ?,
                 last_error = ?,
-                next_attempt_at = ?
+                next_attempt_at = ?,
+                last_error_code = ?
             WHERE id = ?
         """.trimIndent()
         return try {
@@ -70,7 +73,8 @@ class JdbcQueueTaskRepository(
                 stmt.setInt(2, attempt)
                 stmt.setString(3, lastError)
                 stmt.setObject(4, nextAttemptAt?.let { java.lang.Long.valueOf(it) })
-                stmt.setString(5, id)
+                stmt.bindInt(5, lastErrorCode)
+                stmt.setString(6, id)
                 stmt.executeUpdate() == 1
             }
         } catch (ex: SQLException) {
@@ -174,7 +178,8 @@ class JdbcQueueTaskRepository(
             status = rs.getString("status"),
             attempt = rs.getInt("attempt"),
             nextAttemptAt = rs.getObject("next_attempt_at")?.let { rs.getLong("next_attempt_at") },
-            lastError = rs.getString("last_error")
+            lastError = rs.getString("last_error"),
+            lastErrorCode = rs.getObject("last_error_code")?.let { rs.getInt("last_error_code") }
         )
     }
 

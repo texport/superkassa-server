@@ -14,5 +14,7 @@ data class QueueTaskRecord(
     val status: String,
     val attempt: Int,
     val nextAttemptAt: Long?,
-    val lastError: String?
+    val lastError: String?,
+    /** Код отказа БФД при последней попытке; `null` — БФД не ответил или принял. */
+    val lastErrorCode: Int? = null
 )

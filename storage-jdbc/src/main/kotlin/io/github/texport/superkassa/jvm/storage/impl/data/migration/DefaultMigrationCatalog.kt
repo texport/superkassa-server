@@ -145,6 +145,11 @@ class DefaultMigrationCatalog : MigrationCatalog {
                 version = "27",
                 resourcePath = "$prefix/V27__delivery_tasks.sql",
                 checksum = "v27"
+            ),
+            MigrationScript(
+                version = "28",
+                resourcePath = "$prefix/V28__queue_task_last_error_code.sql",
+                checksum = "v28"
             )
         )
     }

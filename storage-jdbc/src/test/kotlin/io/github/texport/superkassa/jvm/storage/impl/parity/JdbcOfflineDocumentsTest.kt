@@ -13,6 +13,7 @@ import io.github.texport.superkassa.core.presentation.api.model.receipt.Customer
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptResponse
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptSellRequest
 import io.github.texport.superkassa.testing.api.clock.MovableClock
+import kz.kazakhtelecom.proto.v203.CommandTypeEnum
 import kz.kazakhtelecom.proto.v203.DateTime
 import java.time.Instant
 import java.time.ZoneId
@@ -65,6 +66,20 @@ class JdbcOfflineDocumentsTest {
 
         assertEquals(1, kassa.queueTasks(sale).size)
         assertEquals(1, kassa.queueTasks(cashIn).size)
+    }
+
+    @Test
+    fun `отказ БФД досланному чеку виден в очереди кодом и переживает перезапуск узла`() {
+        kassa.api.openShift(KKM, ADMIN_PIN)
+        kassa.bfd.unreachableOnce()
+        sell("100.00", "sale-1")
+        kassa.bfd.reject(CommandTypeEnum.COMMAND_TICKET, INCORRECT_REQUEST_DATA)
+
+        kassa.reconnectAndResend()
+        val restarted = JdbcKassa(dir = kassa.dir, clock = clock, register = false)
+
+        val item = restarted.api.queue.listQueue(KKM, ADMIN_PIN).single()
+        assertEquals(INCORRECT_REQUEST_DATA, item.bfdResultCode, item.lastError)
     }
 
     @Test
@@ -135,6 +150,8 @@ class JdbcOfflineDocumentsTest {
         listOf(value.date.year, value.date.month, value.date.day, value.time.hour, value.time.minute, value.time.second)
 
     private companion object {
+        /** RESULT_TYPE_INCORRECT_REQUEST_DATA: БФД не принял данные документа. */
+        const val INCORRECT_REQUEST_DATA = 13
         const val HOUR_MILLIS = 3_600_000L
         const val DAY_MILLIS = 24 * HOUR_MILLIS
     }

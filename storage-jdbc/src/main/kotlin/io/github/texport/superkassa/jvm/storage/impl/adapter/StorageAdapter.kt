@@ -302,9 +302,10 @@ class StorageAdapter private constructor(
         status: String,
         attempt: Int,
         lastError: String?,
-        nextAttemptAt: Long?
+        nextAttemptAt: Long?,
+        lastErrorCode: Int?
     ): Boolean =
-        withSession { queueDelegate.updateQueueTaskStatus(id, status, attempt, lastError, nextAttemptAt) }
+        withSession { queueDelegate.updateQueueTaskStatus(id, status, attempt, lastError, nextAttemptAt, lastErrorCode) }
 
     override fun markQueueTaskInProgress(id: String, now: Long): Boolean =
         withSession { queueDelegate.markQueueTaskInProgress(id, now) }

@@ -77,7 +77,7 @@ class JdbcShiftCloseTest {
 
         val accepted = kassa.api.closeShift(KKM, CASHIER_PIN)
 
-        assertEquals(DeliveryStatus.ONLINE_OK, accepted.deliveryStatus, accepted.deliveryError)
+        assertEquals(DeliveryStatus.ONLINE_OK, accepted.deliveryStatus, accepted.deliveryError?.ru)
         assertNull(kassa.storage.findOpenShift(KKM))
         assertEquals(mapOf(1 to 350_000L), kassa.bfd.withdrawnByShift(SYSTEM_ID))
         val z = checkNotNull(kassa.bfd.closeShifts().last().z_report)

@@ -47,10 +47,11 @@ class QueueController(
             Что показывает:
             - lane: OFFLINE
             - type: тип команды (TICKET, REPORT_X, CLOSE_SHIFT, MONEY_PLACEMENT и т.п.)
-            - status: текущий статус (PENDING, IN_PROGRESS, SENT, FAILED)
+            - status: текущий статус (PENDING, IN_PROGRESS, SENT, FAILED, REJECTED)
             - attempt: количество попыток отправки
             - nextAttemptAt: время следующей попытки (epoch millis), если запланирована
-            - lastError: последнее сообщение об ошибке (если было)
+            - lastError, errorRu, errorKk, errorEn: причина последнего отказа (если был)
+            - bfdResultCode: код отказа БФД (ResultTypeEnum CPCR); пусто, если БФД не ответил или принял
             
             Ограничения:
             - Доступен только пользователю с ролью ADMIN

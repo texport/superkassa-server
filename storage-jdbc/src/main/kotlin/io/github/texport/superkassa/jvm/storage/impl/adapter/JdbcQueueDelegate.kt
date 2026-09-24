@@ -18,7 +18,8 @@ class JdbcQueueDelegate(private val sessionProvider: () -> StorageSession) {
                 status = dto.status,
                 attempt = dto.attempt,
                 nextAttemptAt = dto.nextAttemptAt,
-                lastError = dto.lastError
+                lastError = dto.lastError,
+                lastErrorCode = dto.lastErrorCode
             )
         )
     }
@@ -39,7 +40,8 @@ class JdbcQueueDelegate(private val sessionProvider: () -> StorageSession) {
         status = status,
         attempt = attempt,
         nextAttemptAt = nextAttemptAt,
-        lastError = lastError
+        lastError = lastError,
+        lastErrorCode = lastErrorCode
     )
 
     fun updateQueueTaskStatus(
@@ -47,9 +49,10 @@ class JdbcQueueDelegate(private val sessionProvider: () -> StorageSession) {
         status: String,
         attempt: Int,
         lastError: String?,
-        nextAttemptAt: Long?
+        nextAttemptAt: Long?,
+        lastErrorCode: Int?
     ): Boolean {
-        return sessionProvider().queueTask.updateStatus(id, status, attempt, lastError, nextAttemptAt)
+        return sessionProvider().queueTask.updateStatus(id, status, attempt, lastError, nextAttemptAt, lastErrorCode)
     }
 
     fun markQueueTaskInProgress(id: String, now: Long): Boolean {

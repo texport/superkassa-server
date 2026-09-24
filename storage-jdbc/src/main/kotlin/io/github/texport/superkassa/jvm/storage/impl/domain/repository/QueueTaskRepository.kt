@@ -13,7 +13,8 @@ interface QueueTaskRepository {
         status: String,
         attempt: Int,
         lastError: String?,
-        nextAttemptAt: Long?
+        nextAttemptAt: Long?,
+        lastErrorCode: Int?
     ): Boolean
     fun markInProgress(id: String, now: Long): Boolean
     fun listByCashbox(cashboxId: String, lane: String, limit: Int, offset: Int): List<QueueTaskRecord>
