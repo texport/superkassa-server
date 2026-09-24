@@ -1,6 +1,8 @@
 package io.github.texport.superkassa.jvm.storage.impl.data.jdbc
 
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
+import io.github.texport.superkassa.jvm.storage.impl.delivery.DeliveryTaskRepository
+import io.github.texport.superkassa.jvm.storage.impl.delivery.JdbcDeliveryTaskRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.CashboxLockRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.CashboxRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.CounterRepository
@@ -39,6 +41,7 @@ class JdbcStorageSession(
     override val errors: ErrorMessageRepository = JdbcErrorMessageRepository(connection)
     override val outbox: OutboxEventRepository = JdbcOutboxEventRepository(connection)
     override val pinAttempts: PinAttemptRepository = JdbcPinAttemptRepository(connection)
+    override val deliveryTasks: DeliveryTaskRepository = JdbcDeliveryTaskRepository(connection)
 
     override fun close() {
         connection.close()

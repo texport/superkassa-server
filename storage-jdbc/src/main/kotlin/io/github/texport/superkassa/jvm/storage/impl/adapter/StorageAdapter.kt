@@ -2,22 +2,20 @@
 
 package io.github.texport.superkassa.jvm.storage.impl.adapter
 
-import io.github.texport.superkassa.core.domain.api.exception.SuperkassaException
 import io.github.texport.superkassa.core.domain.api.model.auth.*
 import io.github.texport.superkassa.core.domain.api.model.common.*
 import io.github.texport.superkassa.core.domain.api.model.kkm.*
 import io.github.texport.superkassa.core.domain.api.model.queue.*
 import io.github.texport.superkassa.core.domain.api.model.receipt.*
 import io.github.texport.superkassa.core.domain.api.model.shift.*
+import io.github.texport.superkassa.core.domain.api.port.integration.DeliveryTaskStore
 import io.github.texport.superkassa.core.domain.api.port.integration.PinAttemptsPort
 import io.github.texport.superkassa.core.domain.api.port.integration.StoragePort
 import io.github.texport.superkassa.core.domain.api.port.integration.inTransaction
 import io.github.texport.superkassa.jvm.storage.impl.application.bootstrap.StorageBootstrap
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
-import io.github.texport.superkassa.jvm.storage.impl.data.jdbc.JdbcStorageSession
+import io.github.texport.superkassa.jvm.storage.impl.delivery.JdbcDeliveryTasks
 import io.github.texport.superkassa.jvm.storage.impl.domain.config.StorageConfig
-import org.slf4j.LoggerFactory
-import java.sql.SQLException
 
 /**
  * Адаптер для доступа к репозиторию хранения (БД) на базе JDBC.
@@ -27,23 +25,23 @@ import java.sql.SQLException
  * Счёт неверных пинов ([pinAttempts]) ведётся в той же базе и в той же
  * транзакции потока: проверка пина, идущая внутри операции кассы,
  * не открывает второе соединение и не ждёт, пока первое отпустит базу.
- *
- * @property bootstrap компонент начальной инициализации и миграции базы данных.
- * @property config настройки подключения к базе данных.
+ * Так же идут задачи доставки чека покупателю ([JdbcDeliveryTasks]).
  */
-class StorageAdapter(
-    private val bootstrap: StorageBootstrap,
-    private val config: StorageConfig
-) : StoragePort {
-    private val logger = LoggerFactory.getLogger(StorageAdapter::class.java)
-    private val sessionHolder = ThreadLocal<StorageSession?>()
-    private val transactions = ThreadTransactions { openSessionWithRetry() as JdbcStorageSession }
+class StorageAdapter private constructor(
+    private val sessions: JdbcSessions
+) : StoragePort, DeliveryTaskStore by JdbcDeliveryTasks(sessions) {
+
+    /**
+     * @param bootstrap компонент начальной инициализации и миграции базы данных.
+     * @param config настройки подключения к базе данных.
+     */
+    constructor(bootstrap: StorageBootstrap, config: StorageConfig) : this(JdbcSessions(bootstrap, config))
+
+    private val transactions = sessions.transactions
 
     private val reqNumCache = OfdReqNumCache()
 
-    private val sessionProvider: () -> StorageSession = {
-        transactions.session() ?: sessionHolder.get() ?: error("No active transaction or session")
-    }
+    private val sessionProvider: () -> StorageSession = sessions::current
 
     private val kkmDelegate = JdbcKkmDelegate(sessionProvider)
     private val shiftDelegate = JdbcShiftDelegate(sessionProvider)
@@ -86,6 +84,7 @@ class StorageAdapter(
         return inTransaction {
             withSession { session ->
                 session.pinAttempts.delete(kkmId)
+                session.deliveryTasks.deleteByCashbox(kkmId)
                 session.locks.deleteByCashbox(kkmId)
                 session.idempotency.deleteByCashbox(kkmId)
                 session.offlineQueue.deleteByCashbox(kkmId)
@@ -324,57 +323,5 @@ class StorageAdapter(
     override fun releaseQueueLock(cashboxId: String, ownerId: String): Boolean =
         withSession { queueDelegate.releaseQueueLock(cashboxId, ownerId) }
 
-    internal fun <T> withSession(block: (StorageSession) -> T): T {
-        try {
-            val existing = transactions.session() ?: sessionHolder.get()
-            if (existing != null) {
-                return block(existing)
-            }
-            return openSessionWithRetry(maxAttempts = 3, delayMs = 200).use { session ->
-                sessionHolder.set(session)
-                try {
-                    block(session)
-                } finally {
-                    sessionHolder.remove()
-                }
-            }
-        } catch (e: SuperkassaException) {
-            throw e
-        } catch (e: Exception) {
-            logger.error("Storage operation failed: {}", StorageFailures.describe(e))
-            if (StorageFailures.isUniqueViolation(e)) {
-                throw StorageFailures.duplicateRecord()
-            }
-            throw StorageFailures.storageFailure(e)
-        }
-    }
-
-    private fun openSessionWithRetry(maxAttempts: Int = 3, delayMs: Long = 200): StorageSession {
-        var lastEx: Exception? = null
-        for (attempt in 1..maxAttempts) {
-            try {
-                return bootstrap.openSession(config)
-            } catch (e: Exception) {
-                lastEx = e
-                if (!isTransientDbFailure(e) || attempt == maxAttempts) {
-                    throw e
-                }
-                logger.warn(
-                    "Storage session open failed (attempt {}/{}), retrying in {}ms: {}",
-                    attempt,
-                    maxAttempts,
-                    delayMs,
-                    StorageFailures.describe(e)
-                )
-                Thread.sleep(delayMs)
-            }
-        }
-        throw lastEx ?: error("openSessionWithRetry failed")
-    }
-
-    private fun isTransientDbFailure(e: Exception): Boolean {
-        if (e is SQLException) return true
-        val msg = e.message?.lowercase() ?: return false
-        return msg.contains("connection") || msg.contains("timeout") || msg.contains("unavailable") || msg.contains("refused") || msg.contains("network")
-    }
+    internal fun <T> withSession(block: (StorageSession) -> T): T = sessions.withSession(block)
 }

@@ -1,5 +1,6 @@
 package io.github.texport.superkassa.jvm.storage.impl.application.session
 
+import io.github.texport.superkassa.jvm.storage.impl.delivery.DeliveryTaskRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.CashboxLockRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.CashboxRepository
 import io.github.texport.superkassa.jvm.storage.impl.domain.repository.CounterRepository
@@ -40,5 +41,6 @@ interface StorageSession : AutoCloseable {
     val errors: ErrorMessageRepository
     val outbox: OutboxEventRepository
     val pinAttempts: PinAttemptRepository
+    val deliveryTasks: DeliveryTaskRepository
     override fun close()
 }

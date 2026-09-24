@@ -1,6 +1,7 @@
 package io.github.texport.superkassa.jvm.storage.impl.parity
 
 import io.github.texport.superkassa.jvm.storage.impl.parity.JdbcKassa.Companion.ADMIN_PIN
+import io.github.texport.superkassa.jvm.storage.impl.parity.JdbcKassa.Companion.BUYER
 import io.github.texport.superkassa.jvm.storage.impl.parity.JdbcKassa.Companion.CASHIER_PIN
 import io.github.texport.superkassa.jvm.storage.impl.parity.JdbcKassa.Companion.KKM
 import io.github.texport.superkassa.jvm.storage.impl.parity.JdbcKassa.Companion.cash
@@ -8,6 +9,7 @@ import io.github.texport.superkassa.jvm.storage.impl.parity.JdbcKassa.Companion.
 import io.github.texport.superkassa.core.domain.api.model.common.Decimal
 import io.github.texport.superkassa.core.presentation.api.model.kkm.CashOperationRequest
 import io.github.texport.superkassa.core.presentation.api.model.ofd.DeliveryStatus
+import io.github.texport.superkassa.core.presentation.api.model.receipt.CustomerContactRequest
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptResponse
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptSellRequest
 import io.github.texport.superkassa.testing.api.clock.MovableClock
@@ -29,9 +31,27 @@ class JdbcOfflineDocumentsTest {
     fun `чек, принятый онлайн, доставляется покупателю один раз`() {
         kassa.api.openShift(KKM, ADMIN_PIN)
 
-        val sale = sell("100.00", "sale-1").documentId
+        val sale = sell("100.00", "sale-1", BUYER).documentId
+        val queued = kassa.deliveries.of(sale).size
+        kassa.delivery.sendDueDeliveries(limit = 10)
+        kassa.delivery.sendDueDeliveries(limit = 10)
 
-        assertEquals(1, kassa.deliveries.of(sale).size)
+        assertEquals(0, queued, "delivery waits for the background pass")
+        assertEquals(listOf(BUYER.phone), kassa.deliveries.of(sale).map { it.destination })
+    }
+
+    @Test
+    fun `автономный чек доходит до покупателя после досылки в БФД, а не раньше`() {
+        kassa.api.openShift(KKM, ADMIN_PIN)
+        kassa.bfd.unreachableOnce()
+        val sale = sell("100.00", "sale-1", BUYER).documentId
+
+        val beforeResend = kassa.delivery.sendDueDeliveries(limit = 10)
+        kassa.reconnectAndResend()
+        kassa.delivery.sendDueDeliveries(limit = 10)
+
+        assertEquals(0, beforeResend)
+        assertEquals(listOf(BUYER.phone), kassa.deliveries.of(sale).map { it.destination })
     }
 
     @Test
@@ -98,10 +118,13 @@ class JdbcOfflineDocumentsTest {
         assertEquals(almaty(kassa.document(close).createdAt), seconds(closing.close_time))
     }
 
-    private fun sell(total: String, key: String): ReceiptResponse = kassa.api.createSellReceipt(
-        KKM, CASHIER_PIN,
-        ReceiptSellRequest(idempotencyKey = key, items = listOf(item(total)), payments = listOf(cash(total)))
-    )
+    private fun sell(total: String, key: String, buyer: CustomerContactRequest? = null): ReceiptResponse =
+        kassa.api.createSellReceipt(
+            KKM, CASHIER_PIN,
+            ReceiptSellRequest(
+                idempotencyKey = key, items = listOf(item(total)), payments = listOf(cash(total)), customerContact = buyer
+            )
+        )
 
     /** Время документа в Алматы с точностью до секунды — так его несёт запрос. */
     private fun almaty(millis: Long): List<Int?> = Instant.ofEpochMilli(millis).atZone(ZoneId.of("Asia/Almaty")).let {

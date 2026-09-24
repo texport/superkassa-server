@@ -11,13 +11,17 @@ import io.github.texport.superkassa.core.domain.api.model.kkm.KkmMode
 import io.github.texport.superkassa.core.domain.api.model.kkm.KkmState
 import io.github.texport.superkassa.core.domain.api.model.ofd.OfdServiceInfo
 import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.DeliveryChannelSettings
+import io.github.texport.superkassa.core.domain.api.model.settings.DeliverySettings
 import io.github.texport.superkassa.core.domain.api.port.integration.ClockPort
 import io.github.texport.superkassa.core.domain.api.port.integration.CoreSettingsRepositoryPort
 import io.github.texport.superkassa.core.domain.api.port.integration.DeliveryPort
 import io.github.texport.superkassa.core.domain.api.port.integration.DocumentConvertPort
 import io.github.texport.superkassa.core.domain.api.port.integration.QrCodeGeneratorPort
 import io.github.texport.superkassa.core.domain.api.port.integration.TimeValidatorPort
+import io.github.texport.superkassa.core.presentation.api.DeliveryApi
 import io.github.texport.superkassa.core.presentation.api.SuperkassaApi
+import io.github.texport.superkassa.core.presentation.api.model.receipt.CustomerContactRequest
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptItemRequest
 import io.github.texport.superkassa.core.presentation.api.model.receipt.ReceiptPaymentRequest
 import io.github.texport.superkassa.jvm.storage.impl.adapter.StorageAdapter
@@ -49,19 +53,25 @@ internal class JdbcKassa(
     val bfd = FakeBfd(firstToken = TOKEN)
     val deliveries = DeliveryLog()
     val storage = openStorage(dir)
-    val api: SuperkassaApi = SuperkassaCoreEngine(
+    private val settings = MemorySettings()
+    private val engine = SuperkassaCoreEngine(
         storage = storage,
         pinAttempts = storage.pinAttempts,
-        settings = MemorySettings(),
+        settings = settings,
         delivery = deliveries,
         clock = clock,
         timeValidator = TrustedClock,
         qrCode = NoQrCodes,
         pdfConverter = NoDocuments,
         ofdTransport = bfd
-    ).buildApi()
+    )
+    val api: SuperkassaApi = engine.buildApi()
+
+    /** Доставка чека покупателю: SMS страницей на телефон из чека, досылка — [DeliveryApi.sendDueDeliveries]. */
+    val delivery: DeliveryApi = engine.buildDeliveryApi()
 
     init {
+        settings.save(checkNotNull(settings.load()).copy(delivery = SMS_RECEIPT))
         if (register) register()
     }
 
@@ -137,6 +147,12 @@ internal class JdbcKassa(
         const val ADMIN_PIN = "8765"
         const val CASHIER_PIN = "4321"
         const val TOKEN = 123_456_789L
+
+        /** Покупатель, оставивший телефон: чек ему уходит по SMS. */
+        val BUYER = CustomerContactRequest(phone = "+77017654321")
+
+        /** Чек покупателю по SMS страницей: рисовать её быстрее, чем PDF. */
+        private val SMS_RECEIPT = DeliverySettings(channels = listOf(DeliveryChannelSettings("SMS", documentFormat = "HTML")))
 
         /** Номер кассы в БФД: по нему [FakeBfd] ведёт её учёт. */
         const val SYSTEM_ID = 100_500L

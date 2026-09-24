@@ -140,6 +140,11 @@ class DefaultMigrationCatalog : MigrationCatalog {
                 version = "26",
                 resourcePath = "$prefix/V26__pin_attempts.sql",
                 checksum = "v26"
+            ),
+            MigrationScript(
+                version = "27",
+                resourcePath = "$prefix/V27__delivery_tasks.sql",
+                checksum = "v27"
             )
         )
     }
