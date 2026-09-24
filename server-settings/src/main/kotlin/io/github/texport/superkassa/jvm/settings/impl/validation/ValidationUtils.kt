@@ -23,18 +23,6 @@ internal fun isDigitsOnly(s: String): Boolean {
     return s.isNotEmpty() && s.all { it.isDigit() }
 }
 
-internal fun isValidPhoneNumber(s: String): Boolean {
-    if (s.isBlank()) return false
-    val clean = if (s.startsWith("+")) s.substring(1) else s
-    return clean.isNotEmpty() && clean.all { it.isDigit() }
-}
-
-internal fun isValidTelegramChatId(s: String): Boolean {
-    if (s.isBlank()) return false
-    val clean = if (s.startsWith("-")) s.substring(1) else s
-    return clean.isNotEmpty() && clean.all { it.isDigit() }
-}
-
 internal fun isValidTelegramBotToken(token: String): Boolean {
     return telegramBotTokenRegex.matches(token)
 }

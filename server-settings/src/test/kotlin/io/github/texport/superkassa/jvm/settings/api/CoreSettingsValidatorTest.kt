@@ -411,69 +411,32 @@ class CoreSettingsValidatorTest {
             }
         """
         )
-
-        // destination blank
-        assertValidationFails(
-            """
-            {
-                "mode": "DESKTOP",
-                "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:db.db" },
-                "ofdProtocolVersion": "203",
-                "delivery": {
-                    "channels": [{ "channel": "PRINT", "enabled": true, "payloadType": "JSON", "documentFormat": "RAW", "destination": "" }],
-                    "print": { "paperWidthMm": 58, "connection": { "host": "localhost", "port": 9100 } }
-                }
-            }
-        """
-        )
     }
 
     @Test
-    fun `validateSettings delivery channel destinations format validation`() {
-        // EMAIL channel with invalid destination
-        assertValidationFails(
-            """
+    fun `канал без получателя годен, а получатель прежнего файла читается и не проверяется`() {
+        val jsonStr = """
             {
                 "mode": "DESKTOP",
                 "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:db.db" },
                 "ofdProtocolVersion": "203",
                 "delivery": {
-                    "channels": [{ "channel": "EMAIL", "enabled": true, "payloadType": "JSON", "documentFormat": "RAW", "destination": "invalid-email" }],
-                    "email": { "host": "smtp.gmail.com", "port": 25, "from": "sender@test.com", "user": "u", "password": "p" }
-                }
-            }
-        """
-        )
-
-        // SMS channel with invalid destination
-        assertValidationFails(
-            """
-            {
-                "mode": "DESKTOP",
-                "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:db.db" },
-                "ofdProtocolVersion": "203",
-                "delivery": {
-                    "channels": [{ "channel": "SMS", "enabled": true, "payloadType": "JSON", "documentFormat": "RAW", "destination": "abc" }],
-                    "sms": { "providerUrl": "http://sms.com", "apiKey": "key" }
-                }
-            }
-        """
-        )
-
-        // TELEGRAM channel with invalid destination
-        assertValidationFails(
-            """
-            {
-                "mode": "DESKTOP",
-                "storage": { "engine": "SQLITE", "jdbcUrl": "jdbc:sqlite:db.db" },
-                "ofdProtocolVersion": "203",
-                "delivery": {
-                    "channels": [{ "channel": "TELEGRAM", "enabled": true, "payloadType": "JSON", "documentFormat": "RAW", "destination": "not-a-number" }],
+                    "channels": [
+                        { "channel": "SMS", "enabled": true, "payloadType": "LINK", "documentFormat": "HTML" },
+                        { "channel": "EMAIL", "enabled": true, "payloadType": "JSON", "documentFormat": "RAW", "destination": "invalid-email" },
+                        { "channel": "TELEGRAM", "enabled": true, "payloadType": "JSON", "documentFormat": "RAW", "destination": "" }
+                    ],
+                    "email": { "host": "smtp.gmail.com", "port": 25, "from": "sender@test.com", "user": "u", "password": "p" },
+                    "sms": { "providerUrl": "http://sms.com", "apiKey": "key" },
                     "telegram": { "botToken": "123456:ABC-def0123456789012345678901234567" }
                 }
             }
         """
-        )
+        val settings = json.decodeFromString(CoreSettingsDto.serializer(), jsonStr).toDomain()
+
+        validator.validateSettings(settings)
+
+        assertEquals(listOf(null, "invalid-email", ""), settings.delivery?.channels?.map { it.destination })
     }
 
     @Test
@@ -908,18 +871,6 @@ class CoreSettingsValidatorTest {
             )
         )
 
-        // 11. destination is null
-        assertValidationFails(
-            base.copy(
-                delivery = DeliverySettings(
-                    channels = listOf(
-                        DeliveryChannelSettings(channel = "PRINT", enabled = true, payloadType = "JSON", documentFormat = "RAW", destination = null)
-                    ),
-                    print = PrintDeliverySettings(paperWidthMm = 58, connection = PrintConnectionSettings(host = "localhost", port = 9100))
-                )
-            )
-        )
-
         // 12. print connection host is null
         assertValidationFails(
             base.copy(
@@ -1148,41 +1099,6 @@ class CoreSettingsValidatorTest {
             )
         )
 
-        // 23. isValidEmail spacing check
-        assertValidationFails(
-            base.copy(
-                delivery = DeliverySettings(
-                    channels = listOf(
-                        DeliveryChannelSettings(channel = "EMAIL", enabled = true, payloadType = "JSON", documentFormat = "RAW", destination = "invalid email@domain.com")
-                    ),
-                    email = EmailProviderSettings(host = "smtp.gmail.com", port = 25, from = "sender@test.com", user = "u", password = "p")
-                )
-            )
-        )
-
-        // 24. isValidPhoneNumber blank check
-        assertValidationFails(
-            base.copy(
-                delivery = DeliverySettings(
-                    channels = listOf(
-                        DeliveryChannelSettings(channel = "SMS", enabled = true, payloadType = "JSON", documentFormat = "RAW", destination = "   ")
-                    ),
-                    sms = SmsProviderSettings(providerUrl = "http://sms.com", apiKey = "key")
-                )
-            )
-        )
-
-        // 25. isValidTelegramChatId blank check
-        assertValidationFails(
-            base.copy(
-                delivery = DeliverySettings(
-                    channels = listOf(
-                        DeliveryChannelSettings(channel = "TELEGRAM", enabled = true, payloadType = "JSON", documentFormat = "RAW", destination = "   ")
-                    ),
-                    telegram = TelegramProviderSettings(botToken = "123456:ABC-def0123456789012345678901234567")
-                )
-            )
-        )
     }
 
     @Test
@@ -1204,18 +1120,7 @@ class CoreSettingsValidatorTest {
         kotlin.test.assertFalse(isDigitsOnly(""))
         kotlin.test.assertFalse(isDigitsOnly("123a"))
 
-        // isValidPhoneNumber
-        kotlin.test.assertTrue(isValidPhoneNumber("+1234"))
-        kotlin.test.assertTrue(isValidPhoneNumber("1234"))
-        kotlin.test.assertFalse(isValidPhoneNumber("+")) // only plus
-        kotlin.test.assertFalse(isValidPhoneNumber("")) // empty
-        kotlin.test.assertFalse(isValidPhoneNumber("123a")) // non-digit
 
-        // isValidTelegramChatId
-        kotlin.test.assertTrue(isValidTelegramChatId("-1234"))
-        kotlin.test.assertTrue(isValidTelegramChatId("1234"))
-        kotlin.test.assertFalse(isValidTelegramChatId("-")) // only minus
-        kotlin.test.assertFalse(isValidTelegramChatId("")) // empty
     }
 
     @Test

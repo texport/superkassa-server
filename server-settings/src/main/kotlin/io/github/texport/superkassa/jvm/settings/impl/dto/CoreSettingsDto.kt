@@ -3,6 +3,7 @@ package io.github.texport.superkassa.jvm.settings.impl.dto
 import io.github.texport.superkassa.core.domain.api.model.settings.CoreMode
 import io.github.texport.superkassa.core.domain.api.model.settings.CoreSettings
 import io.github.texport.superkassa.core.domain.api.model.settings.StorageSettings
+import io.github.texport.superkassa.core.presentation.api.annotations.Schema
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -33,12 +34,24 @@ data class PrintDeliverySettingsDto(
     val connection: PrintConnectionSettingsDto? = null
 )
 
+/**
+ * Канал доставки чека покупателю.
+ *
+ * Получателя канал не задаёт: чек уходит на контакт покупателя из самого
+ * чека (`customerContact`). [destination] — поле прежних файлов настроек:
+ * оно читается и сохраняется, чтобы такой файл поднимался без правки,
+ * но доставка его не использует и узел его не проверяет.
+ */
 @Serializable
 data class DeliveryChannelSettingsDto(
     val channel: String,
     val enabled: Boolean = true,
     val payloadType: String = "DOCUMENT",
     val documentFormat: String = "PDF",
+    @Schema(
+        description = "Прежнее поле, заполнять не нужно: чек уходит на контакт покупателя из чека (customerContact). " +
+            "Читается из прежних файлов настроек и доставкой не используется."
+    )
     val destination: String? = null
 )
 

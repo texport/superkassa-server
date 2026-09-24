@@ -57,36 +57,9 @@ internal object DeliveryValidator {
                         resolver.resolve(SettingsErrorKey.DOCUMENT_FORMAT_BLANK).formatArgs(upperChannel).toString()
                     )
                 }
-                val dest = ch.destination
-                if (dest.isNullOrBlank()) {
-                    throw IllegalServerConfigurationException(
-                        resolver.resolve(SettingsErrorKey.DESTINATION_BLANK).formatArgs(upperChannel).toString()
-                    )
-                }
-                validateDestinationFormat(upperChannel, dest)
+                // Получателя канал не задаёт: чек уходит на контакт покупателя из чека.
+                // Поле destination читается из прежних файлов настроек и не проверяется.
                 validateChannel(upperChannel, delivery)
-            }
-        }
-    }
-
-    private fun validateDestinationFormat(channel: String, destination: String) {
-        when (channel) {
-            "EMAIL" -> {
-                if (!isValidEmail(destination)) {
-                    throw IllegalServerConfigurationException(resolver.resolve(SettingsErrorKey.EMAIL_DESTINATION_INVALID).toString())
-                }
-            }
-            "SMS", "WHATSAPP" -> {
-                if (!isValidPhoneNumber(destination)) {
-                    throw IllegalServerConfigurationException(
-                        resolver.resolve(SettingsErrorKey.PHONE_DESTINATION_INVALID).formatArgs(channel).toString()
-                    )
-                }
-            }
-            "TELEGRAM" -> {
-                if (!isValidTelegramChatId(destination)) {
-                    throw IllegalServerConfigurationException(resolver.resolve(SettingsErrorKey.TELEGRAM_DESTINATION_INVALID).toString())
-                }
             }
         }
     }

@@ -98,26 +98,6 @@ class DefaultErrorResolver : ErrorResolver {
             ru = "Формат документа не может быть пустым для канала {0}.",
             kk = "Құжат форматы {0} арнасы үшін бос болмауы керек."
         ),
-        SettingsErrorKey.DESTINATION_BLANK to TrilingualString(
-            en = "Destination cannot be blank for channel {0}.",
-            ru = "Назначение доставки не может быть пустым для канала {0}.",
-            kk = "Жеткізу орны {0} арнасы үшін бос болмауы керек."
-        ),
-        SettingsErrorKey.EMAIL_DESTINATION_INVALID to TrilingualString(
-            en = "Destination for EMAIL channel must be a valid email address.",
-            ru = "Назначение для канала EMAIL должно быть корректным адресом электронной почты.",
-            kk = "EMAIL арнасына арналған мекенжай дұрыс электрондық пошта болуы керек."
-        ),
-        SettingsErrorKey.PHONE_DESTINATION_INVALID to TrilingualString(
-            en = "Destination for {0} channel must be a valid phone number.",
-            ru = "Назначение для канала {0} должно быть корректным номером телефона.",
-            kk = "{0} арнасына арналған мекенжай дұрыс телефон нөмірі болуы керек."
-        ),
-        SettingsErrorKey.TELEGRAM_DESTINATION_INVALID to TrilingualString(
-            en = "Destination for TELEGRAM channel must be a numeric chat ID.",
-            ru = "Назначение для канала TELEGRAM должно быть числовым идентификатором чата.",
-            kk = "TELEGRAM арнасына арналған мекенжай сандық чат идентификаторы болуы керек."
-        ),
         SettingsErrorKey.PRINT_CONFIG_MISSING to TrilingualString(
             en = "Print config is missing.",
             ru = "Конфигурация печати отсутствует.",
