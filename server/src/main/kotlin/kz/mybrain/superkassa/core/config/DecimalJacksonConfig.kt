@@ -35,5 +35,5 @@ private object DecimalJsonSerializer : ValueSerializer<Decimal>() {
 
 private object DecimalJsonDeserializer : ValueDeserializer<Decimal>() {
     override fun deserialize(parser: JsonParser, context: DeserializationContext): Decimal =
-        Decimal.parse(parser.text)
+        Decimal.parse(parser.string)
 }

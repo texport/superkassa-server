@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+
 plugins {
     alias(libs.plugins.detekt)
     alias(libs.plugins.kotlin.jvm) apply false
@@ -35,5 +37,9 @@ val modulesInsideCoreJar = listOf(
 subprojects {
     configurations.all {
         modulesInsideCoreJar.forEach { exclude(group = "io.github.texport", module = it) }
+    }
+    // Предупреждение компилятора — ошибка: незамеченные они копятся.
+    tasks.withType<KotlinCompilationTask<*>>().configureEach {
+        compilerOptions.allWarningsAsErrors.set(true)
     }
 }

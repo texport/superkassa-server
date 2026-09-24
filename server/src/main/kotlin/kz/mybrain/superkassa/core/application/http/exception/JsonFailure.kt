@@ -1,5 +1,6 @@
 package kz.mybrain.superkassa.core.application.http.exception
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.SerializationException
 
@@ -15,7 +16,14 @@ internal object JsonFailure {
     private val UNKNOWN_VALUE = Regex("does not contain element with name '([^']+)'")
     private val PATH = Regex("at path:? (\\S+)")
 
-    /** Код ошибки и трёхъязычное сообщение по причине отказа. */
+    /**
+     * Код ошибки и трёхъязычное сообщение по причине отказа.
+     *
+     * Список пропущенных полей kotlinx.serialization отдаёт только
+     * экспериментальным API; разбирать вместо него текст исключения —
+     * хрупче: текст меняется от версии к версии.
+     */
+    @OptIn(ExperimentalSerializationApi::class)
     fun describe(cause: Throwable?): Pair<String, String> {
         val failure = generateSequence(cause) { it.cause }
             .filterIsInstance<SerializationException>()
