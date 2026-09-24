@@ -28,21 +28,21 @@ runs:
   using: composite
   steps:
     - name: Протокол
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: texport/ofd-kt-proto
         ref: ${{ inputs.ofd-kt-proto-ref }}
         path: .siblings/ofd-kt-proto
 
     - name: Кодек протокола
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: texport/ofd-proto-codec
         ref: ${{ inputs.ofd-proto-codec-ref }}
         path: .siblings/ofd-proto-codec
 
     - name: Ядро
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         repository: texport/superkassa-core
         ref: ${{ inputs.core-ref }}
