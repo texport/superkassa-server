@@ -9,6 +9,10 @@
 
     <logger name="io.netty" level="WARN" />
     <logger name="ktor" level="INFO" />
+    <!-- Клиент Ktor на уровне TRACE пишет адрес запроса целиком, а в адресе
+         каналов доставки лежат телефон покупателя и токен бота: подробнее
+         INFO его журнал не пускается, даже если корень опустят. -->
+    <logger name="io.ktor" level="INFO" />
     <logger name="com.openhtmltopdf" level="ERROR" />
 
     <root level="INFO">
