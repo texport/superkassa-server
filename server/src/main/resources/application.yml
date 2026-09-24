@@ -26,6 +26,12 @@ shift:
   auto-close:
     interval-ms: 60000
 
+# Как часто узел досылает чеки покупателям по их контактам из чека (мс).
+# Задачи доставки живут в базе узла и после перезапуска уходят первым тактом.
+receipt-delivery:
+  worker:
+    interval-ms: 5000
+
 springdoc:
   api-docs:
     enabled: true

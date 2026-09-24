@@ -16,6 +16,8 @@ version = providers.gradleProperty("releaseVersion").orNull ?: "$versionLine.0-S
 repositories {
     mavenLocal()
     mavenCentral()
+    // Тестовый БФД ядра тянет встраиваемую сборку, а с ней Room из репозитория Google.
+    google()
 }
 
 dependencies {
@@ -48,6 +50,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.mockk)
     testImplementation(libs.archunit)
+    testImplementation(libs.superkassa.core.testing)
     detektPlugins(libs.detekt.formatting)
 }
 
@@ -124,8 +127,7 @@ tasks.jacocoTestCoverageVerification {
                 "*Controller*",
                 "*TraceIdFilter*",
                 "*Dto*",
-                "*TrilingualLogConverter*",
-                "*ServerDeliveryServiceAdapter*"
+                "*TrilingualLogConverter*"
             )
             limit {
                 minimum = "1.0".toBigDecimal()
