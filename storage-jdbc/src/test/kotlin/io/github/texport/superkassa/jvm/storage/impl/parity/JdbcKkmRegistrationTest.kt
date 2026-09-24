@@ -30,13 +30,13 @@ class JdbcKkmRegistrationTest {
     }
 
     @Test
-    fun `БФД отказал в сведениях о кассе - отказ с кодом БФД, касса не записана`() {
+    fun `БФД отказал в сведениях о кассе - отказ его причиной словами кассира, касса не записана`() {
         kassa.bfd.reject(CommandTypeEnum.COMMAND_INFO, BFD_REFUSAL)
 
         val refusal = assertFailsWith<SuperkassaException> { kassa.api.initKkm(request()) }
 
         assertEquals("OFD_COMMAND_FAILED", refusal.code)
-        assertEquals(true, "code=$BFD_REFUSAL" in refusal.trilingualMessage.ru, refusal.trilingualMessage.ru)
+        assertEquals(true, "не разобрал запрос кассы" in refusal.trilingualMessage.ru, refusal.trilingualMessage.ru)
         assertNull(kassa.storage.findKkmBySystemId(SYSTEM_ID))
     }
 

@@ -1,12 +1,12 @@
 package io.github.texport.superkassa.jvm.storage.impl.adapter
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.github.texport.superkassa.core.domain.api.model.common.Money
 import io.github.texport.superkassa.core.domain.api.model.kkm.FiscalDocumentSnapshot
 import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptDocumentTypes
 import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptRequest
 import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptStoredPayload
 import io.github.texport.superkassa.jvm.storage.impl.application.session.StorageSession
+import io.github.texport.superkassa.jvm.storage.impl.data.jdbc.receiptPayloadJson
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.FiscalDocumentRecord
 import io.github.texport.superkassa.jvm.storage.impl.domain.model.IdempotencyRecord
 
@@ -29,8 +29,6 @@ class JdbcDocumentDelegate(private val sessionProvider: () -> StorageSession) {
         private const val PENDING_STATUS = "PENDING"
     }
 
-    private val jackson = jacksonObjectMapper()
-
     /**
      * Сохраняет фискальный чек в базе данных.
      *
@@ -41,7 +39,7 @@ class JdbcDocumentDelegate(private val sessionProvider: () -> StorageSession) {
      * @return true в случае успешного сохранения, иначе false.
      */
     fun saveReceipt(request: ReceiptRequest, documentId: String, shiftId: String, createdAt: Long): Boolean {
-        val payloadBin = jackson.writeValueAsBytes(
+        val payloadBin = receiptPayloadJson.writeValueAsBytes(
             ReceiptStoredPayload.fromReceiptRequest(request)
         )
         val session = sessionProvider()
@@ -164,7 +162,7 @@ class JdbcDocumentDelegate(private val sessionProvider: () -> StorageSession) {
         if (record.docType !in ReceiptDocumentTypes.ALL) return null
         if (record.payloadBin == null || record.payloadBin.isEmpty()) return null
         val payload = try {
-            jackson.readValue(record.payloadBin, ReceiptStoredPayload::class.java)
+            receiptPayloadJson.readValue(record.payloadBin, ReceiptStoredPayload::class.java)
         } catch (e: Exception) {
             log.error("Failed to decode receipt payload for document {}", documentId, e)
             return null

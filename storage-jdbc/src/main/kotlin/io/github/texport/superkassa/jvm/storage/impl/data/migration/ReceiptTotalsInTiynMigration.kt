@@ -1,9 +1,9 @@
 package io.github.texport.superkassa.jvm.storage.impl.data.migration
 
 import com.fasterxml.jackson.core.JacksonException
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptStoredPayload
 import io.github.texport.superkassa.jvm.storage.impl.application.migration.DataMigration
+import io.github.texport.superkassa.jvm.storage.impl.data.jdbc.receiptPayloadJson
 import org.slf4j.LoggerFactory
 import java.sql.Connection
 
@@ -23,7 +23,6 @@ import java.sql.Connection
 class ReceiptTotalsInTiynMigration : DataMigration {
 
     private val logger = LoggerFactory.getLogger(ReceiptTotalsInTiynMigration::class.java)
-    private val jackson = jacksonObjectMapper()
 
     override val version: String = "20"
     override val checksum: String = "v20"
@@ -73,7 +72,7 @@ class ReceiptTotalsInTiynMigration : DataMigration {
 
     /** Испорченную нагрузку миграция пропускает: чинить её ей нечем. */
     private fun totalFromPayload(id: String, payload: ByteArray): Long? = try {
-        jackson.readValue(payload, ReceiptStoredPayload::class.java).toReceiptRequest().total.tiyn()
+        receiptPayloadJson.readValue(payload, ReceiptStoredPayload::class.java).toReceiptRequest().total.tiyn()
     } catch (failure: JacksonException) {
         logger.warn("Failed to read receipt payload, document left as is. id={}", id, failure)
         null

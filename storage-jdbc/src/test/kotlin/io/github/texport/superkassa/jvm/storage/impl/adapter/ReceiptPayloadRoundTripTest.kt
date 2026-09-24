@@ -1,6 +1,5 @@
 package io.github.texport.superkassa.jvm.storage.impl.adapter
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.github.texport.superkassa.core.domain.api.model.common.Money
 import io.github.texport.superkassa.core.domain.api.model.receipt.PaymentType
 import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptItem
@@ -8,6 +7,7 @@ import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptOperati
 import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptPayment
 import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptRequest
 import io.github.texport.superkassa.core.domain.api.model.receipt.ReceiptStoredPayload
+import io.github.texport.superkassa.jvm.storage.impl.data.jdbc.receiptPayloadJson
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -18,11 +18,13 @@ import kotlin.test.assertEquals
  * копит документы, которых ОФД не видел.
  *
  * Так и случилось, когда в денежной сумме появилось вычисляемое свойство:
- * запись добавляла в JSON лишнее поле, а чтение падало на нём.
+ * запись добавляла в JSON лишнее поле, а чтение падало на нём. Второй
+ * раз — с суммой позиции до скидки: проверка идёт тем же разбором, что
+ * у хранилища, а не своей копией.
  */
 class ReceiptPayloadRoundTripTest {
 
-    private val jackson = jacksonObjectMapper()
+    private val jackson = receiptPayloadJson
 
     @Test
     fun `сохранённый чек читается обратно тем же`() {
@@ -36,7 +38,8 @@ class ReceiptPayloadRoundTripTest {
                     sectionCode = "001",
                     quantity = 2000L,
                     price = Money(1250, 50),
-                    sum = Money(2501, 0)
+                    sum = Money(2401, 0),
+                    discount = Money(100, 0)
                 )
             ),
             payments = listOf(ReceiptPayment(PaymentType.CASH, Money(2501, 0))),
@@ -48,7 +51,7 @@ class ReceiptPayloadRoundTripTest {
         val restored = jackson.readValue(bytes, ReceiptStoredPayload::class.java).toReceiptRequest()
 
         assertEquals(request.total, restored.total)
-        assertEquals(request.items.first().price, restored.items.first().price)
+        assertEquals(request.items.first(), restored.items.first())
         assertEquals(request.payments.first().sum, restored.payments.first().sum)
     }
 
